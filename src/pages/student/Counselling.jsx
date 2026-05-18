@@ -14,7 +14,12 @@ export default function StudentCounselling() {
   const loadBookings = async () => {
     setLoading(true)
     try {
-      const all = await getCollectionWhere('counsellingBookings', 'studentName', '==', user.name || '')
+      const uid = user.uid || user.id || ''
+      // Try by uid first, fallback to name for old bookings
+      let all = await getCollectionWhere('counsellingBookings', 'studentUid', '==', uid)
+      if (all.length === 0 && user.name) {
+        all = await getCollectionWhere('counsellingBookings', 'studentName', '==', user.name)
+      }
       setBookings(all)
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
@@ -37,7 +42,7 @@ export default function StudentCounselling() {
       {showForm && (
         <div className="bg-[#111111] rounded-2xl p-6 border border-slate-800 mb-6">
           <h3 className="text-lg font-bold text-white mb-4">New Booking</h3>
-          <CounsellingForm compact onSuccess={() => { setShowForm(false); loadBookings() }} />
+          <CounsellingForm compact studentUid={user?.uid || ''} onSuccess={() => { setShowForm(false); loadBookings() }} />
         </div>
       )}
 
