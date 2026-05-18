@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useRealtimeCollection } from '../../lib/contentApi';
-import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
+import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultNotices } from '../../data/notices';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
@@ -30,7 +30,7 @@ export default function ManageNotices() {
 
   const remove = async (id) => {
     if (!confirm('Delete this notice?')) return;
-    try { await deleteDocument('notices', id); toast.success('Deleted'); }
+    try { await deleteItemSmart('notices', id); toast.success('Deleted'); }
     catch (err) { toast.error(err.message); }
   };
 

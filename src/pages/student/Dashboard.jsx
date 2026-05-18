@@ -34,17 +34,9 @@ export default function StudentDashboard() {
   useEffect(() => {
     if (!user) return
     let alive = true
-    const loadBookings = async () => {
-      const uid = user.uid || user.id || ''
-      let book = await getCollectionWhere('counsellingBookings', 'studentUid', '==', uid)
-      if (book.length === 0 && user.name) {
-        book = await getCollectionWhere('counsellingBookings', 'studentName', '==', user.name)
-      }
-      return book
-    }
     Promise.all([
       getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || ''),
-      loadBookings(),
+      getCollectionWhere('counsellingBookings', 'studentName', '==', user.name || ''),
     ]).then(([pay, book]) => {
       if (!alive) return
       setPayments(pay)

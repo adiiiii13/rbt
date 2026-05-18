@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useRealtimeCollection } from '../../lib/contentApi';
-import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
+import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultAchievements } from '../../data/achievements';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
@@ -28,7 +28,7 @@ export default function ManageAchievements() {
 
   const remove = async (id) => {
     if (!confirm('Delete?')) return;
-    try { await deleteDocument('achievements', id); toast.success('Deleted'); }
+    try { await deleteItemSmart('achievements', id); toast.success('Deleted'); }
     catch (err) { toast.error(err.message); }
   };
 

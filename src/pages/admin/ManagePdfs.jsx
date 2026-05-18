@@ -1,10 +1,9 @@
 import { useState } from 'react';
-import { useRealtimeCollection } from '../../lib/contentApi';
-import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
+import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultPdfs } from '../../data/pdfs';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
-import { FileTextIcon } from '../../components/Icons';
 
 const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '' };
 
@@ -13,9 +12,28 @@ export default function ManagePdfs() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'application/pdf') { toast.error('PDF files only'); return; }
+    if (file.size > 500 * 1024) { toast.error('Max 500KB for upload. Use URL for larger files.'); return; }
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setForm({ ...form, url: reader.result, fileName: file.name });
+        toast.success('PDF ready');
+        setUploading(false);
+      };
+      reader.onerror = () => { toast.error('Read failed'); setUploading(false); };
+      reader.readAsDataURL(file);
+    } catch (err) { toast.error(err.message); setUploading(false); }
+  };
 
   const save = async () => {
-    if (!form.url) { toast.error('Paste a PDF URL'); return; }
+    if (!form.url) { toast.error('Upload a PDF or paste a URL'); return; }
     const payload = { ...form, downloads: form.downloads || 0 };
     try {
       if (editing) {
@@ -31,7 +49,7 @@ export default function ManagePdfs() {
 
   const remove = async (id) => {
     if (!confirm('Delete?')) return;
-    try { await deleteDocument('pdfs', id); toast.success('Deleted'); }
+    try { await deleteItemSmart('pdfs', id); toast.success('Deleted'); }
     catch (err) { toast.error(err.message); }
   };
 
@@ -48,7 +66,7 @@ export default function ManagePdfs() {
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
         <div className="table-container">
           <table>
-            <thead><tr><th>Title</th><th>Class</th><th>Subject</th><th>Type</th><th>Downloads</th><th>Actions</th></tr></thead>
+            <thead><tr><th className="text-white">Title</th><th className="text-white">Class</th><th className="text-white">Subject</th><th className="text-white">Type</th><th className="text-white">Downloads</th><th className="text-white">Actions</th></tr></thead>
             <tbody>{pdfs.map(p => (
               <tr key={p.id}>
                 <td className="font-medium text-white">{p.title}</td>
@@ -79,12 +97,26 @@ export default function ManagePdfs() {
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Exam Type</label><select className="input-field" value={form.examType} onChange={e => setForm({...form, examType: e.target.value})}><option>Unit Test</option><option>Chapter Test</option><option>Mock Test</option><option>Practice Paper</option><option>Annual Exam</option><option>Worksheet</option><option>Full Mock</option></select></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Date</label><input type="date" className="input-field" value={form.date} onChange={e => setForm({...form, date: e.target.value})} /></div>
           </div>
+
+          {/* Upload PDF file */}
           <div>
-            <label className="text-sm font-medium text-slate-300 mb-1 block">PDF URL</label>
-            <input className="input-field" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://drive.google.com/..." />
-            <p className="text-xs text-slate-500 mt-1">Paste Google Drive / Dropbox / any PDF link</p>
+            <label className="text-sm font-medium text-slate-300 mb-1 block">Upload PDF (max 500KB)</label>
+            <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
+              {form.fileName ? <p className="text-sm text-green-brand inline-flex items-center gap-1">{form.fileName}</p> : <p className="text-sm text-slate-400">{uploading ? 'Processing...' : 'Click to select PDF file'}</p>}
+              <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+            </label>
           </div>
-          <button onClick={save} className="btn-primary w-full">{editing ? 'Update' : 'Add'} PDF</button>
+
+          {/* Or paste URL */}
+          <div className="relative flex items-center py-1">
+            <div className="flex-grow border-t border-slate-700"></div>
+            <span className="flex-shrink-0 mx-3 text-slate-500 text-xs">or paste URL (for large files)</span>
+            <div className="flex-grow border-t border-slate-700"></div>
+          </div>
+          <input className="input-field" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://drive.google.com/..." />
+          <p className="text-xs text-slate-500">Google Drive / Dropbox / any PDF link. For large files use URL.</p>
+
+          <button onClick={save} disabled={uploading} className="btn-primary w-full disabled:opacity-50">{editing ? 'Update' : 'Add'} PDF</button>
         </div>
       </Modal>
     </div>

@@ -6,15 +6,20 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
 function getEmbedUrl(url) {
-  if (!url) return null;
-  // YouTube
-  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?autoplay=1&rel=0`;
+  if (!url || url === '#') return null;
+  // YouTube - extract video ID
+  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`;
   // Direct video
   if (url.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) return url;
   // Already embed
   if (url.includes('/embed/')) return url;
   return url;
+}
+
+function isYouTubeUrl(url) {
+  if (!url || url === '#') return false;
+  return url.includes('youtube.com') || url.includes('youtu.be');
 }
 
 export default function WatchVideo() {
@@ -53,10 +58,10 @@ export default function WatchVideo() {
   );
 
   const embedUrl = getEmbedUrl(video?.videoUrl);
+  const isYT = isYouTubeUrl(video?.videoUrl);
 
   return (
     <div className="min-h-screen bg-[#050B14]">
-      {/* Header */}
       <div className="bg-[#0a1628] border-b border-slate-800 px-4 py-3 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-white transition-colors">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
@@ -67,40 +72,35 @@ export default function WatchVideo() {
         </div>
       </div>
 
-      {/* Video Player */}
       <div className="max-w-5xl mx-auto px-4 py-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-2xl"
         >
-          {embedUrl ? (
-            embedUrl.includes('youtube.com') || embedUrl.includes('youtu.be') ? (
-              <iframe
-                src={embedUrl}
-                title={video?.title}
-                className="w-full h-full"
-                frameBorder="0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                allowFullScreen
-              />
-            ) : (
-              <video
-                src={embedUrl}
-                controls
-                autoPlay
-                className="w-full h-full"
-                controlsList="nodownload"
-              />
-            )
+          {isYT ? (
+            <iframe
+              src={embedUrl}
+              title={video?.title}
+              className="w-full h-full"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            />
+          ) : embedUrl ? (
+            <video
+              src={embedUrl}
+              controls
+              className="w-full h-full"
+              controlsList="nodownload"
+            />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <p className="text-slate-500">No video URL</p>
+              <p className="text-slate-500">No video URL. Admin needs to add video URL.</p>
             </div>
           )}
         </motion.div>
 
-        {/* Video Info */}
         <div className="mt-6 bg-[#111111] rounded-2xl p-6 border border-slate-800">
           <h2 className="text-xl font-bold text-white mb-2">{video?.title}</h2>
           <div className="flex flex-wrap gap-3 mb-3">
@@ -116,9 +116,8 @@ export default function WatchVideo() {
           )}
         </div>
 
-        {/* Back links */}
         <div className="mt-6 flex gap-4">
-          <Link to="/videos" className="text-sm text-slate-400 hover:text-white no-underline">← All Videos</Link>
+          <Link to="/videos" className="text-sm text-slate-400 hover:text-white no-underline">All Videos</Link>
           {user && <Link to="/student/videos" className="text-sm text-slate-400 hover:text-white no-underline">Student Videos</Link>}
         </div>
       </div>

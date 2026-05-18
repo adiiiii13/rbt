@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { useRealtimeCollection } from '../../lib/contentApi'
-import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
+import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi'
+import { addDocument, updateDocument } from '../../lib/firebaseHelpers'
 import { defaultVideos } from '../../data/videos'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
@@ -30,7 +30,7 @@ export default function ManageVideos() {
 
   const remove = async (id) => {
     if (!confirm('Delete?')) return
-    try { await deleteDocument('videos', id); toast.success('Deleted') }
+    try { await deleteItemSmart('videos', id); toast.success('Deleted') }
     catch (err) { toast.error(err.message) }
   }
 
@@ -45,7 +45,7 @@ export default function ManageVideos() {
   const deleteAll = async () => {
     if (!confirm(`Delete ALL ${videos.length} videos? This cannot be undone.`)) return
     try {
-      await Promise.all(videos.map(v => deleteDocument('videos', v.id)))
+      await Promise.all(videos.map(v => deleteItemSmart('videos', v.id)))
       toast.success('All videos deleted')
     } catch (err) { toast.error(err.message) }
   }

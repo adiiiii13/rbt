@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { EyeIcon, EyeOffIcon } from '../components/Icons';
+import { GraduationCapIcon, KeyIcon, EyeIcon, EyeOffIcon } from '../components/Icons';
 
 export default function StudentLogin({ isPopup, onClose }) {
   const [id, setId] = useState('');
@@ -92,7 +92,7 @@ export default function StudentLogin({ isPopup, onClose }) {
             <label className="text-sm font-medium text-slate-300 mb-2 block">Email</label>
             <input
               required
-              type="text"
+              type="email"
               autoComplete="email"
               className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand focus:bg-black/40 transition-all"
               placeholder="you@example.com"

@@ -1,4 +1,5 @@
-import { getCollection } from './firebaseHelpers'
+import { getCollection, deleteDocument } from './firebaseHelpers'
+import { markAsDeleted } from './useRealtime'
 
 const CACHE_TTL_MS = 60_000
 const memCache = new Map()
@@ -34,6 +35,16 @@ export const fetchGallery       = (fallback) => fetchCached('gallery', fallback)
 export function invalidateCache(name) {
   if (name) memCache.delete(name)
   else memCache.clear()
+}
+
+// Smart delete: handles both Firestore items and default/demo items
+export async function deleteItemSmart(collectionName, id) {
+  try {
+    await deleteDocument(collectionName, id)
+  } catch {
+    // Doc doesn't exist in Firestore — it's a default item. Mark as deleted.
+    await markAsDeleted(collectionName, id)
+  }
 }
 
 // Re-export realtime hook from useRealtime

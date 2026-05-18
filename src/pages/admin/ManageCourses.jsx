@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRealtimeCollection } from '../../lib/contentApi';
-import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
+import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultCourses } from '../../data/courses';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
@@ -34,7 +34,7 @@ export default function ManageCourses() {
 
   const remove = async (id) => {
     if (!confirm('Delete this course?')) return;
-    try { await deleteDocument('courses', id); toast.success('Deleted'); }
+    try { await deleteItemSmart('courses', id); toast.success('Deleted'); }
     catch (err) { toast.error(err.message); }
   };
 

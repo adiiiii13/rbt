@@ -21,7 +21,7 @@ const topics = [
   'Other',
 ]
 
-export default function CounsellingForm({ onSuccess, compact = false, studentUid = '' }) {
+export default function CounsellingForm({ onSuccess, compact = false }) {
   const [form, setForm] = useState({
     studentName: '',
     parentName: '',
@@ -68,7 +68,6 @@ export default function CounsellingForm({ onSuccess, compact = false, studentUid
     try {
       await addDocument('counsellingBookings', {
         ...cleaned,
-        studentUid: studentUid || '',
         status: 'pending',
         meetingLink: '',
       })

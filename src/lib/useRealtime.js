@@ -1,15 +1,51 @@
 import { useState, useEffect, useRef } from 'react'
-import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore'
+import { collection, query, orderBy, onSnapshot, getDocs, doc, setDoc } from 'firebase/firestore'
 import { db } from './firebase'
 
-// Global state: one subscription per collection, shared across components
-const state = {} // { [name]: { data: [], loading: true, listeners: Set, unsub: fn|null } }
+const state = {}
+const deletedSets = {} // { [name]: Set<string> }
+const deletedLoaded = {} // { [name]: boolean }
 
-function mergeWithDefaults(firestoreData, defaults) {
-  if (!defaults || !defaults.length) return firestoreData || []
-  if (!firestoreData || !firestoreData.length) return defaults
+// Load deleted IDs from Firestore meta doc
+async function loadDeletedIds(name) {
+  if (deletedLoaded[name]) return deletedSets[name]
+  try {
+    const snap = await getDocs(collection(db, `meta/${name}/deleted`))
+    const ids = new Set(snap.docs.map(d => d.id))
+    deletedSets[name] = ids
+    deletedLoaded[name] = true
+    return ids
+  } catch {
+    deletedSets[name] = new Set()
+    deletedLoaded[name] = true
+    return new Set()
+  }
+}
+
+// Mark an ID as deleted in Firestore meta
+export async function markAsDeleted(collectionName, id) {
+  try {
+    await setDoc(doc(db, `meta/${collectionName}/deleted`, id), { deletedAt: new Date().toISOString() })
+    if (!deletedSets[collectionName]) deletedSets[collectionName] = new Set()
+    deletedSets[collectionName].add(id)
+    broadcast(collectionName)
+  } catch (err) {
+    console.warn('[markAsDeleted]', err.message)
+  }
+}
+
+function mergeWithDefaults(firestoreData, defaults, collectionName) {
+  const deleted = deletedSets[collectionName] || new Set()
   const fsIds = new Set(firestoreData.map(d => d.id))
-  return [...defaults.filter(d => !fsIds.has(d.id)), ...firestoreData]
+  const filteredDefaults = defaults.filter(d => !fsIds.has(d.id) && !deleted.has(d.id))
+  return [...firestoreData, ...filteredDefaults]
+}
+
+function broadcast(name) {
+  const s = state[name]
+  if (s) {
+    for (const fn of s.listeners) { try { fn() } catch {} }
+  }
 }
 
 function ensure(name, orderField) {
@@ -25,10 +61,9 @@ function ensure(name, orderField) {
   const publish = (docs) => {
     s.data = docs
     s.loading = false
-    for (const fn of s.listeners) { try { fn() } catch {} }
+    broadcast(name)
   }
 
-  // One-shot initial load
   getDocs(qRef).then(snap => {
     if (s.loading) publish(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   }).catch(() => {
@@ -39,7 +74,6 @@ function ensure(name, orderField) {
     })
   })
 
-  // Live listener
   s.unsub = onSnapshot(qRef, (snap) => {
     publish(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   }, () => {
@@ -55,12 +89,6 @@ function ensure(name, orderField) {
   return s
 }
 
-/**
- * useRealtimeCollection(name, orderField, fallback)
- * Returns { data, loading }
- * - `data` always includes fallback defaults (merges with Firestore)
- * - `loading` only true while initial fetch pending
- */
 export function useRealtimeCollection(name, orderField = 'createdAt', fallback = []) {
   const [data, setData] = useState(fallback)
   const [loading, setLoading] = useState(true)
@@ -68,19 +96,25 @@ export function useRealtimeCollection(name, orderField = 'createdAt', fallback =
   fallbackRef.current = fallback
 
   useEffect(() => {
-    const sub = ensure(name, orderField)
+    let cancelled = false
 
-    const update = () => {
-      const merged = mergeWithDefaults(sub.data, fallbackRef.current)
-      setData(merged.length ? merged : fallbackRef.current)
-      setLoading(sub.loading)
-    }
+    // Load deleted IDs, then subscribe
+    loadDeletedIds(name).then(() => {
+      if (cancelled) return
+      const sub = ensure(name, orderField)
 
-    // If already loaded, update immediately
-    if (!sub.loading) update()
+      const update = () => {
+        const merged = mergeWithDefaults(sub.data, fallbackRef.current, name)
+        setData(merged.length ? merged : fallbackRef.current)
+        setLoading(sub.loading)
+      }
 
-    sub.listeners.add(update)
-    return () => { sub.listeners.delete(update) }
+      if (!sub.loading) update()
+
+      sub.listeners.add(update)
+    })
+
+    return () => { cancelled = true }
   }, [name])
 
   return { data, loading }
@@ -91,4 +125,6 @@ export function invalidateRealtimeCache(name) {
     state[name].unsub?.()
     delete state[name]
   }
+  delete deletedSets[name]
+  delete deletedLoaded[name]
 }
