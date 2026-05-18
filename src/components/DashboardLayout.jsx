@@ -37,6 +37,7 @@ const adminLinks = [
   { to: '/admin/notices', label: 'Notices', icon: <BellIcon size={18} /> },
   { to: '/admin/payments', label: 'Payments', icon: <CreditCardIcon size={18} /> },
   { to: '/admin/counselling', label: 'Counselling', icon: <CalendarIcon size={18} /> },
+  { to: '/admin/offers', label: 'Offers', icon: <BellIcon size={18} /> },
 ]
 
 export default function DashboardLayout({ type }) {
@@ -154,17 +155,17 @@ export default function DashboardLayout({ type }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         {/* Top Bar */}
-        <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 lg:px-8 shrink-0">
+        <header className="h-16 bg-[#0a1628] border-b border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden w-10 h-10 rounded-lg hover:bg-slate-100 flex items-center justify-center text-xl"
+              className="lg:hidden w-10 h-10 rounded-lg hover:bg-white/10 flex items-center justify-center text-xl text-white"
               aria-label="Open sidebar"
             >
               ☰
             </button>
             <div>
-              <h2 className="text-base font-semibold text-navy">
+              <h2 className="text-base font-semibold text-white">
                 {type === 'admin' ? 'Admin Panel' : 'Student Portal'}
               </h2>
               <p className="text-xs text-slate-400">Welcome back, {user?.name || 'User'}</p>
@@ -177,7 +178,7 @@ export default function DashboardLayout({ type }) {
             </span>
             <button
               onClick={handleLogout}
-              className="hidden md:flex items-center gap-2 text-sm text-slate-400 hover:text-red-500 transition-colors cursor-pointer"
+              className="hidden md:flex items-center gap-2 text-sm text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
             >
               Logout
             </button>
@@ -185,7 +186,7 @@ export default function DashboardLayout({ type }) {
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 lg:p-8 bg-[#0a0a0a]">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -196,7 +197,7 @@ export default function DashboardLayout({ type }) {
         </main>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden flex items-center justify-around bg-white border-t border-slate-200 py-2 shrink-0">
+        <nav className="lg:hidden flex items-center justify-around bg-[#0a1628] border-t border-slate-800 py-2 shrink-0">
           {links.slice(0, 5).map((link) => (
             <NavLink
               key={link.to}

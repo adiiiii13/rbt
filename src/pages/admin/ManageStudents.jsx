@@ -81,13 +81,13 @@ export default function ManageStudents() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-navy">Manage Students</h1>
+          <h1 className="text-2xl font-bold text-white">Manage Students</h1>
           <p className="text-sm text-slate-600 font-medium">{students.length} students enrolled</p>
         </div>
         <button onClick={() => setModal(true)} className="btn-primary shadow-lg">+ Add Student</button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-[#111111] rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
         <div className="table-container">
           {loading ? (
             <div className="p-12 text-center text-slate-500">Loading...</div>
@@ -95,21 +95,21 @@ export default function ManageStudents() {
             <div className="p-12 text-center text-slate-500">No students yet. Click + Add Student to begin.</div>
           ) : (
             <table className="w-full">
-              <thead className="bg-slate-50 border-b border-slate-200">
+              <thead className="bg-white/5 border-b border-slate-800">
                 <tr>
-                  <th className="text-navy font-bold">Student ID</th>
-                  <th className="text-navy font-bold">Name</th>
-                  <th className="text-navy font-bold">Email</th>
-                  <th className="text-navy font-bold">Course</th>
-                  <th className="text-navy font-bold">Status</th>
-                  <th className="text-navy font-bold">Actions</th>
+                  <th className="text-white font-bold">Student ID</th>
+                  <th className="text-white font-bold">Name</th>
+                  <th className="text-white font-bold">Email</th>
+                  <th className="text-white font-bold">Course</th>
+                  <th className="text-white font-bold">Status</th>
+                  <th className="text-white font-bold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-800">
                 {students.map(s => (
-                  <tr key={s.id} className="hover:bg-slate-50 transition-colors">
+                  <tr key={s.id} className="hover:bg-white/5 transition-colors">
                     <td className="font-mono text-[11px] text-slate-500 font-bold">{s.studentId}</td>
-                    <td className="font-semibold text-navy">{s.name}</td>
+                    <td className="font-semibold text-white">{s.name}</td>
                     <td className="text-slate-700 text-sm">{s.email || '-'}</td>
                     <td className="text-slate-700 font-medium">{s.course || '-'}</td>
                     <td>
@@ -134,39 +134,39 @@ export default function ManageStudents() {
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Student' : 'Add Student'}>
         <div className="space-y-4 p-1">
           <div>
-            <label className="text-sm font-bold text-navy mb-1.5 block">Student ID *</label>
-            <input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-navy focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.studentId} onChange={e => setForm({ ...form, studentId: e.target.value })} placeholder="e.g. STU001" />
+            <label className="text-sm font-bold text-white mb-1.5 block">Student ID *</label>
+            <input className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.studentId} onChange={e => setForm({ ...form, studentId: e.target.value })} placeholder="e.g. STU001" />
           </div>
           <div>
-            <label className="text-sm font-bold text-navy mb-1.5 block">Full Name *</label>
-            <input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-navy focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="John Doe" />
+            <label className="text-sm font-bold text-white mb-1.5 block">Full Name *</label>
+            <input className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="John Doe" />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-bold text-navy mb-1.5 block">Email</label>
-              <input type="email" className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-navy focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="student@example.com" />
+              <label className="text-sm font-bold text-white mb-1.5 block">Email</label>
+              <input type="email" className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="student@example.com" />
             </div>
             <div>
-              <label className="text-sm font-bold text-navy mb-1.5 block">Phone</label>
-              <input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-navy focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+91..." />
+              <label className="text-sm font-bold text-white mb-1.5 block">Phone</label>
+              <input className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+91..." />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-bold text-navy mb-1.5 block">Class</label>
-              <select className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-navy focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.class} onChange={e => setForm({ ...form, class: e.target.value })}>
+              <label className="text-sm font-bold text-white mb-1.5 block">Class</label>
+              <select className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.class} onChange={e => setForm({ ...form, class: e.target.value })}>
                 {['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div>
-              <label className="text-sm font-bold text-navy mb-1.5 block">Course</label>
-              <input className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-navy focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.course} onChange={e => setForm({ ...form, course: e.target.value })} placeholder="Physics Pro" />
+              <label className="text-sm font-bold text-white mb-1.5 block">Course</label>
+              <input className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.course} onChange={e => setForm({ ...form, course: e.target.value })} placeholder="Physics Pro" />
             </div>
           </div>
           {editing && (
             <div>
-              <label className="text-sm font-bold text-navy mb-1.5 block">Status</label>
-              <select className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-4 py-2.5 text-navy focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
+              <label className="text-sm font-bold text-white mb-1.5 block">Status</label>
+              <select className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                 <option value="active">Active</option>
                 <option value="disabled">Disabled</option>
               </select>

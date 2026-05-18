@@ -1,37 +1,21 @@
 import { useState } from 'react';
 import { useRealtimeCollection } from '../../lib/contentApi';
-import { addDocument, updateDocument, deleteDocument, uploadFile } from '../../lib/firebaseHelpers';
+import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
 import { defaultPdfs } from '../../data/pdfs';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import { FileTextIcon } from '../../components/Icons';
 
-const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', fileName: '', url: '' };
+const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '' };
 
 export default function ManagePdfs() {
   const { data: pdfs, loading } = useRealtimeCollection('pdfs', 'createdAt', defaultPdfs);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
-  const [uploading, setUploading] = useState(false);
-
-  const handleFileUpload = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    if (file.type !== 'application/pdf') { toast.error('PDF only'); return; }
-    if (file.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return; }
-    setUploading(true);
-    try {
-      const path = `pdfs/${Date.now()}_${file.name}`;
-      const url = await uploadFile(path, file);
-      setForm({ ...form, fileName: file.name, url });
-      toast.success('Uploaded');
-    } catch (err) { toast.error(err.message); }
-    finally { setUploading(false); }
-  };
 
   const save = async () => {
-    if (!form.url && !editing?.url) { toast.error('Upload a PDF first'); return; }
+    if (!form.url) { toast.error('Paste a PDF URL'); return; }
     const payload = { ...form, downloads: form.downloads || 0 };
     try {
       if (editing) {
@@ -51,7 +35,7 @@ export default function ManagePdfs() {
     catch (err) { toast.error(err.message); }
   };
 
-  const openEdit = (p) => { setEditing(p); setForm({ title: p.title, class: p.class, subject: p.subject, examType: p.examType, date: p.date || '', fileName: p.fileName || '', url: p.url || '' }); setModal(true); };
+  const openEdit = (p) => { setEditing(p); setForm({ title: p.title, class: p.class, subject: p.subject, examType: p.examType, date: p.date || '', url: p.url || '', fileName: p.fileName || '' }); setModal(true); };
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
 
   return (
@@ -72,7 +56,13 @@ export default function ManagePdfs() {
                 <td>{p.subject}</td>
                 <td>{p.examType}</td>
                 <td>{p.downloads || 0}</td>
-                <td><div className="flex gap-2"><button onClick={() => openEdit(p)} className="text-sm text-blue-600 cursor-pointer">Edit</button><button onClick={() => remove(p.id)} className="text-sm text-red-600 cursor-pointer">Delete</button></div></td>
+                <td>
+                  <div className="flex gap-2">
+                    {p.url && <a href={p.url} target="_blank" rel="noopener" className="text-sm text-green-500 cursor-pointer">View</a>}
+                    <button onClick={() => openEdit(p)} className="text-sm text-blue-400 cursor-pointer">Edit</button>
+                    <button onClick={() => remove(p.id)} className="text-sm text-red-400 cursor-pointer">Delete</button>
+                  </div>
+                </td>
               </tr>
             ))}</tbody>
           </table>
@@ -90,13 +80,11 @@ export default function ManagePdfs() {
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Date</label><input type="date" className="input-field" value={form.date} onChange={e => setForm({...form, date: e.target.value})} /></div>
           </div>
           <div>
-            <label className="text-sm font-medium text-slate-300 mb-1 block">Upload PDF (max 10MB)</label>
-            <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
-              {form.fileName ? <p className="text-sm text-green-brand inline-flex items-center gap-1"><FileTextIcon size={14} /> {form.fileName}</p> : <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to select PDF file'}</p>}
-              <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
-            </label>
+            <label className="text-sm font-medium text-slate-300 mb-1 block">PDF URL</label>
+            <input className="input-field" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://drive.google.com/..." />
+            <p className="text-xs text-slate-500 mt-1">Paste Google Drive / Dropbox / any PDF link</p>
           </div>
-          <button onClick={save} className="btn-primary w-full" disabled={uploading}>{editing ? 'Update' : 'Add'} PDF</button>
+          <button onClick={save} className="btn-primary w-full">{editing ? 'Update' : 'Add'} PDF</button>
         </div>
       </Modal>
     </div>

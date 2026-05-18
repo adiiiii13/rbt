@@ -48,6 +48,8 @@ const ManageNotices = lazy(() => import('./pages/admin/ManageNotices'))
 const ManageGallery = lazy(() => import('./pages/admin/ManageGallery'))
 const ManagePayments = lazy(() => import('./pages/admin/ManagePayments'))
 const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
+const ManageOffers = lazy(() => import('./pages/admin/ManageOffers'))
+const OfferPopup = lazy(() => import('./components/OfferPopup'))
 
 function ProtectedRoute({ children, role }) {
   const { user, loading } = useAuth()
@@ -162,6 +164,7 @@ function AppContent() {
                     <Route path="gallery" element={<ManageGallery />} />
                     <Route path="payments" element={<ManagePayments />} />
                     <Route path="counselling" element={<ManageCounselling />} />
+                    <Route path="offers" element={<ManageOffers />} />
                   </Route>
 
                   {/* Catch-all 404 */}
@@ -182,6 +185,13 @@ function AppContent() {
                 </Suspense>
               )}
             </AnimatePresence>
+
+            {/* Offer popup - shows on public pages only */}
+            {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.includes('login') && (
+              <Suspense fallback={null}>
+                <OfferPopup />
+              </Suspense>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
