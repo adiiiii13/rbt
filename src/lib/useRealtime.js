@@ -12,33 +12,37 @@ function subscribeToCollection(name, orderField) {
   try { qRef = query(colRef, orderBy(orderField || 'createdAt', 'desc')) }
   catch { qRef = colRef }
 
-  const state = { data: [], unsub: null, loading: true }
+  const state = { data: [], unsub: null, loading: true, error: false }
 
-  // Fast initial load via getDocs
-  getDocs(qRef).then(snapshot => {
-    state.data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  const onDone = (docs) => {
+    state.data = docs
     state.loading = false
     broadcast(name)
-  }).catch(() => {
-    getDocs(colRef).then(snapshot => {
-      state.data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      state.loading = false
-      broadcast(name)
+  }
+
+  const onError = () => {
+    state.loading = false
+    state.error = true
+    broadcast(name)
+  }
+
+  // Fast initial load
+  getDocs(qRef).then(snap => onDone(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+    .catch(() => {
+      // Fallback: unordered query
+      getDocs(colRef).then(snap => onDone(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+        .catch(onError)
     })
-  })
 
-  // Live listener
-  state.unsub = onSnapshot(qRef, (snapshot) => {
-    state.data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-    state.loading = false
-    broadcast(name)
+  // Live listener (graceful if permission denied)
+  state.unsub = onSnapshot(qRef, (snap) => {
+    onDone(snap.docs.map(d => ({ id: d.id, ...d.data() })))
   }, () => {
+    // Ordered query failed — try unordered
     state.unsub?.()
-    state.unsub = onSnapshot(colRef, (snapshot) => {
-      state.data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
-      state.loading = false
-      broadcast(name)
-    })
+    state.unsub = onSnapshot(colRef, (snap) => {
+      onDone(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    }, onError)
   })
 
   subscriptions[name] = state
@@ -52,7 +56,6 @@ function broadcast(name) {
   if (cbs) cbs.forEach(cb => cb())
 }
 
-// Merge defaults with Firestore docs. Firestore wins on same id.
 function mergeWithDefaults(firestoreData, defaults) {
   if (!defaults || !defaults.length) return firestoreData
   if (!firestoreData || !firestoreData.length) return defaults
@@ -64,10 +67,6 @@ function mergeWithDefaults(firestoreData, defaults) {
   return merged
 }
 
-/**
- * useRealtimeCollection hook
- * Merges Firestore data with fallback defaults — admin adds stay alongside demo data.
- */
 export function useRealtimeCollection(collectionName, orderField = 'createdAt', fallback = []) {
   const [data, setData] = useState(fallback)
   const [loading, setLoading] = useState(true)
