@@ -24,6 +24,7 @@ const Counselling = lazy(() => import('./pages/Counselling'))
 const StudentLogin = lazy(() => import('./pages/StudentLogin'))
 const AdminLogin = lazy(() => import('./pages/AdminLogin'))
 const NotFound = lazy(() => import('./pages/NotFound'))
+const WatchVideo = lazy(() => import('./pages/WatchVideo'))
 
 // Student Pages (lazy)
 const StudentDashboard = lazy(() => import('./pages/student/Dashboard'))
@@ -127,6 +128,7 @@ function AppContent() {
                   <Route path="/about" element={<><About /><Footer /></>} />
                   <Route path="/courses" element={<><Courses /><Footer /></>} />
                   <Route path="/videos" element={<><Videos /><Footer /></>} />
+                  <Route path="/video/:id" element={<><WatchVideo /><Footer /></>} />
                   <Route path="/gallery" element={<><Gallery /><Footer /></>} />
                   <Route path="/achievements" element={<><Achievements /><Footer /></>} />
                   <Route path="/contact" element={<><Contact /><Footer /></>} />
@@ -154,7 +156,7 @@ function AppContent() {
                   <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout type="admin" /></ProtectedRoute>}>
                     <Route index element={<AdminDashboard />} />
                     <Route path="courses" element={<ManageCourses />} />
-                    <Route path="test-papers" element={<TestPapers />} />
+                    <Route path="test-papers" element={<ManagePdfs />} />
                     <Route path="pdfs" element={<ManagePdfs />} />
                     <Route path="videos" element={<ManageVideos />} />
                     <Route path="testimonials" element={<ManageTestimonials />} />

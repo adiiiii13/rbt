@@ -42,14 +42,15 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Counselling submissions: anyone create with size limits; admin read/delete
+    // Counselling submissions: anyone create with size limits; admin full; signed-in read
     match /counsellingBookings/{doc} {
       allow create: if request.resource.data.studentName is string
         && request.resource.data.studentName.size() < 100
         && request.resource.data.phone is string
         && request.resource.data.phone.size() < 20
         && request.resource.data.keys().size() < 15;
-      allow read, update, delete: if isAdmin();
+      allow read: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
 
     // Contact / inquiry form: anyone create; admin read/delete
@@ -75,6 +76,12 @@ service cloud.firestore {
     match /invoices/{doc} {
       allow read: if isAdmin() ||
         (isStudent() && resource.data.studentId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // Offers: public read active; admin full
+    match /offers/{doc} {
+      allow read: if true;
       allow write: if isAdmin();
     }
 

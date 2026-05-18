@@ -42,11 +42,22 @@ export default function ManageVideos() {
 
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm) }
 
+  const deleteAll = async () => {
+    if (!confirm(`Delete ALL ${videos.length} videos? This cannot be undone.`)) return
+    try {
+      await Promise.all(videos.map(v => deleteDocument('videos', v.id)))
+      toast.success('All videos deleted')
+    } catch (err) { toast.error(err.message) }
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Manage Videos</h1><p className="text-sm text-slate-400">{videos.length} videos</p></div>
-        <button onClick={() => setModal(true)} className="btn-primary">+ Add Video</button>
+        <div className="flex gap-3">
+          {videos.length > 0 && <button onClick={deleteAll} className="btn-danger text-sm">Delete All</button>}
+          <button onClick={() => setModal(true)} className="btn-primary">+ Add Video</button>
+        </div>
       </div>
       {loading && <div className="text-slate-400 text-sm mb-4">Loading...</div>}
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">

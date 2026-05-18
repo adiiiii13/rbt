@@ -90,7 +90,7 @@ export default function Videos() {
                   viewport={{ once: true }}
                   transition={{ delay: i * 0.1 }}
                   className="glass-card overflow-hidden group cursor-pointer"
-                  onClick={() => v.videoUrl && v.videoUrl !== '#' && window.open(v.videoUrl, '_blank')}
+                  onClick={() => v.videoUrl && v.videoUrl !== '#' && window.open(`/video/${v.id}`, '_blank')}
                 >
                   <div className="relative aspect-video bg-gradient-to-br from-navy to-navy-lighter flex items-center justify-center">
                     {v.thumbnailUrl ? (

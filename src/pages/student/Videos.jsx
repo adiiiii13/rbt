@@ -40,12 +40,11 @@ export default function StudentVideos() {
 
   const handleVideoClick = (video) => {
     if (video.isFree || purchasedIds.has(video.id)) {
-      // Open video securely in HLS Player modal
+      // Open video player page in new tab
       if (video.videoUrl && video.videoUrl !== '#') {
-        setPlayingVideo(video);
+        window.open(`/video/${video.id}`, '_blank');
       }
     } else {
-      // Go to payment
       navigate('/student/payment', { state: { video } })
     }
   }
