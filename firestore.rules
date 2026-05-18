@@ -23,9 +23,9 @@ service cloud.firestore {
     match /gallery/{doc}      { allow read: if true; allow write: if isAdmin(); }
     match /notices/{doc}      { allow read: if true; allow write: if isAdmin(); }
 
-    // PDFs: student or admin read; admin write
+    // PDFs: public read; admin write
     match /pdfs/{doc} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 
