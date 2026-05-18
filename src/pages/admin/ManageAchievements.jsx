@@ -1,27 +1,39 @@
 import { useState } from 'react';
+import { useRealtimeCollection } from '../../lib/contentApi';
+import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
+import { defaultAchievements } from '../../data/achievements';
+import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
-import { getAchievements, saveAchievements } from '../../data/achievements';
+
+const emptyForm = { studentName: '', course: '', result: '', year: '2025', description: '', marks: '' };
 
 export default function ManageAchievements() {
-  const [items, setItems] = useState(getAchievements());
+  const { data: items, loading } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements);
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ studentName: '', course: '', result: '', year: '2025', description: '', marks: '' });
+  const [form, setForm] = useState(emptyForm);
 
-  const save = () => {
-    if (editing) {
-      const updated = items.map(a => a.id === editing.id ? { ...a, ...form } : a);
-      setItems(updated); saveAchievements(updated);
-    } else {
-      const updated = [...items, { ...form, id: `a_${Date.now()}` }];
-      setItems(updated); saveAchievements(updated);
-    }
-    closeModal();
+  const save = async () => {
+    try {
+      if (editing) {
+        await updateDocument('achievements', editing.id, form);
+        toast.success('Updated');
+      } else {
+        await addDocument('achievements', form);
+        toast.success('Added');
+      }
+      closeModal();
+    } catch (err) { toast.error(err.message); }
   };
 
-  const remove = (id) => { const updated = items.filter(a => a.id !== id); setItems(updated); saveAchievements(updated); };
+  const remove = async (id) => {
+    if (!confirm('Delete?')) return;
+    try { await deleteDocument('achievements', id); toast.success('Deleted'); }
+    catch (err) { toast.error(err.message); }
+  };
+
   const openEdit = (a) => { setEditing(a); setForm({ studentName: a.studentName, course: a.course, result: a.result, year: a.year, description: a.description, marks: a.marks }); setModal(true); };
-  const closeModal = () => { setModal(false); setEditing(null); setForm({ studentName: '', course: '', result: '', year: '2025', description: '', marks: '' }); };
+  const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
 
   return (
     <div>
@@ -29,6 +41,7 @@ export default function ManageAchievements() {
         <div><h1 className="text-2xl font-bold text-white">Manage Achievements</h1><p className="text-sm text-slate-400">{items.length} achievements</p></div>
         <button onClick={() => setModal(true)} className="btn-primary">+ Add</button>
       </div>
+      {loading && <div className="text-slate-400 text-sm mb-4">Loading...</div>}
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
         <div className="table-container">
           <table>
@@ -51,14 +64,14 @@ export default function ManageAchievements() {
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Student Name</label><input className="input-field" value={form.studentName} onChange={e => setForm({...form, studentName: e.target.value})} /></div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Course</label><input className="input-field" value={form.course} onChange={e => setForm({...form, course: e.target.value})} /></div>
-            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Result</label><input className="input-field" placeholder="AIR 245" value={form.result} onChange={e => setForm({...form, result: e.target.value})} /></div>
+            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Result</label><input className="input-field" value={form.result} onChange={e => setForm({...form, result: e.target.value})} /></div>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Marks</label><input className="input-field" value={form.marks} onChange={e => setForm({...form, marks: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Year</label><input className="input-field" value={form.year} onChange={e => setForm({...form, year: e.target.value})} /></div>
           </div>
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Description</label><textarea rows={2} className="input-field" value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
-          <button onClick={save} className="btn-primary w-full">{editing ? 'Update' : 'Add'}</button>
+          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Description</label><textarea className="input-field resize-none" rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
+          <button onClick={save} className="btn-primary w-full">{editing ? 'Update' : 'Add'} Achievement</button>
         </div>
       </Modal>
     </div>

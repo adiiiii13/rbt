@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
-import { getCollection, getCollectionWhere } from '../../lib/firebaseHelpers'
+import { getCollectionWhere } from '../../lib/firebaseHelpers'
+import { useRealtimeCollection } from '../../lib/contentApi'
+import { defaultCourses } from '../../data/courses'
+import { defaultPdfs } from '../../data/pdfs'
+import { defaultNotices } from '../../data/notices'
 import {
   BookOpenIcon, FileTextIcon, BellIcon, PlayCircleIcon,
   MessageSquareIcon, CalendarIcon, CreditCardIcon, TrophyIcon
@@ -17,38 +21,29 @@ const statColors = [
 
 export default function StudentDashboard() {
   const { user } = useAuth()
-  const [courses, setCourses] = useState([])
-  const [pdfs, setPdfs] = useState([])
-  const [notices, setNotices] = useState([])
+  const { data: allCourses } = useRealtimeCollection('courses', 'createdAt', defaultCourses)
+  const { data: allPdfs } = useRealtimeCollection('pdfs', 'createdAt', defaultPdfs)
+  const { data: allNotices } = useRealtimeCollection('notices', 'createdAt', defaultNotices)
+  const courses = allCourses.slice(0, 4)
+  const pdfs = allPdfs.slice(0, 3)
+  const notices = allNotices.slice(0, 3)
   const [payments, setPayments] = useState([])
   const [bookings, setBookings] = useState([])
   const [showSupportModal, setShowSupportModal] = useState(false)
 
-  useEffect(() => { loadData() }, [user])
-
-  const loadData = async () => {
-    try {
-      const [c, p, n] = await Promise.all([
-        getCollection('courses'),
-        getCollection('pdfs'),
-        getCollection('notices'),
-      ])
-      setCourses(c.slice(0, 4))
-      setPdfs(p.slice(0, 3))
-      setNotices(n.slice(0, 3))
-
-      if (user) {
-        const [pay, book] = await Promise.all([
-          getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || ''),
-          getCollectionWhere('counsellingBookings', 'studentName', '==', user.name || ''),
-        ])
-        setPayments(pay)
-        setBookings(book)
-      }
-    } catch (err) {
-      console.error(err)
-    }
-  }
+  useEffect(() => {
+    if (!user) return
+    let alive = true
+    Promise.all([
+      getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || ''),
+      getCollectionWhere('counsellingBookings', 'studentName', '==', user.name || ''),
+    ]).then(([pay, book]) => {
+      if (!alive) return
+      setPayments(pay)
+      setBookings(book)
+    }).catch(console.error)
+    return () => { alive = false }
+  }, [user])
 
   const stats = [
     { label: 'Courses', value: courses.length, icon: <BookOpenIcon size={22} />, link: '/student/courses' },

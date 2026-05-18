@@ -2,10 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import anime from 'animejs';
-import { getCourses, defaultCourses } from '../data/courses';
-import { getTestimonials, defaultTestimonials } from '../data/testimonials';
-import { getAchievements, defaultAchievements } from '../data/achievements';
-import { fetchCourses, fetchTestimonials, fetchAchievements } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/contentApi';
+import { defaultCourses } from '../data/courses';
+import { defaultTestimonials } from '../data/testimonials';
+import { defaultAchievements } from '../data/achievements';
 import {
   UsersIcon, TrendingUpIcon, TrophyIcon, CalendarIcon,
   BookOpenIcon, RocketIcon, HeartPulseIcon, PlayCircleIcon,
@@ -76,18 +76,10 @@ export default function Home({ onOpenLogin, onOpenAdminLogin }) {
     }
   }, []);
 
-  const [courses, setCourses] = useState(() => getCourses());
-  const [testimonials, setTestimonials] = useState(() => getTestimonials());
-  const [achievementsAll, setAchievementsAll] = useState(() => getAchievements());
+  const { data: courses } = useRealtimeCollection('courses', 'createdAt', defaultCourses);
+  const { data: testimonials } = useRealtimeCollection('testimonials', 'createdAt', defaultTestimonials);
+  const { data: achievementsAll } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements);
   const achievements = achievementsAll.slice(0, 4);
-
-  useEffect(() => {
-    let alive = true;
-    fetchCourses(defaultCourses).then(d => { if (alive && d?.length) setCourses(d); });
-    fetchTestimonials(defaultTestimonials).then(d => { if (alive && d?.length) setTestimonials(d); });
-    fetchAchievements(defaultAchievements).then(d => { if (alive && d?.length) setAchievementsAll(d); });
-    return () => { alive = false; };
-  }, []);
 
   const stats = [
     { value: 1200, suffix: '+', label: 'Students Enrolled', icon: <UsersIcon size={28} /> },

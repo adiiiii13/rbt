@@ -35,3 +35,6 @@ export function invalidateCache(name) {
   if (name) memCache.delete(name)
   else memCache.clear()
 }
+
+// Re-export realtime hook from useRealtime
+export { useRealtimeCollection, invalidateRealtimeCache } from './useRealtime'

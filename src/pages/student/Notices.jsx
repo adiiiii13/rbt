@@ -1,15 +1,9 @@
-import { useEffect, useState } from 'react';
-import { getNotices, defaultNotices } from '../../data/notices';
-import { fetchNotices } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/contentApi';
+import { defaultNotices } from '../../data/notices';
 import { CalendarIcon } from '../../components/Icons';
 
 export default function StudentNotices() {
-  const [notices, setNotices] = useState(() => getNotices());
-  useEffect(() => {
-    let alive = true;
-    fetchNotices(defaultNotices).then(data => { if (alive && data?.length) setNotices(data); });
-    return () => { alive = false; };
-  }, []);
+  const { data: notices } = useRealtimeCollection('notices', 'createdAt', defaultNotices);
   return (
     <div>
       <h1 className="text-2xl font-bold text-navy mb-1">Notices</h1>

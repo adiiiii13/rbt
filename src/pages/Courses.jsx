@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { getCourses, defaultCourses } from '../data/courses';
-import { fetchCourses } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/contentApi';
+import { defaultCourses } from '../data/courses';
 import { Link } from 'react-router-dom';
 import { BookOpenIcon, FlaskIcon, GraduationCapIcon, RocketIcon, HeartPulseIcon, UsersIcon } from '../components/Icons';
 
@@ -14,12 +13,7 @@ const iconMap = {
 };
 
 export default function Courses() {
-  const [courses, setCourses] = useState(() => getCourses());
-  useEffect(() => {
-    let alive = true;
-    fetchCourses(defaultCourses).then(data => { if (alive && data?.length) setCourses(data); });
-    return () => { alive = false; };
-  }, []);
+  const { data: courses } = useRealtimeCollection('courses', 'createdAt', defaultCourses);
   return (
     <div className="bg-black">
       <section className="relative pt-28 pb-20 overflow-hidden min-h-[400px] flex items-center">

@@ -1,16 +1,10 @@
-import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { getAchievements, defaultAchievements } from '../data/achievements';
-import { fetchAchievements } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/contentApi';
+import { defaultAchievements } from '../data/achievements';
 import { TrophyIcon } from '../components/Icons';
 
 export default function Achievements() {
-  const [achievements, setAchievements] = useState(() => getAchievements());
-  useEffect(() => {
-    let alive = true;
-    fetchAchievements(defaultAchievements).then(data => { if (alive && data?.length) setAchievements(data); });
-    return () => { alive = false; };
-  }, []);
+  const { data: achievements } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements);
   return (
     <div>
       <section className="relative pt-32 pb-20 overflow-hidden bg-navy">
