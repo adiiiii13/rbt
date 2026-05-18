@@ -50,6 +50,7 @@ const ManageGallery = lazy(() => import('./pages/admin/ManageGallery'))
 const ManagePayments = lazy(() => import('./pages/admin/ManagePayments'))
 const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
 const ManageOffers = lazy(() => import('./pages/admin/ManageOffers'))
+const ManageInquiries = lazy(() => import('./pages/admin/ManageInquiries'))
 const OfferPopup = lazy(() => import('./components/OfferPopup'))
 
 function ProtectedRoute({ children, role }) {
@@ -167,6 +168,7 @@ function AppContent() {
                     <Route path="payments" element={<ManagePayments />} />
                     <Route path="counselling" element={<ManageCounselling />} />
                     <Route path="offers" element={<ManageOffers />} />
+                    <Route path="inquiries" element={<ManageInquiries />} />
                   </Route>
 
                   {/* Catch-all 404 */}

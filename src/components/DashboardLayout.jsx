@@ -38,6 +38,7 @@ const adminLinks = [
   { to: '/admin/payments', label: 'Payments', icon: <CreditCardIcon size={18} /> },
   { to: '/admin/counselling', label: 'Counselling', icon: <CalendarIcon size={18} /> },
   { to: '/admin/offers', label: 'Offers', icon: <BellIcon size={18} /> },
+  { to: '/admin/inquiries', label: 'Inquiries', icon: <MailIcon size={18} /> },
 ]
 
 export default function DashboardLayout({ type }) {
