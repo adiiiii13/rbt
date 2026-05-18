@@ -2,123 +2,93 @@ import { useState, useEffect, useRef } from 'react'
 import { collection, query, orderBy, onSnapshot, getDocs } from 'firebase/firestore'
 import { db } from './firebase'
 
-const subscriptions = {}
-const listeners = {}
+// Global state: one subscription per collection, shared across components
+const state = {} // { [name]: { data: [], loading: true, listeners: Set, unsub: fn|null } }
 
 function mergeWithDefaults(firestoreData, defaults) {
   if (!defaults || !defaults.length) return firestoreData || []
   if (!firestoreData || !firestoreData.length) return defaults
   const fsIds = new Set(firestoreData.map(d => d.id))
-  const merged = [...firestoreData]
-  for (const d of defaults) {
-    if (!fsIds.has(d.id)) merged.push(d)
-  }
-  return merged
+  return [...defaults.filter(d => !fsIds.has(d.id)), ...firestoreData]
 }
 
-function broadcast(name) {
-  const cbs = listeners[name]
-  if (cbs) cbs.forEach(cb => cb())
-}
-
-function subscribeToCollection(name, orderField) {
-  if (subscriptions[name]) return subscriptions[name]
+function ensure(name, orderField) {
+  if (state[name]) return state[name]
 
   const colRef = collection(db, name)
   let qRef
   try { qRef = query(colRef, orderBy(orderField || 'createdAt', 'desc')) }
   catch { qRef = colRef }
 
-  const state = { data: [], unsub: null, loading: true, error: false }
+  const s = { data: [], loading: true, listeners: new Set(), unsub: null }
 
-  const onDone = (docs) => {
-    state.data = docs
-    state.loading = false
-    broadcast(name)
+  const publish = (docs) => {
+    s.data = docs
+    s.loading = false
+    for (const fn of s.listeners) { try { fn() } catch {} }
   }
 
-  const onError = () => {
-    state.loading = false
-    state.error = true
-    broadcast(name)
-  }
-
-  // Fast initial load
-  getDocs(qRef).then(snap => onDone(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-    .catch(() => {
-      getDocs(colRef).then(snap => onDone(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
-        .catch(onError)
+  // One-shot initial load
+  getDocs(qRef).then(snap => {
+    if (s.loading) publish(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  }).catch(() => {
+    getDocs(colRef).then(snap => {
+      if (s.loading) publish(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+    }).catch(() => {
+      if (s.loading) publish([])
     })
-
-  // Live listener (graceful if permission denied)
-  state.unsub = onSnapshot(qRef, (snap) => {
-    onDone(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-  }, () => {
-    state.unsub?.()
-    try {
-      state.unsub = onSnapshot(colRef, (snap) => {
-        onDone(snap.docs.map(d => ({ id: d.id, ...d.data() })))
-      }, onError)
-    } catch {
-      onError()
-    }
   })
 
-  subscriptions[name] = state
-  return state
+  // Live listener
+  s.unsub = onSnapshot(qRef, (snap) => {
+    publish(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+  }, () => {
+    try {
+      s.unsub?.()
+      s.unsub = onSnapshot(colRef, (snap) => {
+        publish(snap.docs.map(d => ({ id: d.id, ...d.data() })))
+      }, () => { if (s.loading) publish([]) })
+    } catch { if (s.loading) publish([]) }
+  })
+
+  state[name] = s
+  return s
 }
 
 /**
- * useRealtimeCollection hook
- * - Shows fallback defaults immediately on mount
- * - Merges with Firestore data as it arrives
- * - Falls back to defaults if Firestore fails
+ * useRealtimeCollection(name, orderField, fallback)
+ * Returns { data, loading }
+ * - `data` always includes fallback defaults (merges with Firestore)
+ * - `loading` only true while initial fetch pending
  */
-export function useRealtimeCollection(collectionName, orderField = 'createdAt', fallback = []) {
+export function useRealtimeCollection(name, orderField = 'createdAt', fallback = []) {
   const [data, setData] = useState(fallback)
   const [loading, setLoading] = useState(true)
   const fallbackRef = useRef(fallback)
+  fallbackRef.current = fallback
 
   useEffect(() => {
-    fallbackRef.current = fallback
-    let cancelled = false
+    const sub = ensure(name, orderField)
 
-    const callback = () => {
-      if (cancelled) return
-      const state = subscriptions[collectionName]
-      if (state) {
-        const merged = mergeWithDefaults(state.data, fallbackRef.current)
-        setData(merged)
-        setLoading(state.loading)
-      }
+    const update = () => {
+      const merged = mergeWithDefaults(sub.data, fallbackRef.current)
+      setData(merged.length ? merged : fallbackRef.current)
+      setLoading(sub.loading)
     }
 
-    if (!listeners[collectionName]) listeners[collectionName] = []
-    listeners[collectionName].push(callback)
+    // If already loaded, update immediately
+    if (!sub.loading) update()
 
-    // If already subscribed and loaded, use existing data immediately
-    const existing = subscriptions[collectionName]
-    if (existing && !existing.loading) {
-      setData(mergeWithDefaults(existing.data, fallback))
-      setLoading(false)
-    } else if (!existing) {
-      // Subscribe — loading will be true, fallback stays until Firestore responds
-      subscribeToCollection(collectionName, orderField)
-    }
-
-    return () => {
-      cancelled = true
-      const cbs = listeners[collectionName]
-      if (cbs) { const idx = cbs.indexOf(callback); if (idx >= 0) cbs.splice(idx, 1) }
-    }
-  }, [collectionName])
+    sub.listeners.add(update)
+    return () => { sub.listeners.delete(update) }
+  }, [name])
 
   return { data, loading }
 }
 
 export function invalidateRealtimeCache(name) {
-  if (name && subscriptions[name]) {
-    subscriptions[name].unsub?.()
-    delete subscriptions[name]
+  if (state[name]) {
+    state[name].unsub?.()
+    delete state[name]
   }
 }
