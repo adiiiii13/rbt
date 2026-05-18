@@ -11,42 +11,32 @@ export default function Invoices() {
   const [loading, setLoading] = useState(true)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
 
-  useEffect(() => {
-    loadPayments()
-  }, [user])
+  useEffect(() => { if (user) loadPayments() }, [user])
 
   const loadPayments = async () => {
-    if (!user) return
     setLoading(true)
     try {
       const data = await getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || '')
       setPayments(data)
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
   }
 
-  const statusColors = {
-    pending: 'badge-gold',
-    verified: 'badge-green',
-    rejected: 'badge-red',
-  }
+  const statusColors = { pending: 'badge-gold', verified: 'badge-green', rejected: 'badge-red' }
 
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-navy mb-1">My Invoices</h1>
-        <p className="text-slate-500 text-sm">View your payment history and invoices</p>
+        <h1 className="text-2xl font-bold text-white mb-1">My Invoices</h1>
+        <p className="text-slate-400 text-sm">View your payment history and invoices</p>
       </div>
 
       {loading ? (
         <div className="text-center py-8 text-slate-400">Loading...</div>
       ) : payments.length === 0 ? (
-        <div className="bg-white rounded-2xl p-8 border border-slate-200 text-center">
-          <p className="text-slate-500 mb-2">No payments yet</p>
-          <p className="text-sm text-slate-400">Purchase a video to see invoices here</p>
+        <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
+          <p className="text-slate-400 mb-2">No payments yet</p>
+          <p className="text-sm text-slate-500">Purchase a video to see invoices here</p>
         </div>
       ) : (
         <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
@@ -63,7 +53,7 @@ export default function Invoices() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map((p) => (
+                {payments.map(p => (
                   <tr key={p.id}>
                     <td className="font-mono text-xs text-white">{p.invoiceNumber}</td>
                     <td className="text-white text-sm">{p.videoTitle}</td>
@@ -71,12 +61,7 @@ export default function Invoices() {
                     <td className="text-slate-400 text-sm">{p.paidAt}</td>
                     <td><span className={`badge ${statusColors[p.status] || 'badge-navy'}`}>{p.status}</span></td>
                     <td>
-                      <button
-                        onClick={() => setSelectedInvoice(p)}
-                        className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium"
-                      >
-                        View Invoice
-                      </button>
+                      <button onClick={() => setSelectedInvoice(p)} className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium">View</button>
                     </td>
                   </tr>
                 ))}
@@ -88,13 +73,7 @@ export default function Invoices() {
 
       <Modal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} title="Invoice">
         {selectedInvoice && (
-          <InvoiceView
-            invoice={{
-              ...selectedInvoice,
-              upiId: import.meta.env.VITE_UPI_ID || 'rbtmission@upi',
-            }}
-            onClose={() => setSelectedInvoice(null)}
-          />
+          <InvoiceView invoice={{ ...selectedInvoice, upiId: import.meta.env.VITE_UPI_ID || 'rbtmission@upi' }} onClose={() => setSelectedInvoice(null)} />
         )}
       </Modal>
     </div>
