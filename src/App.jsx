@@ -1,0 +1,211 @@
+import { useState, useEffect, lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Toaster } from 'react-hot-toast'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import Navbar from './components/Navbar'
+import Footer from './components/Footer'
+import DashboardLayout from './components/DashboardLayout'
+import LoadingScreen from './components/LoadingScreen'
+import ErrorBoundary from './components/ErrorBoundary'
+
+// Public Pages (lazy)
+const Home = lazy(() => import('./pages/Home'))
+const About = lazy(() => import('./pages/About'))
+const Courses = lazy(() => import('./pages/Courses'))
+const Videos = lazy(() => import('./pages/Videos'))
+const Achievements = lazy(() => import('./pages/Achievements'))
+const TestPapers = lazy(() => import('./pages/TestPapers'))
+const Gallery = lazy(() => import('./pages/Gallery'))
+const Contact = lazy(() => import('./pages/Contact'))
+const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
+const TermsOfService = lazy(() => import('./pages/TermsOfService'))
+const Counselling = lazy(() => import('./pages/Counselling'))
+const StudentLogin = lazy(() => import('./pages/StudentLogin'))
+const AdminLogin = lazy(() => import('./pages/AdminLogin'))
+const NotFound = lazy(() => import('./pages/NotFound'))
+
+// Student Pages (lazy)
+const StudentDashboard = lazy(() => import('./pages/student/Dashboard'))
+const StudentCourses = lazy(() => import('./pages/student/Courses'))
+const StudentPdfs = lazy(() => import('./pages/student/Pdfs'))
+const StudentVideos = lazy(() => import('./pages/student/Videos'))
+const StudentNotices = lazy(() => import('./pages/student/Notices'))
+const StudentAchievements = lazy(() => import('./pages/student/Achievements'))
+const StudentCounselling = lazy(() => import('./pages/student/Counselling'))
+const Payment = lazy(() => import('./pages/student/Payment'))
+const Invoices = lazy(() => import('./pages/student/Invoices'))
+
+// Admin Pages (lazy)
+const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
+const ManageCourses = lazy(() => import('./pages/admin/ManageCourses'))
+const ManagePdfs = lazy(() => import('./pages/admin/ManagePdfs'))
+const ManageVideos = lazy(() => import('./pages/admin/ManageVideos'))
+const ManageTestimonials = lazy(() => import('./pages/admin/ManageTestimonials'))
+const ManageAchievements = lazy(() => import('./pages/admin/ManageAchievements'))
+const ManageStudents = lazy(() => import('./pages/admin/ManageStudents'))
+const ManageNotices = lazy(() => import('./pages/admin/ManageNotices'))
+const ManageGallery = lazy(() => import('./pages/admin/ManageGallery'))
+const ManagePayments = lazy(() => import('./pages/admin/ManagePayments'))
+const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
+
+function ProtectedRoute({ children, role }) {
+  const { user, loading } = useAuth()
+  const location = useLocation()
+  if (loading) return <LoadingScreen />
+  if (!user) {
+    const dest = role === 'admin' ? '/admin-login' : '/student-login'
+    return <Navigate to={dest} replace state={{ from: location.pathname + location.search }} />
+  }
+  if (role && user.role !== role) return <Navigate to="/" replace />
+  return children
+}
+
+function ScrollToTop() {
+  const { pathname } = useLocation()
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [pathname])
+  return null
+}
+
+function RouteFallback() {
+  return (
+    <div className="min-h-[60vh] flex items-center justify-center">
+      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+    </div>
+  )
+}
+
+function AppContent() {
+  const location = useLocation()
+  const { user, loading: authLoading } = useAuth()
+  const [initialLoading, setInitialLoading] = useState(() => !sessionStorage.getItem('rbt_splash_done'))
+  const [showAutoLogin, setShowAutoLogin] = useState(false)
+  const [showAdminPopup, setShowAdminPopup] = useState(false)
+
+  useEffect(() => {
+    if (!initialLoading) return
+    const timer = setTimeout(() => {
+      setInitialLoading(false)
+      sessionStorage.setItem('rbt_splash_done', '1')
+    }, 1500)
+    return () => clearTimeout(timer)
+  }, [initialLoading])
+
+  // Auto-show login modal only if not authenticated and on public route
+  useEffect(() => {
+    if (initialLoading || authLoading) return
+    const path = window.location.pathname
+    const onAuthRoute = path.includes('login') || path.startsWith('/student') || path.startsWith('/admin')
+    if (!user && !onAuthRoute) setShowAutoLogin(true)
+    else if (user) setShowAutoLogin(false)
+  }, [initialLoading, authLoading, user])
+
+  return (
+    <>
+      <ScrollToTop />
+
+      <AnimatePresence mode="wait">
+        {initialLoading ? (
+          <LoadingScreen key="splash-screen" />
+        ) : (
+          <motion.div
+            key="main-content"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Navbar onOpenLogin={() => setShowAutoLogin(true)} />
+            <Suspense fallback={<RouteFallback />}>
+              <AnimatePresence mode="wait">
+                <Routes location={location} key={location.pathname}>
+                  {/* Public Routes */}
+                  <Route path="/" element={<><Home onOpenLogin={() => setShowAutoLogin(true)} onOpenAdminLogin={() => setShowAdminPopup(true)} /><Footer onOpenAdminLogin={() => setShowAdminPopup(true)} /></>} />
+                  <Route path="/about" element={<><About /><Footer /></>} />
+                  <Route path="/courses" element={<><Courses /><Footer /></>} />
+                  <Route path="/videos" element={<><Videos /><Footer /></>} />
+                  <Route path="/gallery" element={<><Gallery /><Footer /></>} />
+                  <Route path="/achievements" element={<><Achievements /><Footer /></>} />
+                  <Route path="/contact" element={<><Contact /><Footer /></>} />
+                  <Route path="/counselling" element={<><Counselling /><Footer /></>} />
+                  <Route path="/privacy" element={<><PrivacyPolicy /><Footer /></>} />
+                  <Route path="/terms" element={<><TermsOfService /><Footer /></>} />
+                  <Route path="/student-login" element={<StudentLogin />} />
+                  <Route path="/admin-login" element={<AdminLogin />} />
+
+                  {/* Student Routes */}
+                  <Route path="/student" element={<ProtectedRoute role="student"><DashboardLayout type="student" /></ProtectedRoute>}>
+                    <Route index element={<StudentDashboard />} />
+                    <Route path="courses" element={<StudentCourses />} />
+                    <Route path="test-papers" element={<TestPapers />} />
+                    <Route path="pdfs" element={<StudentPdfs />} />
+                    <Route path="videos" element={<StudentVideos />} />
+                    <Route path="notices" element={<StudentNotices />} />
+                    <Route path="achievements" element={<StudentAchievements />} />
+                    <Route path="counselling" element={<StudentCounselling />} />
+                    <Route path="payment" element={<Payment />} />
+                    <Route path="invoices" element={<Invoices />} />
+                  </Route>
+
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout type="admin" /></ProtectedRoute>}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="courses" element={<ManageCourses />} />
+                    <Route path="test-papers" element={<TestPapers />} />
+                    <Route path="pdfs" element={<ManagePdfs />} />
+                    <Route path="videos" element={<ManageVideos />} />
+                    <Route path="testimonials" element={<ManageTestimonials />} />
+                    <Route path="achievements" element={<ManageAchievements />} />
+                    <Route path="students" element={<ManageStudents />} />
+                    <Route path="notices" element={<ManageNotices />} />
+                    <Route path="gallery" element={<ManageGallery />} />
+                    <Route path="payments" element={<ManagePayments />} />
+                    <Route path="counselling" element={<ManageCounselling />} />
+                  </Route>
+
+                  {/* Catch-all 404 */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AnimatePresence>
+            </Suspense>
+
+            <AnimatePresence>
+              {showAutoLogin && (
+                <Suspense fallback={null}>
+                  <StudentLogin isPopup={true} onClose={() => setShowAutoLogin(false)} />
+                </Suspense>
+              )}
+              {showAdminPopup && (
+                <Suspense fallback={null}>
+                  <AdminLogin isPopup={true} onClose={() => setShowAdminPopup(false)} />
+                </Suspense>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <ErrorBoundary>
+      <BrowserRouter>
+        <AuthProvider>
+          <AppContent />
+          <Toaster
+            position="top-right"
+            toastOptions={{
+              duration: 4000,
+              style: { background: '#1e293b', color: '#fff', border: '1px solid rgba(255,255,255,0.1)' },
+              success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
+              error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
+            }}
+          />
+        </AuthProvider>
+      </BrowserRouter>
+    </ErrorBoundary>
+  )
+}

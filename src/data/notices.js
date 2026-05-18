@@ -1,0 +1,58 @@
+const defaultNotices = [
+  {
+    id: 'n1',
+    title: 'Summer Batch Registrations Open',
+    content: 'Registrations for Summer 2026 foundation batches for Classes 8-10 are now open. Early bird discount available till May 30.',
+    date: '2026-05-10',
+    priority: 'high',
+    category: 'Admission',
+  },
+  {
+    id: 'n2',
+    title: 'JEE Main Mock Test Schedule',
+    content: 'Weekly JEE Main mock tests will be conducted every Sunday from 10 AM to 1 PM starting May 18. All JEE batch students must attend.',
+    date: '2026-05-08',
+    priority: 'medium',
+    category: 'Exam',
+  },
+  {
+    id: 'n3',
+    title: 'NEET Biology Special Doubt Session',
+    content: 'A special doubt clearing session for NEET Biology will be held on May 15 from 4 PM to 6 PM. Topics: Genetics & Evolution.',
+    date: '2026-05-06',
+    priority: 'medium',
+    category: 'Classes',
+  },
+  {
+    id: 'n4',
+    title: 'Holiday Notice - Buddha Purnima',
+    content: 'The institute will remain closed on May 12 (Monday) on the occasion of Buddha Purnima. Regular classes resume from May 13.',
+    date: '2026-05-05',
+    priority: 'low',
+    category: 'General',
+  },
+  {
+    id: 'n5',
+    title: 'Parent-Teacher Meeting',
+    content: 'PTM for all batches is scheduled on May 20. Parents are requested to attend and discuss their ward\'s progress.',
+    date: '2026-05-03',
+    priority: 'high',
+    category: 'General',
+  },
+];
+
+export function getNotices() {
+  const stored = localStorage.getItem('rbt_notices');
+  return stored ? JSON.parse(stored) : defaultNotices;
+}
+
+export function saveNotices(notices) {
+  localStorage.setItem('rbt_notices', JSON.stringify(notices));
+}
+
+export function resetNotices() {
+  localStorage.setItem('rbt_notices', JSON.stringify(defaultNotices));
+  return defaultNotices;
+}
+
+export { defaultNotices };

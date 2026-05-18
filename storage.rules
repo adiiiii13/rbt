@@ -1,0 +1,41 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isSignedIn() { return request.auth != null; }
+    function isAdmin()    { return isSignedIn() && request.auth.token.role == 'admin'; }
+    function isStudent()  { return isSignedIn() && request.auth.token.role == 'student'; }
+    function sizeOk(maxMB) { return request.resource.size < maxMB * 1024 * 1024; }
+    function isImage()    { return request.resource.contentType.matches('image/.*'); }
+    function isPdf()      { return request.resource.contentType == 'application/pdf'; }
+    function isVideo()    { return request.resource.contentType.matches('video/.*'); }
+
+    // Public marketing assets (gallery, course thumbs, achievements photos)
+    match /public/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAdmin() && isImage() && sizeOk(10);
+    }
+
+    // PDFs for enrolled students
+    match /pdfs/{file} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isPdf() && sizeOk(50);
+    }
+
+    // Video uploads (admin only — prefer external host for real videos)
+    match /videos/{file} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isVideo() && sizeOk(500);
+    }
+
+    // Per-student private files (id proof, photos, payment screenshots)
+    match /students/{uid}/{file} {
+      allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
+      allow write: if (isAdmin() || (isStudent() && request.auth.uid == uid))
+        && (isImage() || isPdf()) && sizeOk(5);
+    }
+
+    // Default deny
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

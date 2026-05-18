@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+    function isStudent() {
+      return isSignedIn() && request.auth.token.role == 'student';
+    }
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // Public read content; admin write only
+    match /courses/{doc}      { allow read: if true; allow write: if isAdmin(); }
+    match /videos/{doc}       { allow read: if true; allow write: if isAdmin(); }
+    match /achievements/{doc} { allow read: if true; allow write: if isAdmin(); }
+    match /testimonials/{doc} { allow read: if true; allow write: if isAdmin(); }
+    match /gallery/{doc}      { allow read: if true; allow write: if isAdmin(); }
+    match /notices/{doc}      { allow read: if true; allow write: if isAdmin(); }
+
+    // PDFs: student or admin read; admin write
+    match /pdfs/{doc} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Students: admin full access; signed-in user creates own doc (Google login flow);
+    // student read/update own doc; immutable fields protected.
+    match /students/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+      allow create: if isAdmin() || (isOwner(uid)
+        && request.resource.data.role == 'student'
+        && request.resource.data.email == request.auth.token.email);
+      allow update: if isAdmin() || (isOwner(uid)
+        && !request.resource.data.diff(resource.data).affectedKeys()
+            .hasAny(['role','studentId','createdAt']));
+      allow delete: if isAdmin();
+    }
+
+    // Counselling submissions: anyone create with size limits; admin read/delete
+    match /counsellingBookings/{doc} {
+      allow create: if request.resource.data.studentName is string
+        && request.resource.data.studentName.size() < 100
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() < 20
+        && request.resource.data.keys().size() < 15;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Contact / inquiry form: anyone create; admin read/delete
+    match /inquiries/{doc} {
+      allow create: if request.resource.data.name is string
+        && request.resource.data.name.size() < 100
+        && request.resource.data.phone is string
+        && request.resource.data.phone.size() < 20
+        && request.resource.data.keys().size() < 15;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Payments: student create own; admin read/update all; student read own
+    match /payments/{doc} {
+      allow create: if isStudent()
+        && request.resource.data.studentId == request.auth.uid;
+      allow read: if isAdmin() ||
+        (isStudent() && resource.data.studentId == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Invoices: read-only for owner student + admin; admin writes
+    match /invoices/{doc} {
+      allow read: if isAdmin() ||
+        (isStudent() && resource.data.studentId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    // Guest access codes: anonymous-flow lookup happens via Cloud Function only
+    match /guestCodes/{doc} {
+      allow read, write: if isAdmin();
+    }
+
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
