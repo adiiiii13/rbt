@@ -21,11 +21,21 @@ function mapAuthError(code) {
     case 'auth/too-many-requests':
       return 'Too many attempts. Try again later.'
     case 'auth/network-request-failed':
-      return 'Network error'
+      return 'Network error. Check your connection.'
     case 'auth/user-disabled':
       return 'Account disabled'
+    case 'auth/popup-closed-by-user':
+      return 'Login popup was closed. Please try again.'
+    case 'auth/popup-blocked':
+      return 'Popup blocked by browser. Allow popups and try again.'
+    case 'auth/cancelled-popup-request':
+      return 'Login cancelled. Please try again.'
+    case 'auth/unauthorized-domain':
+      return 'This domain is not authorized for login. Contact admin.'
+    case 'auth/operation-not-allowed':
+      return 'Google sign-in is not enabled. Contact admin.'
     default:
-      return 'Login failed'
+      return 'Login failed. Please try again.'
   }
 }
 
@@ -34,14 +44,17 @@ async function buildUserFromToken(firebaseUser) {
   let role = tokenResult.claims.role || null
   let profile = {}
 
-  // Always check student profile if role is not admin
   if (role !== 'admin') {
-    const snap = await getDoc(doc(db, 'students', firebaseUser.uid))
-    if (snap.exists()) {
-      profile = snap.data()
-      if (!role && profile.role === 'student') {
-        role = 'student' // Infer role from document if claim is missing
+    try {
+      const snap = await getDoc(doc(db, 'students', firebaseUser.uid))
+      if (snap.exists()) {
+        profile = snap.data()
+        if (!role && profile.role === 'student') {
+          role = 'student'
+        }
       }
+    } catch (err) {
+      console.warn('[auth] Failed to read student profile:', err.message)
     }
   }
 
@@ -117,38 +130,43 @@ export function AuthProvider({ children }) {
     try {
       const provider = new GoogleAuthProvider()
       const cred = await signInWithPopup(auth, provider)
-      
-      const studentRef = doc(db, 'students', cred.user.uid)
-      const snap = await getDoc(studentRef)
-      if (!snap.exists()) {
-        await setDoc(studentRef, {
-          name: cred.user.displayName || 'Student',
-          email: cred.user.email,
-          photoURL: cred.user.photoURL || null,
-          role: 'student',
-          status: 'active',
-          studentId: 'G-' + cred.user.uid.substring(0, 6).toUpperCase(),
-          createdAt: new Date().toISOString()
-        })
-      } else {
-        // Sync the latest Google profile data if they already have an account
-        const data = snap.data();
-        if (data.name !== cred.user.displayName || data.photoURL !== cred.user.photoURL) {
-          await updateDoc(studentRef, {
-            name: cred.user.displayName || data.name,
-            photoURL: cred.user.photoURL || data.photoURL || null,
-          });
+
+      // Create student doc if new user
+      try {
+        const studentRef = doc(db, 'students', cred.user.uid)
+        const snap = await getDoc(studentRef)
+        if (!snap.exists()) {
+          await setDoc(studentRef, {
+            name: cred.user.displayName || 'Student',
+            email: cred.user.email,
+            photoURL: cred.user.photoURL || null,
+            role: 'student',
+            status: 'active',
+            studentId: 'G-' + cred.user.uid.substring(0, 6).toUpperCase(),
+            createdAt: new Date().toISOString()
+          })
+        } else {
+          const data = snap.data()
+          if (data.name !== cred.user.displayName || data.photoURL !== cred.user.photoURL) {
+            await updateDoc(studentRef, {
+              name: cred.user.displayName || data.name,
+              photoURL: cred.user.photoURL || data.photoURL || null,
+            })
+          }
         }
+      } catch (firestoreErr) {
+        console.warn('[auth] Student doc create failed:', firestoreErr.message)
+        // Continue login anyway — user can still access student dashboard
       }
-      
+
       const userData = await buildUserFromToken(cred.user)
-      if (userData.role !== 'student') {
-        await signOut(auth)
-        return { success: false, message: 'Not a student account' }
+      // Google users always get student role
+      if (!userData.role) {
+        userData.role = 'student'
       }
       return { success: true, user: userData }
     } catch (err) {
-      console.error(err);
+      console.error('[auth] Google login error:', err.code, err.message)
       return { success: false, message: mapAuthError(err.code || 'Login failed') }
     }
   }

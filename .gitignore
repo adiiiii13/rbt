@@ -10,3 +10,6 @@ dist
 .idea
 functions/node_modules
 .openclaude/
+
+# Local Netlify folder
+.netlify
