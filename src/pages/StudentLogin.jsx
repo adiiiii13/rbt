@@ -89,13 +89,15 @@ export default function StudentLogin({ isPopup, onClose }) {
 
         <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-            <label className="text-sm font-medium text-slate-300 mb-2 block">Student ID / Email</label>
-            <input 
-              required 
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand focus:bg-black/40 transition-all" 
-              placeholder="STUDENT001" 
-              value={id} 
-              onChange={(e) => setId(e.target.value)} 
+            <label className="text-sm font-medium text-slate-300 mb-2 block">Email</label>
+            <input
+              required
+              type="email"
+              autoComplete="email"
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand focus:bg-black/40 transition-all"
+              placeholder="you@example.com"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
             />
           </motion.div>
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
@@ -155,15 +157,13 @@ export default function StudentLogin({ isPopup, onClose }) {
           </button>
         </motion.div>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-8 p-4 rounded-xl bg-white/5 border border-white/10 relative z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-green-brand animate-pulse" />
-            <p className="text-xs font-bold text-green-brand uppercase tracking-wider">Demo Credentials</p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-8 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20 relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-400"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            <p className="text-xs font-bold text-blue-400 uppercase tracking-wider">New Student?</p>
           </div>
-          <p className="text-sm text-slate-400 flex items-center gap-2">
-            ID: <strong className="text-white font-mono bg-white/10 px-2.5 py-1 rounded-md border border-white/5">STUDENT001</strong> 
-            <span className="text-slate-600">|</span> 
-            Pass: <strong className="text-white font-mono bg-white/10 px-2.5 py-1 rounded-md border border-white/5">student123</strong>
+          <p className="text-xs text-slate-400">
+            Sign in with Google or contact admin for a registered account.
           </p>
         </motion.div>
       </div>

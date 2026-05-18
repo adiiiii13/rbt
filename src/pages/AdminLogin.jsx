@@ -75,13 +75,15 @@ export default function AdminLogin({ isPopup, onClose }) {
 
         <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-            <label className="text-sm font-medium text-slate-300 mb-2 block">Admin ID</label>
-            <input 
-              required 
-              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand focus:bg-black/40 transition-all" 
-              placeholder="ADMIN001" 
-              value={id} 
-              onChange={(e) => setId(e.target.value)} 
+            <label className="text-sm font-medium text-slate-300 mb-2 block">Admin Email</label>
+            <input
+              required
+              type="email"
+              autoComplete="email"
+              className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand focus:bg-black/40 transition-all"
+              placeholder="admin@rbtmission.com"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
             />
           </motion.div>
           <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }}>
@@ -112,15 +114,13 @@ export default function AdminLogin({ isPopup, onClose }) {
           </motion.div>
         </form>
 
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-8 p-4 rounded-xl bg-white/5 border border-white/10 relative z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-green-brand animate-pulse" />
-            <p className="text-xs font-bold text-green-brand uppercase tracking-wider">Demo Credentials</p>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }} className="mt-8 p-4 rounded-xl bg-amber-500/5 border border-amber-500/20 relative z-10">
+          <div className="flex items-center gap-2 mb-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-amber-400"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+            <p className="text-xs font-bold text-amber-400 uppercase tracking-wider">Authorized Personnel Only</p>
           </div>
-          <p className="text-sm text-slate-400 flex items-center gap-2">
-            ID: <strong className="text-white font-mono bg-white/10 px-2.5 py-1 rounded-md border border-white/5">ADMIN001</strong> 
-            <span className="text-slate-600">|</span> 
-            Pass: <strong className="text-white font-mono bg-white/10 px-2.5 py-1 rounded-md border border-white/5">admin123</strong>
+          <p className="text-xs text-slate-400">
+            Contact system administrator for access credentials.
           </p>
         </motion.div>
       </div>
