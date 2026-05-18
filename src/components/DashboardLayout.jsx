@@ -9,7 +9,7 @@ import toast from 'react-hot-toast'
 import {
   HomeIcon, BookOpenIcon, FileTextIcon, PlayCircleIcon,
   BellIcon, TrophyIcon, UsersIcon, MessageSquareIcon,
-  CalendarIcon, CreditCardIcon
+  CalendarIcon, CreditCardIcon, MailIcon
 } from './Icons'
 
 const studentLinks = [
