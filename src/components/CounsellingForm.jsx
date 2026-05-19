@@ -102,7 +102,7 @@ export default function CounsellingForm({ onSuccess, compact = false }) {
         </div>
       )}
 
-      <div className={compact ? '' : 'grid grid-cols-2 gap-4'}>
+      <div className={compact ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-4'}>
         <div>
           <label className="text-sm font-medium text-slate-300 mb-1 block">Student Name *</label>
           <input className="input-field" value={form.studentName} onChange={(e) => setForm({ ...form, studentName: e.target.value })} required />
@@ -115,7 +115,7 @@ export default function CounsellingForm({ onSuccess, compact = false }) {
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-slate-300 mb-1 block">Phone *</label>
           <input type="tel" className="input-field" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
@@ -133,7 +133,7 @@ export default function CounsellingForm({ onSuccess, compact = false }) {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="text-sm font-medium text-slate-300 mb-1 block">Preferred Date *</label>
           <input type="date" className="input-field" value={form.preferredDate} onChange={(e) => setForm({ ...form, preferredDate: e.target.value })} required />
