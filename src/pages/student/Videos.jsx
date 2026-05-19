@@ -4,8 +4,6 @@ import { getCollection, getCollectionWhere } from '../../lib/firebaseHelpers'
 import { useAuth } from '../../context/AuthContext'
 import { PlayCircleIcon, LockIcon } from '../../components/Icons'
 import { formatCurrency } from '../../lib/invoice'
-import Modal from '../../components/Modal'
-import HlsPlayer from '../../components/HlsPlayer'
 
 export default function StudentVideos() {
   const { user } = useAuth()
@@ -13,36 +11,27 @@ export default function StudentVideos() {
   const [videos, setVideos] = useState([])
   const [purchasedIds, setPurchasedIds] = useState(new Set())
   const [loading, setLoading] = useState(true)
-  const [playingVideo, setPlayingVideo] = useState(null)
 
-  useEffect(() => {
-    loadData()
-  }, [user])
+  useEffect(() => { loadData() }, [user])
 
   const loadData = async () => {
     setLoading(true)
     try {
       const vids = await getCollection('videos')
       setVideos(vids)
-
-      // Get purchased video IDs
       if (user) {
         const payments = await getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || '')
         const verified = payments.filter(p => p.status === 'verified').map(p => p.videoId)
         setPurchasedIds(new Set(verified))
       }
-    } catch (err) {
-      console.error(err)
-    } finally {
-      setLoading(false)
-    }
+    } catch (err) { console.error(err) }
+    finally { setLoading(false) }
   }
 
   const handleVideoClick = (video) => {
     if (video.isFree || purchasedIds.has(video.id)) {
-      // Open video player page in new tab
       if (video.videoUrl && video.videoUrl !== '#') {
-        window.open(`/video/${video.id}`, '_blank');
+        window.open(`/video/${video.id}`, '_blank')
       }
     } else {
       navigate('/student/payment', { state: { video } })
@@ -64,11 +53,11 @@ export default function StudentVideos() {
               <div
                 key={v.id}
                 onClick={() => handleVideoClick(v)}
-                className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer"
+                className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden hover:border-green-brand/30 transition-all group cursor-pointer"
               >
                 <div className="relative aspect-video bg-white/5 flex items-center justify-center">
                   {v.thumbnailUrl ? (
-                    <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover" />
+                    <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover" loading="lazy" />
                   ) : (
                     <>
                       <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/3" />
@@ -98,10 +87,10 @@ export default function StudentVideos() {
                 <div className="p-4">
                   <h3 className="font-bold text-white text-sm mb-1">{v.title}</h3>
                   <p className="text-xs text-slate-500">{v.teacher} • {v.class}</p>
-                  {!v.isFree && !purchasedIds.has(v.id) && (
-                    <p className="text-xs text-green-brand font-semibold mt-1">Pay to unlock</p>
+                  {isLocked && (
+                    <p className="text-xs text-amber-400 font-semibold mt-1">Pay to unlock</p>
                   )}
-                  {(v.isFree || purchasedIds.has(v.id)) && (
+                  {!isLocked && (
                     <p className="text-xs text-green-brand font-semibold mt-1">
                       {v.isFree ? 'Free' : 'Purchased'}
                     </p>
@@ -112,28 +101,6 @@ export default function StudentVideos() {
           })}
         </div>
       )}
-
-      {/* Video Player Modal */}
-      <Modal 
-        isOpen={!!playingVideo} 
-        onClose={() => setPlayingVideo(null)} 
-        title={playingVideo?.title || 'Video Player'}
-      >
-        {playingVideo && (
-          <div className="bg-black/20 p-2 rounded-2xl border border-white/5">
-            <HlsPlayer 
-              url={playingVideo.videoUrl} 
-              onEnded={() => {
-                // Optional: mark video as watched in Firestore
-              }}
-            />
-            <div className="mt-4 px-2 pb-2">
-              <h4 className="text-white font-bold">{playingVideo.title}</h4>
-              <p className="text-sm text-slate-400 mt-1">{playingVideo.teacher} • {playingVideo.class}</p>
-            </div>
-          </div>
-        )}
-      </Modal>
     </div>
   )
 }
