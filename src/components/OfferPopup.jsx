@@ -28,11 +28,6 @@ export default function OfferPopup() {
         const doc = snap.docs[0];
         const data = { id: doc.id, ...doc.data() };
 
-        // Check date range
-        const now = new Date();
-        if (data.startDate && new Date(data.startDate) > now) return;
-        if (data.endDate && new Date(data.endDate) < now) return;
-
         setOffer(data);
       } catch { /* offer popup is non-critical */ }
     };
