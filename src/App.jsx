@@ -8,6 +8,7 @@ import Footer from './components/Footer'
 import DashboardLayout from './components/DashboardLayout'
 import LoadingScreen from './components/LoadingScreen'
 import ErrorBoundary from './components/ErrorBoundary'
+import OfferPopup from './components/OfferPopup'
 
 // Public Pages (lazy)
 const Home = lazy(() => import('./pages/Home'))
@@ -51,7 +52,6 @@ const ManagePayments = lazy(() => import('./pages/admin/ManagePayments'))
 const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
 const ManageOffers = lazy(() => import('./pages/admin/ManageOffers'))
 const ManageInquiries = lazy(() => import('./pages/admin/ManageInquiries'))
-const OfferPopup = lazy(() => import('./components/OfferPopup'))
 
 function ProtectedRoute({ children, role }) {
   const { user, loading } = useAuth()
@@ -192,9 +192,7 @@ function AppContent() {
 
             {/* Offer popup - shows on public pages only */}
             {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.includes('login') && (
-              <Suspense fallback={null}>
-                <OfferPopup />
-              </Suspense>
+              <OfferPopup />
             )}
           </motion.div>
         )}
