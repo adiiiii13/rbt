@@ -63,31 +63,31 @@ export default function Payment() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-navy mb-1">Complete Payment</h1>
-        <p className="text-slate-500 text-sm">Pay to unlock: <span className="text-navy font-semibold">{video.title}</span></p>
+        <h1 className="text-2xl font-bold text-white mb-1">Complete Payment</h1>
+        <p className="text-slate-400 text-sm">Pay to unlock: <span className="text-white font-semibold">{video.title}</span></p>
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Video Info */}
         <div className="bg-white rounded-2xl p-6 border border-slate-200">
-          <h3 className="font-bold text-navy mb-4">Video Details</h3>
+          <h3 className="font-bold text-white mb-4">Video Details</h3>
           <div className="space-y-3">
             <div className="flex items-center gap-3 p-4 rounded-xl bg-slate-50 border border-slate-100">
               <div className="w-12 h-12 rounded-xl bg-green-brand/10 flex items-center justify-center text-green-brand">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3" /></svg>
               </div>
               <div>
-                <h4 className="font-semibold text-navy text-sm">{video.title}</h4>
+                <h4 className="font-semibold text-white text-sm">{video.title}</h4>
                 <p className="text-xs text-slate-500">{video.subject} • {video.class} • {video.teacher}</p>
               </div>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Duration</span>
-              <span className="text-navy font-medium">{video.duration}</span>
+              <span className="text-white font-medium">{video.duration}</span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-slate-500">Subject</span>
-              <span className="text-navy font-medium">{video.subject}</span>
+              <span className="text-white font-medium">{video.subject}</span>
             </div>
           </div>
         </div>

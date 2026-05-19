@@ -71,11 +71,11 @@ export default function ManageCourses() {
         <div className="space-y-4">
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Title</label><input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Description</label><textarea className="input-field resize-none" rows={3} value={form.description} onChange={e => setForm({...form, description: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Level</label><select className="input-field" value={form.level} onChange={e => setForm({...form, level: e.target.value})}>{['Foundation','Intermediate','Competitive'].map(l => <option key={l}>{l}</option>)}</select></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Duration</label><input className="input-field" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Students</label><input type="number" className="input-field" value={form.students} onChange={e => setForm({...form, students: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Color</label><input type="color" className="input-field h-10" value={form.color} onChange={e => setForm({...form, color: e.target.value})} /></div>
           </div>

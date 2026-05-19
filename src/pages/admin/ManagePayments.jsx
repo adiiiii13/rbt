@@ -58,7 +58,7 @@ export default function ManagePayments() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800">
           <p className="text-xs text-slate-400 mb-1">Total Revenue</p>
           <p className="text-xl font-bold text-green-brand">{formatCurrency(totalRevenue)}</p>

@@ -23,7 +23,7 @@ export default function InvoiceView({ invoice, onClose }) {
       </div>
 
       {/* Details */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <p className="text-xs text-slate-400 print:text-slate-500 uppercase tracking-wider mb-1">Bill To</p>
           <p className="text-sm font-semibold text-white print:text-black">{invoice.studentName}</p>

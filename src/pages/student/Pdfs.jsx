@@ -4,8 +4,8 @@ export default function StudentPdfs() {
   const pdfs = getPdfs();
   return (
     <div>
-      <h1 className="text-2xl font-bold text-navy mb-1">Online Test PDFs</h1>
-      <p className="text-slate-500 text-sm mb-6"><span className="text-green-brand font-bold">Download</span> test papers and practice sets</p>
+      <h1 className="text-2xl font-bold text-white mb-1">Online Test PDFs</h1>
+      <p className="text-slate-400 text-sm mb-6"><span className="text-green-brand font-bold">Download</span> test papers and practice sets</p>
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
         <div className="table-container bg-[#111111]">
           <table>

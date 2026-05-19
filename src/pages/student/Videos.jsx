@@ -51,8 +51,8 @@ export default function StudentVideos() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-navy mb-1">Demo Videos</h1>
-      <p className="text-slate-500 text-sm mb-6">Watch expert-led video lectures</p>
+      <h1 className="text-2xl font-bold text-white mb-1">Demo Videos</h1>
+      <p className="text-slate-400 text-sm mb-6">Watch expert-led video lectures</p>
 
       {loading ? (
         <p className="text-slate-400 text-center py-8">Loading...</p>
@@ -64,14 +64,14 @@ export default function StudentVideos() {
               <div
                 key={v.id}
                 onClick={() => handleVideoClick(v)}
-                className="bg-white rounded-2xl border border-slate-100 overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer"
+                className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer"
               >
-                <div className="relative aspect-video bg-navy-light flex items-center justify-center">
+                <div className="relative aspect-video bg-white/5 flex items-center justify-center">
                   {v.thumbnailUrl ? (
                     <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover" />
                   ) : (
                     <>
-                      <div className="absolute inset-0 bg-gradient-to-br from-navy to-navy-lighter" />
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/3" />
                       <span className="relative opacity-30 text-white"><PlayCircleIcon size={40} /></span>
                     </>
                   )}
@@ -96,7 +96,7 @@ export default function StudentVideos() {
                   )}
                 </div>
                 <div className="p-4">
-                  <h3 className="font-bold text-navy text-sm mb-1">{v.title}</h3>
+                  <h3 className="font-bold text-white text-sm mb-1">{v.title}</h3>
                   <p className="text-xs text-slate-500">{v.teacher} • {v.class}</p>
                   {!v.isFree && !purchasedIds.has(v.id) && (
                     <p className="text-xs text-green-brand font-semibold mt-1">Pay to unlock</p>

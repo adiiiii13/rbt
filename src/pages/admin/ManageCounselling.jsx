@@ -69,7 +69,7 @@ export default function ManageCounselling() {
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Counselling Bookings</h1><p className="text-sm text-slate-400">{bookings.length} total</p></div>
       </div>
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Pending</p><p className="text-xl font-bold text-amber-500">{pendingCount}</p></div>
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Approved</p><p className="text-xl font-bold text-green-brand">{bookings.filter(b => b.status === 'approved').length}</p></div>
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Total</p><p className="text-xl font-bold text-white">{bookings.length}</p></div>
@@ -119,11 +119,11 @@ export default function ManageCounselling() {
         <div className="space-y-4">
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Topic</label><input className="input-field" value={editForm.topic} onChange={e => setEditForm({...editForm, topic: e.target.value})} /></div>
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Student Name</label><input className="input-field" value={editForm.studentName} onChange={e => setEditForm({...editForm, studentName: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Phone</label><input className="input-field" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Status</label><select className="input-field" value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}><option value="pending">Pending</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Date</label><input type="date" className="input-field" value={editForm.preferredDate} onChange={e => setEditForm({...editForm, preferredDate: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Time</label><input type="time" className="input-field" value={editForm.preferredTime} onChange={e => setEditForm({...editForm, preferredTime: e.target.value})} /></div>
           </div>

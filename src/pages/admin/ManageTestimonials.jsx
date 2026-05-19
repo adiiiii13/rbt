@@ -58,7 +58,7 @@ export default function ManageTestimonials() {
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Testimonial' : 'Add Testimonial'}>
         <div className="space-y-4">
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Name</label><input className="input-field" value={form.name} onChange={e => setForm({...form, name: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Role</label><input className="input-field" value={form.role} onChange={e => setForm({...form, role: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Type</label><select className="input-field" value={form.type} onChange={e => setForm({...form, type: e.target.value})}><option value="student">Student</option><option value="parent">Parent</option></select></div>
           </div>

@@ -198,8 +198,8 @@ export default function DashboardLayout({ type }) {
         </main>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden flex items-center justify-around bg-[#0a1628] border-t border-slate-800 py-2 shrink-0">
-          {links.slice(0, 5).map((link) => (
+        <nav className="lg:hidden flex items-center justify-around bg-[#0a1628] border-t border-slate-800 py-2 shrink-0 overflow-x-auto">
+          {links.slice(0, type === 'admin' ? 8 : 7).map((link) => (
             <NavLink
               key={link.to}
               to={link.to}

@@ -70,7 +70,7 @@ export default function ManageNotices() {
         <div className="space-y-4">
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Title</label><input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Content</label><textarea className="input-field resize-none" rows={4} value={form.content} onChange={e => setForm({...form, content: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Priority</label><select className="input-field" value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Category</label><select className="input-field" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>{['General','Academic','Exam','Holiday','Event','Fee'].map(c => <option key={c}>{c}</option>)}</select></div>
           </div>

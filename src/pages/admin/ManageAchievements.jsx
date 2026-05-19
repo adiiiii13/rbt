@@ -62,11 +62,11 @@ export default function ManageAchievements() {
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Achievement' : 'Add Achievement'}>
         <div className="space-y-4">
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Student Name</label><input className="input-field" value={form.studentName} onChange={e => setForm({...form, studentName: e.target.value})} /></div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Course</label><input className="input-field" value={form.course} onChange={e => setForm({...form, course: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Result</label><input className="input-field" value={form.result} onChange={e => setForm({...form, result: e.target.value})} /></div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Marks</label><input className="input-field" value={form.marks} onChange={e => setForm({...form, marks: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Year</label><input className="input-field" value={form.year} onChange={e => setForm({...form, year: e.target.value})} /></div>
           </div>

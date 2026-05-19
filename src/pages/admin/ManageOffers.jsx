@@ -78,7 +78,7 @@ export default function ManageOffers() {
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Popup Message</label><textarea className="input-field resize-none" rows={3} value={form.message} onChange={e => setForm({...form, message: e.target.value})} placeholder="Get 20% off on all courses this month!" /></div>
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">WhatsApp Phone (with country code)</label><input className="input-field" value={form.whatsappPhone} onChange={e => setForm({...form, whatsappPhone: e.target.value})} placeholder="918888888888" /></div>
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">WhatsApp Pre-filled Message</label><input className="input-field" value={form.whatsappMessage} onChange={e => setForm({...form, whatsappMessage: e.target.value})} placeholder="Hi! I want to enroll in the summer offer" /></div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Bg Color</label><input type="color" className="input-field h-10" value={form.bgColor} onChange={e => setForm({...form, bgColor: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Start Date</label><input type="date" className="input-field" value={form.startDate} onChange={e => setForm({...form, startDate: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">End Date</label><input type="date" className="input-field" value={form.endDate} onChange={e => setForm({...form, endDate: e.target.value})} /></div>
