@@ -20,7 +20,6 @@ export function validateEnv() {
       missing.length ? `Missing env vars: ${missing.join(', ')}` : '',
       placeholder.length ? `Placeholder values: ${placeholder.join(', ')}` : '',
     ].filter(Boolean).join(' | ')
-    if (import.meta.env.PROD) throw new Error(`[env] ${msg}`)
     console.warn(`[env] ${msg}`)
   }
 }

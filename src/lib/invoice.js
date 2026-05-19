@@ -3,10 +3,12 @@ export function generateInvoiceNumber(count) {
 }
 
 export function formatCurrency(amount) {
+  const num = Number(amount)
+  if (isNaN(num)) return '₹0'
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-  }).format(amount)
+  }).format(num)
 }
 
 export function createInvoiceData(payment) {

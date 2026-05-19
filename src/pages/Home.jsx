@@ -363,7 +363,7 @@ export default function Home({ onOpenLogin, onOpenAdminLogin }) {
                 <h3 className="font-bold text-white mb-2">{course.title}</h3>
                 <p className="text-sm text-slate-400 mb-4 line-clamp-2">{course.description}</p>
                 <div className="flex flex-wrap gap-1.5 mb-4">
-                  {course.subjects.slice(0, 3).map((s) => (
+                  {(course.subjects || []).slice(0, 3).map((s) => (
                     <span key={s} className="text-xs px-2 py-1 rounded-md bg-white/10 text-slate-300">{s}</span>
                   ))}
                 </div>
@@ -507,7 +507,7 @@ export default function Home({ onOpenLogin, onOpenAdminLogin }) {
                 className="glass-card p-6 cursor-pointer hover:scale-105 hover:shadow-[0_10px_40px_rgba(34,197,94,0.1)] border border-white/5 hover:border-green-brand/20 transition-all duration-300 group"
               >
                 <div className="flex gap-1 mb-4">
-                  {[...Array(t.rating)].map((_, j) => (
+                  {[...Array(Math.max(0, t.rating || 0))].map((_, j) => (
                     <StarIcon key={j} size={16} className="text-accent-gold" />
                   ))}
                 </div>
