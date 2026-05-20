@@ -19,7 +19,7 @@ export default function ManageVideos() {
     const file = e.target.files?.[0]
     if (!file) return
     if (!file.type.startsWith('video/')) { toast.error('Video files only'); return }
-    if (file.size > 500 * 1024 * 1024) { toast.error('Max 500MB'); return }
+    if (file.size > 500 * 1024 * 1024) { toast('Large file — upload may take time', { icon: 'info' }) }
     setUploading(true)
     try {
       const path = `videos/${Date.now()}_${file.name}`
@@ -140,7 +140,7 @@ export default function ManageVideos() {
             </div>
           ) : (
             <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">Upload Video (max 500MB)</label>
+              <label className="text-sm font-medium text-slate-300 mb-1 block">Upload Video (files over 500MB may take time)</label>
               <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
                 {form.videoUrl && !form.videoUrl.includes('youtube') ? (
                   <p className="text-sm text-green-brand">{form.videoUrl.split('/').pop().split('?')[0]}</p>
