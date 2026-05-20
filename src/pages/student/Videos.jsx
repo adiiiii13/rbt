@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCollection, getCollectionWhere } from '../../lib/firebaseHelpers'
+import { getCollectionWhere } from '../../lib/firebaseHelpers'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { useAuth } from '../../context/AuthContext'
 import { PlayCircleIcon, LockIcon } from '../../components/Icons'
 import { formatCurrency } from '../../lib/invoice'
@@ -8,25 +9,21 @@ import { formatCurrency } from '../../lib/invoice'
 export default function StudentVideos() {
   const { user } = useAuth()
   const navigate = useNavigate()
-  const [videos, setVideos] = useState([])
+  const { data: videos, loading } = useRealtimeCollection('videos')
   const [purchasedIds, setPurchasedIds] = useState(new Set())
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => { loadData() }, [user])
-
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const vids = await getCollection('videos')
-      setVideos(vids)
-      if (user) {
-        const payments = await getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || '')
+  useEffect(() => {
+    if (!user) return
+    let alive = true
+    getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || '')
+      .then(payments => {
+        if (!alive) return
         const verified = payments.filter(p => p.status === 'verified').map(p => p.videoId)
         setPurchasedIds(new Set(verified))
-      }
-    } catch (err) { console.error(err) }
-    finally { setLoading(false) }
-  }
+      })
+      .catch(console.error)
+    return () => { alive = false }
+  }, [user])
 
   const handleVideoClick = (video) => {
     if (video.isFree || purchasedIds.has(video.id)) {

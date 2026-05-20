@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { useRealtimeCollection } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { defaultCourses } from '../data/courses';
 import { Link } from 'react-router-dom';
 import { BookOpenIcon, FlaskIcon, GraduationCapIcon, RocketIcon, HeartPulseIcon, UsersIcon } from '../components/Icons';
@@ -13,7 +13,8 @@ const iconMap = {
 };
 
 export default function Courses() {
-  const { data: courses } = useRealtimeCollection('courses', 'createdAt', defaultCourses);
+  const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
   return (
     <div className="bg-black">
       <section className="relative pt-28 pb-20 overflow-hidden min-h-[400px] flex items-center">

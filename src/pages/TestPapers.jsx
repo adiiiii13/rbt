@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation } from 'react-router-dom';
-import { useRealtimeCollection } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { defaultPdfs } from '../data/pdfs';
 import { FileTextIcon, DownloadIcon } from '../components/Icons';
 
 export default function TestPapers() {
   const location = useLocation();
   const isDashboard = location.pathname.includes('/student') || location.pathname.includes('/admin');
-  const { data: testPapers, loading } = useRealtimeCollection('pdfs', 'createdAt', defaultPdfs);
+  const { data: testPapersRaw, loading } = useRealtimeCollection('pdfs', { fallback: defaultPdfs });
+  const testPapers = testPapersRaw?.length ? testPapersRaw : defaultPdfs;
 
   return (
     <div className={`${isDashboard ? 'bg-[#0a0a0a]' : 'bg-black'} pb-16 min-h-screen relative`}>

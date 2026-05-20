@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import anime from 'animejs';
-import { useRealtimeCollection } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { defaultCourses } from '../data/courses';
 import { defaultTestimonials } from '../data/testimonials';
 import { defaultAchievements } from '../data/achievements';
@@ -76,9 +76,12 @@ export default function Home({ onOpenLogin, onOpenAdminLogin }) {
     }
   }, []);
 
-  const { data: courses } = useRealtimeCollection('courses', 'createdAt', defaultCourses);
-  const { data: testimonials } = useRealtimeCollection('testimonials', 'createdAt', defaultTestimonials);
-  const { data: achievementsAll } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements);
+  const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const { data: testimonialsRaw } = useRealtimeCollection('testimonials', { fallback: defaultTestimonials });
+  const { data: achievementsRaw } = useRealtimeCollection('achievements', { fallback: defaultAchievements });
+  const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
+  const testimonials = testimonialsRaw?.length ? testimonialsRaw : defaultTestimonials;
+  const achievementsAll = achievementsRaw?.length ? achievementsRaw : defaultAchievements;
   const achievements = achievementsAll.slice(0, 4);
 
   const stats = [

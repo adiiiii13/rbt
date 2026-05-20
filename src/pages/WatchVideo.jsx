@@ -5,19 +5,7 @@ import { db } from '../lib/firebase';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { defaultVideos } from '../data/videos';
-
-function getEmbedUrl(url) {
-  if (!url || url === '#') return null;
-  const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
-  if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`;
-  if (url.includes('/embed/')) return url;
-  return url;
-}
-
-function isYouTubeUrl(url) {
-  if (!url || url === '#') return false;
-  return url.includes('youtube.com') || url.includes('youtu.be');
-}
+import HlsPlayer from '../components/HlsPlayer';
 
 export default function WatchVideo() {
   const { id } = useParams();
@@ -38,7 +26,6 @@ export default function WatchVideo() {
         }
       } catch { /* Firestore error — try default data */ }
 
-      // Fallback: check default videos
       const defaultVideo = defaultVideos.find(v => v.id === id);
       if (defaultVideo) {
         setVideo(defaultVideo);
@@ -67,9 +54,6 @@ export default function WatchVideo() {
     </div>
   );
 
-  const embedUrl = getEmbedUrl(video?.videoUrl);
-  const isYT = isYouTubeUrl(video?.videoUrl);
-
   return (
     <div className="min-h-screen bg-[#050B14]">
       <div className="bg-[#0a1628] border-b border-slate-800 px-4 py-3 flex items-center gap-3">
@@ -83,32 +67,8 @@ export default function WatchVideo() {
       </div>
 
       <div className="max-w-5xl mx-auto px-4 py-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full aspect-video rounded-2xl overflow-hidden bg-black border border-slate-800 shadow-2xl"
-        >
-          {isYT ? (
-            <iframe
-              src={embedUrl}
-              title={video?.title}
-              className="w-full h-full"
-              frameBorder="0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            />
-          ) : embedUrl ? (
-            <video
-              src={embedUrl}
-              controls
-              className="w-full h-full"
-              controlsList="nodownload"
-            />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <p className="text-slate-500">No video URL. Admin needs to add video URL.</p>
-            </div>
-          )}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <HlsPlayer url={video?.videoUrl} watermark={user?.email || 'RBT SECURE STREAM'} />
         </motion.div>
 
         <div className="mt-6 bg-[#111111] rounded-2xl p-6 border border-slate-800">
@@ -119,10 +79,13 @@ export default function WatchVideo() {
             {video?.teacher && <span className="badge badge-gold">{video?.teacher}</span>}
             {video?.duration && <span className="text-xs text-slate-500">{video?.duration}</span>}
           </div>
+          {video?.description && (
+            <p className="text-sm text-slate-300 mb-4 leading-relaxed">{video.description}</p>
+          )}
           {video?.isFree !== false ? (
             <p className="text-sm text-green-brand">Free to watch</p>
           ) : (
-            <p className="text-sm text-amber-400">Paid content — {video?.price} INR</p>
+            <p className="text-sm text-amber-400">Paid content — ₹{video?.price}</p>
           )}
         </div>
 

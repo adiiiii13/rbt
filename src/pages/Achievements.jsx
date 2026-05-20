@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
-import { useRealtimeCollection } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { defaultAchievements } from '../data/achievements';
 import { TrophyIcon } from '../components/Icons';
 
 export default function Achievements() {
-  const { data: achievements } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements);
+  const { data: achievementsRaw } = useRealtimeCollection('achievements', { fallback: defaultAchievements });
+  const achievements = achievementsRaw?.length ? achievementsRaw : defaultAchievements;
   return (
     <div>
       <section className="relative pt-32 pb-20 overflow-hidden bg-navy">

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRealtimeCollection } from '../lib/contentApi';
+import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 
 const fadeUp = {
   initial: { opacity: 0, y: 30 },
@@ -26,7 +26,7 @@ const defaultImages = [
 ];
 
 export default function Gallery() {
-  const { data: firestoreImages } = useRealtimeCollection('gallery', 'createdAt', []);
+  const { data: firestoreImages } = useRealtimeCollection('gallery');
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeCategory, setActiveCategory] = useState("All");
 

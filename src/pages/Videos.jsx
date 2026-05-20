@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { useRealtimeCollection } from '../lib/contentApi'
+import { useRealtimeCollection } from '../lib/useRealtimeCollection'
 import { defaultVideos } from '../data/videos'
 import { PlayCircleIcon, StarIcon } from '../components/Icons'
 
 export default function Videos() {
-  const { data: allVideos, loading } = useRealtimeCollection('videos', 'createdAt', defaultVideos)
+  const { data: allVideosRaw, loading } = useRealtimeCollection('videos', { fallback: defaultVideos })
+  const allVideos = allVideosRaw?.length ? allVideosRaw : defaultVideos
   const videos = allVideos.filter(v => v.isFree !== false)
 
   return (

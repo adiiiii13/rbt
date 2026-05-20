@@ -1,11 +1,12 @@
-import { useRealtimeCollection } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultCourses } from '../../data/courses';
 import { BookOpenIcon, FlaskIcon, GraduationCapIcon, RocketIcon, HeartPulseIcon, UsersIcon } from '../../components/Icons';
 
 const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: GraduationCapIcon, Rocket: RocketIcon, HeartPulse: HeartPulseIcon };
 
 export default function StudentCourses() {
-  const { data: courses } = useRealtimeCollection('courses', 'createdAt', defaultCourses);
+  const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-1">My Courses</h1>

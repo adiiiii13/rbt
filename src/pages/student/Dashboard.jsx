@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuth } from '../../context/AuthContext'
 import { getCollectionWhere } from '../../lib/firebaseHelpers'
-import { useRealtimeCollection } from '../../lib/contentApi'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { defaultCourses } from '../../data/courses'
 import { defaultPdfs } from '../../data/pdfs'
 import { defaultNotices } from '../../data/notices'
@@ -21,9 +21,12 @@ const statColors = [
 
 export default function StudentDashboard() {
   const { user } = useAuth()
-  const { data: allCourses } = useRealtimeCollection('courses', 'createdAt', defaultCourses)
-  const { data: allPdfs } = useRealtimeCollection('pdfs', 'createdAt', defaultPdfs)
-  const { data: allNotices } = useRealtimeCollection('notices', 'createdAt', defaultNotices)
+  const { data: allCoursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses })
+  const { data: allPdfsRaw } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
+  const { data: allNoticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices })
+  const allCourses = allCoursesRaw?.length ? allCoursesRaw : defaultCourses
+  const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
+  const allNotices = allNoticesRaw?.length ? allNoticesRaw : defaultNotices
   const courses = allCourses.slice(0, 4)
   const pdfs = allPdfs.slice(0, 3)
   const notices = allNotices.slice(0, 3)
