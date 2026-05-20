@@ -4,15 +4,13 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { defaultVideos } from '../data/videos';
 
 function getEmbedUrl(url) {
   if (!url || url === '#') return null;
-  // YouTube - extract video ID
   const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`;
-  // Already embed
   if (url.includes('/embed/')) return url;
-  // Everything else: treat as direct video (Storage URLs, mp4, etc)
   return url;
 }
 
@@ -33,10 +31,23 @@ export default function WatchVideo() {
     const load = async () => {
       try {
         const snap = await getDoc(doc(db, 'videos', id));
-        if (!snap.exists()) { setError('Video not found'); return; }
-        setVideo({ id: snap.id, ...snap.data() });
-      } catch (err) { setError(err.message); }
-      finally { setLoading(false); }
+        if (snap.exists()) {
+          setVideo({ id: snap.id, ...snap.data() });
+          setLoading(false);
+          return;
+        }
+      } catch { /* Firestore error — try default data */ }
+
+      // Fallback: check default videos
+      const defaultVideo = defaultVideos.find(v => v.id === id);
+      if (defaultVideo) {
+        setVideo(defaultVideo);
+        setLoading(false);
+        return;
+      }
+
+      setError('Video not found');
+      setLoading(false);
     };
     load();
   }, [id]);
@@ -103,8 +114,8 @@ export default function WatchVideo() {
         <div className="mt-6 bg-[#111111] rounded-2xl p-6 border border-slate-800">
           <h2 className="text-xl font-bold text-white mb-2">{video?.title}</h2>
           <div className="flex flex-wrap gap-3 mb-3">
-            <span className="badge badge-green">{video?.class}</span>
-            <span className="badge badge-navy">{video?.subject}</span>
+            {video?.class && <span className="badge badge-green">{video?.class}</span>}
+            {video?.subject && <span className="badge badge-navy">{video?.subject}</span>}
             {video?.teacher && <span className="badge badge-gold">{video?.teacher}</span>}
             {video?.duration && <span className="text-xs text-slate-500">{video?.duration}</span>}
           </div>
