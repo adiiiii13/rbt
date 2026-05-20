@@ -7,53 +7,54 @@ const categories = [
       {
         title: 'Manage Courses',
         icon: '📚',
-        what: 'Add/edit/delete courses. Each course: title, description, subjects, level, duration, students, icon, color.',
-        workflow: ['Go to Manage Courses → + Add Course', 'Fill all fields', 'Click Add → shows on Home, Courses page, Student dashboard', 'Edit/Delete any item individually'],
-        tips: 'Subjects comma separated. Demo courses can be deleted.',
+        what: 'Full course system with pricing variants and lesson structure. Each course has title, description, subjects, level, duration, thumbnail, icon, color.',
+        workflow: ['+ Add Course → fill Basic Info (title, description, subjects, level, duration)', 'Pricing tab: add multiple variants (3-month, 6-month etc.) with price + discount', 'Lessons tab: add video lessons with title, URL, duration, free/paid toggle', 'Reorder lessons with up/down arrows', 'Students see courses on Home + Courses page, click → Course Detail page with variants + lesson player'],
+        tips: 'Subjects comma separated. Variants let you offer different pricing tiers. Free lessons visible to everyone.',
       },
       {
         title: 'Manage Videos',
         icon: '🎬',
         what: 'Add YouTube videos or upload own video files. Free = everyone sees, Paid = needs payment.',
-        workflow: ['+ Add Video → choose YouTube URL or Upload Video', 'YouTube: paste link, auto-embeds', 'Upload: select file (max 500MB warning)', 'Add thumbnail (optional)', 'Toggle Free/Paid, set price if paid', 'Appears on Videos page + Student Videos'],
-        tips: 'Click any video → opens /video/:id player page. Delete All removes all.',
+        workflow: ['+ Add Video → choose "YouTube URL" or "Upload Video"', 'YouTube: paste any YouTube link, auto-embeds in player', 'Upload: select video file (warns over 500MB, no hard limit)', 'Add thumbnail (upload image or paste URL)', 'Toggle Free/Paid. If paid: set price in INR', 'Appears on Videos page + Student Videos + /video/:id player page'],
+        tips: 'Delete All removes all videos at once. YouTube URLs auto-convert to embed on player page.',
       },
       {
         title: 'Manage PDFs',
         icon: '📄',
-        what: 'Upload test papers, worksheets. Upload PDF or paste URL (Google Drive).',
-        workflow: ['+ Add PDF → Upload file (max 50MB) or paste URL', 'Fill: title, class, subject, exam type, date', 'Appears on Test Papers + Student PDFs pages'],
-        tips: 'For large files use Google Drive link.',
+        what: 'Upload test papers, worksheets. Upload PDF file or paste external URL (Google Drive).',
+        workflow: ['+ Add PDF → Upload file (max 50MB) or paste URL', 'Fill: title, class, subject, exam type, date', 'Appears on Test Papers → Downloadable section + Student PDFs page'],
+        tips: 'For large files (>50MB), upload to Google Drive → set public → paste link.',
       },
       {
         title: 'Manage Gallery',
         icon: '🖼️',
-        what: 'Upload campus photos. Upload image or paste URL.',
-        workflow: ['+ Add Image → Upload file or paste URL', 'Fill: title, category', 'Appears on Gallery page instantly'],
+        what: 'Upload campus photos, lab images, event photos. Upload image or paste URL.',
+        workflow: ['+ Add Image → Upload file or paste URL', 'Fill: title, category (Campus/Labs/Events/Facilities/Students)', 'Appears on Gallery page with category filter tabs'],
+        tips: 'Hover on any image card to see Edit/Delete overlay.',
       },
       {
         title: 'Testimonials',
         icon: '💬',
-        what: 'Student/parent quotes with star ratings.',
-        workflow: ['+ Add → name, role, type, text, rating (1-5)', 'Shows on Home page'],
+        what: 'Student/parent quotes with star ratings (1-5).',
+        workflow: ['+ Add → name, role (e.g. "JEE Aspirant"), type (student/parent), text, rating', 'Shows on Home page testimonials section'],
       },
       {
         title: 'Achievements',
         icon: '🏆',
         what: 'Student results, ranks, exam scores.',
-        workflow: ['+ Add → student name, course, result, marks, year', 'Shows on Achievements page + Student dashboard'],
+        workflow: ['+ Add → student name, course, result (e.g. "AIR 45"), marks, year, description', 'Shows on Achievements page (public) + Student Achievements page'],
       },
       {
         title: 'Study Material',
         icon: '📖',
-        what: 'Upload study materials for students.',
-        workflow: ['Go to Study Material → + Add', 'Fill: title, subject, class, URL/file', 'Students see on Study Material page'],
+        what: 'Upload study materials for students organized by subject and class.',
+        workflow: ['+ Add → fill title, subject, class, URL/file', 'Students see on Study Material page in student dashboard'],
       },
       {
         title: 'Mock Tests',
         icon: '📝',
-        what: 'Create online mock tests with questions, options, answers.',
-        workflow: ['Go to Mock Tests → + Add', 'Add questions with options and correct answer', 'Students take tests on /student/test-papers/mock page'],
+        what: 'Create online MCQ tests with questions, 4 options, correct answer, time limit.',
+        workflow: ['+ Add Mock Test → set title, subject, duration, marks per question', 'Add questions: question text, 4 options, select correct answer', 'Students take tests on Test Papers → Mock Tests page', 'Timer runs during test, results shown after submit'],
       },
     ],
   },
@@ -63,22 +64,23 @@ const categories = [
       {
         title: 'Manage Students',
         icon: '👨‍🎓',
-        what: 'Create student accounts (real Firebase Auth login), edit, disable/enable, delete.',
-        workflow: ['+ Add Student → fill ID, name, email, phone, course, password', 'Click Create → real Auth account created → student can login', 'Disable: blocks login', 'Enable: re-enables login', 'Delete: permanently removes'],
-        tips: 'Student ID format: "STU001". Password shared with student privately.',
+        what: 'Create real Firebase Auth student accounts. Edit details, disable/enable login, delete permanently.',
+        workflow: ['+ Add Student → fill ID, name, email, phone, class, course, password (min 8 chars)', 'Click "Create Student Account" → Cloud Function creates real Auth account', 'Student can now login at /student-login with email + password', 'Edit: update name, email, phone, course, class', 'Disable: blocks login (student can\'t access dashboard)', 'Enable: re-enables login', 'Delete: permanently removes account + all data'],
+        tips: 'Student ID format: "STU001". Password should be shared with student privately.',
       },
       {
         title: 'Counselling Bookings',
         icon: '📅',
-        what: 'Student books counselling → admin approves with Meet link → student joins. Shows batch/non-batch type.',
-        workflow: ['Student fills form (auto-labels as Batch or Non-batch)', 'Admin sees booking with Type column', 'Approve → paste Google Meet link → student sees it', 'Reject / Complete / Edit / Delete any booking'],
+        what: 'Student books counselling → admin approves with Google Meet link → student joins from dashboard. Shows batch/non-batch label.',
+        workflow: ['Student fills form → booking appears with "Pending" status', 'Admin sees booking with Type column (Batch Student / Non-batch Student)', 'Click "Approve" → paste Google Meet link → student gets notified', 'Student dashboard shows "Join Meeting" button', 'Click "Complete" after session, "Reject" to decline', 'Edit: change topic, date, time, meet link, status', 'Delete: remove booking permanently'],
         tips: 'Create Meet link at meet.new. Type shows if student is batch or non-batch.',
       },
       {
         title: 'Doubts',
         icon: '❓',
-        what: 'Students submit questions with text + photo. Admin replies.',
-        workflow: ['Student → My Doubts → Ask Doubt → add text + photo', 'Admin → Doubts → sees pending', 'Reply → student sees answer on their doubts page'],
+        what: 'Students submit questions with text + photo upload. Admin replies with text answer.',
+        workflow: ['Student → My Doubts → Ask Doubt → add text question + optional photo', 'Photo uploads to Firebase Storage (max 5MB)', 'Admin → Doubts → sees pending with photo preview', 'Click "Reply" → write answer → student sees answer on their doubts page', 'Status: pending → answered'],
+        tips: 'Photo helps with math problems, diagrams, handwriting questions.',
       },
     ],
   },
@@ -88,28 +90,29 @@ const categories = [
       {
         title: 'Notices',
         icon: '📢',
-        what: 'Publish announcements. FCM push to all students.',
-        workflow: ['+ Add Notice → title, content, priority, category', 'Publish → auto-push notification to all students', 'Shows on Student Notices page instantly'],
+        what: 'Publish announcements to all students. FCM push notification sent to all active students\' phones.',
+        workflow: ['+ Add Notice → title, content, priority (high/medium/low), category', 'Click "Publish Notice"', 'Cloud Function auto-triggers → reads all students with FCM token', 'Push notification sent to all student phones', 'Student clicks notification → opens notices page'],
+        tips: 'High priority notices show red dot. Categories: General, Academic, Exam, Holiday, Event, Fee.',
       },
       {
         title: 'Contact Inquiries',
         icon: '📧',
-        what: 'Contact form submissions.',
-        workflow: ['Visitor fills form on website', 'Appears here with unread badge', 'View details, mark read, reply email, delete'],
+        what: 'Contact form submissions from website visitors.',
+        workflow: ['Visitor fills contact form on website Contact page', 'Submission appears here with unread badge', 'Click "View" → see full message details', 'Click "Mark Read" to clear badge', 'Click "Reply Email" to open email client', 'Delete: remove inquiry'],
       },
       {
         title: 'Send Notifications',
         icon: '🔔',
-        what: 'Send notification to specific student. They see it on their dashboard.',
-        workflow: ['+ Send Notification', 'Search student by name/email/ID (dropdown search)', 'Select student → write subject + message', 'Click Send → student sees notification on dashboard instantly'],
-        tips: 'Use search box to find student quickly. Student sees unread notifications in amber box on dashboard.',
+        what: 'Send notification to a specific student. They see it on their dashboard in a highlighted box.',
+        workflow: ['+ Send Notification → type student name, email, or ID in search box', 'Dropdown shows matching students → click to select', 'Write subject + message', 'Click "Send Notification"', 'Student logs in → dashboard shows notification in amber box instantly'],
+        tips: 'Use search box to find student quickly. Search by name, email, or student ID. Students see unread notifications highlighted on dashboard.',
       },
       {
         title: 'Offers',
         icon: '🎁',
-        what: 'Popup banner on homepage. Click redirects to WhatsApp.',
-        workflow: ['+ Add Offer → title, message, WhatsApp phone, prefilled message', 'Toggle Active → popup shows on homepage', 'Visitor clicks → redirected to WhatsApp with message', 'Dismiss = session only'],
-        tips: 'Phone format: "918888888888" (no + sign). One active offer at a time.',
+        what: 'Promotional popup banner shown to website visitors. Click redirects to WhatsApp with prefilled message.',
+        workflow: ['+ Add Offer → title, popup message, WhatsApp phone (with country code), prefilled message, bg color', 'Set start/end dates (optional), check "Active" checkbox', 'Click "Create Offer" → popup appears on homepage for all visitors', 'Visitor sees popup → clicks "Enquire on WhatsApp" → redirected with message', 'Toggle Activate/Deactivate to show/hide popup', 'Dismiss = session only (shows again next session)'],
+        tips: 'Phone format: "918888888888" (no + sign). One active offer at a time (latest active wins).',
       },
     ],
   },
@@ -119,15 +122,16 @@ const categories = [
       {
         title: 'Manage Payments',
         icon: '💰',
-        what: 'Student pays UPI → payment appears here → verify → student gets access.',
-        workflow: ['Student clicks locked video → goes to payment page', 'Pays UPI → enters transaction ID', 'Payment appears here with Pending status', 'Verify → student unlocks content', 'Reject → student notified'],
+        what: 'Student pays via UPI → payment appears here → verify → student gets access to paid video.',
+        workflow: ['Student clicks locked video → goes to payment page', 'Pays via UPI (shown on payment page) → enters transaction ID', 'Payment appears here with "Pending" status', 'Verify: marks payment as verified → student unlocks content', 'Reject: marks as rejected → student notified', 'Revenue total shows verified payments only'],
+        tips: 'Invoice number auto-generated. UPI ID set in .env file.',
       },
       {
         title: 'Create Invoices',
         icon: '🧾',
-        what: 'Create invoices for specific students. Student sees on their dashboard.',
-        workflow: ['+ Create Invoice', 'Search student by name/email/ID (dropdown search)', 'Fill: course/service, description, amount, due date', 'Click Create & Send → invoice appears on student dashboard', 'Delete any invoice'],
-        tips: 'Student sees invoices in their Invoices page. Search helps find students quickly.',
+        what: 'Create invoices for specific students. Student sees them on their Invoices page.',
+        workflow: ['+ Create Invoice → type student name/email/ID in search box', 'Dropdown shows matching students → click to select', 'Fill: course/service name, description, amount, due date', 'Click "Create & Send" → invoice appears on student dashboard', 'Delete any invoice if needed'],
+        tips: 'Search helps find students quickly. Invoice number auto-generated. Student sees all invoices on their Invoices page.',
       },
     ],
   },
@@ -137,15 +141,34 @@ const categories = [
       {
         title: 'Seed Data',
         icon: '🌱',
-        what: 'Fills empty collections with demo content. Your data stays alongside demo.',
-        workflow: ['Dashboard → Seed Data → adds demo courses, videos, PDFs, etc.', 'Only fills empty collections', 'Delete individual demo items from each page'],
+        what: 'Fills empty collections with demo courses, videos, PDFs, achievements, testimonials. Your data stays alongside demo.',
+        workflow: ['Go to Dashboard → click "Seed Data"', 'Demo content added to all empty collections', 'Your additions live alongside demo data', 'Delete individual demo items from each manage page (uses deleteItemSmart)'],
+        tips: 'Only adds to empty collections. Won\'t overwrite your data. Demo items can be deleted individually.',
       },
       {
         title: 'Batch vs Basic Login',
         icon: '🔐',
-        what: 'Two student types with different access levels.',
-        workflow: ['Batch Login: Google + code "2026" → full dashboard (10 pages)', 'Basic Login: Google only → limited (courses, videos, test series)', 'Batch: counselling, invoices, notices, achievements, doubts', 'Basic: browse courses, watch free videos, download PDFs'],
-        tips: 'Batch code is "2026". Change in StudentLogin.jsx.',
+        what: 'Two student login types with different access levels. Batch = full access, Basic = limited.',
+        workflow: ['Batch Login: Google sign-in + enter batch code "2026" → full dashboard (10 pages)', 'Basic Login: Google sign-in only, no code → limited dashboard (5 pages)', 'Batch access: courses, videos, PDFs, notices, achievements, counselling, invoices, doubts, payment', 'Basic access: courses, videos, free test series, payment only', 'Both redirect correctly on login'],
+        tips: 'Batch code is "2026". Change in StudentLogin.jsx BATCH_CODE constant.',
+      },
+      {
+        title: 'Cloud Functions',
+        icon: '⚡',
+        what: '8 deployed serverless functions handling auth, notifications, and triggers.',
+        workflow: ['createStudent: creates real Auth account (called from Manage Students)', 'disableStudent: blocks student login', 'deleteStudent: removes Auth + Firestore data', 'grantAdminRole: sets admin custom claim', 'initializeStudentAccount: sets student claim for Google users', 'onNoticeCreated: FCM push to all students when notice published', 'onCounsellingCreated: FCM push to admin when booking created', 'onContactCreated: FCM push to admin when inquiry submitted'],
+      },
+      {
+        title: 'Firebase Storage',
+        icon: '📁',
+        what: 'Cloud storage for uploaded files: images, PDFs, videos.',
+        workflow: ['Gallery images upload to: public/gallery/', 'PDFs upload to: pdfs/', 'Videos upload to: videos/ (with thumbnail subfolder)', 'Doubt photos upload to: doubts/{uid}/', 'All uploads get public download URL automatically', 'Storage rules enforce: public read, authenticated write, size + MIME limits'],
+      },
+      {
+        title: 'Realtime Sync',
+        icon: '🔄',
+        what: 'All data syncs instantly. Admin add/edit/delete → visible on public and student pages immediately.',
+        workflow: ['useRealtimeCollection hook uses Firestore onSnapshot listener', 'One subscription per collection, shared across components', 'Default/demo data merges with Firestore data', 'Deleted default items tracked in meta/{collection}/deleted', 'No page refresh needed — changes appear in ~1 second'],
       },
     ],
   },
@@ -167,14 +190,18 @@ export default function HelpPage() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Admin Help</h1>
-        <p className="text-slate-400 text-sm mb-4">Complete guide — search or browse by category</p>
+        <p className="text-slate-400 text-sm mb-4">Complete guide to every feature — search or browse by category</p>
         <input
           className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand transition-all"
-          placeholder="Search features..."
+          placeholder="Search features... (e.g. 'upload', 'notification', 'meet link')"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
       </div>
+
+      {filtered.length === 0 && (
+        <p className="text-slate-500 text-center py-8">No features match "{search}"</p>
+      )}
 
       {filtered.map((cat, ci) => (
         <div key={ci} className="mb-6">
@@ -225,15 +252,39 @@ export default function HelpPage() {
         </div>
       ))}
 
+      {/* Quick Reference */}
       <div className="bg-[#111111] rounded-2xl p-5 border border-slate-800 mt-6">
         <h3 className="font-bold text-white mb-3">Quick Reference</h3>
         <div className="grid sm:grid-cols-2 gap-3 text-sm">
           <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Admin: rbtmissionlearningofficial@gmail.com</span></div>
           <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Batch code: 2026</span></div>
-          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">All changes sync instantly</span></div>
+          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">All changes sync instantly (onSnapshot)</span></div>
+          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Deployed: Firebase Hosting + Netlify</span></div>
           <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">GitHub: github.com/adiiiii13/rbt</span></div>
-          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Firebase Hosting + Netlify</span></div>
-          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Search bar works on this page</span></div>
+          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Cloud Functions: 8 deployed (asia-south1)</span></div>
+          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Storage: Firebase Storage for uploads</span></div>
+          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">FCM: push notifications for notices</span></div>
+          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">Auth: email/password + Google sign-in</span></div>
+          <div className="flex items-start gap-2"><span className="text-green-brand">•</span><span className="text-slate-300">TestPapers: downloadable PDFs + online mock tests</span></div>
+        </div>
+      </div>
+
+      {/* Public Pages */}
+      <div className="bg-[#111111] rounded-2xl p-5 border border-slate-800 mt-6">
+        <h3 className="font-bold text-white mb-3">Public Website Pages</h3>
+        <div className="grid sm:grid-cols-2 gap-3 text-sm">
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/ Home — hero, courses, testimonials, achievements, offer popup</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/about — company info</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/courses — browse courses with pricing</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/videos — free demo videos</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/video/:id — dedicated video player page</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/test-papers — downloadable PDFs + online mock tests</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/achievements — toppers list</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/gallery — campus photos with category filter</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/contact — form → admin inquiries</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/counselling — booking form (non-batch label)</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/student-login — batch + basic login options</span></div>
+          <div className="flex items-start gap-2"><span className="text-blue-400">•</span><span className="text-slate-300">/privacy, /terms — legal pages</span></div>
         </div>
       </div>
     </div>
