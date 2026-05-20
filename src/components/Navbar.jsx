@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 
-export default function Navbar({ onOpenLogin }) {
+export default function Navbar({ onOpenLogin, onOpenSignup }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -114,7 +114,7 @@ export default function Navbar({ onOpenLogin }) {
                       : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  <span className="relative flex items-center gap-1 inline-block">
+                  <span className="relative inline-flex items-center gap-1">
                     More
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${moreOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
                     <span className={`absolute -bottom-1 left-0 w-full h-[2px] bg-green-brand origin-left transition-transform duration-300 ease-out ${
@@ -123,7 +123,7 @@ export default function Navbar({ onOpenLogin }) {
                   </span>
                 </button>
                 {moreOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-[#111111] border border-slate-800 rounded-xl shadow-2xl overflow-hidden py-1">
+                  <div className="absolute top-full right-0 mt-2 min-w-[12rem] bg-[#111111] border border-slate-800 rounded-xl shadow-2xl overflow-hidden py-1 whitespace-nowrap z-50">
                     {moreLinks.map((link) => (
                       <Link
                         key={link.to}
@@ -193,12 +193,20 @@ export default function Navbar({ onOpenLogin }) {
                   </AnimatePresence>
                 </div>
               ) : (
-                <button
-                  onClick={onOpenLogin}
-                  className="btn-primary !py-2 !px-5 !text-sm"
-                >
-                  Student Login
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={onOpenLogin}
+                    className="px-5 py-2 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-colors cursor-pointer border border-transparent"
+                  >
+                    Login
+                  </button>
+                  <button
+                    onClick={onOpenSignup}
+                    className="btn-primary !py-2 !px-5 !text-sm"
+                  >
+                    Sign Up
+                  </button>
+                </div>
               )}
             </div>
 
@@ -315,15 +323,26 @@ export default function Navbar({ onOpenLogin }) {
                     </button>
                   </div>
                 ) : (
-                  <button
-                    onClick={() => {
-                      setMenuOpen(false);
-                      onOpenLogin();
-                    }}
-                    className="btn-primary text-center w-full"
-                  >
-                    Student Login
-                  </button>
+                  <div className="space-y-3 mt-4">
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onOpenLogin();
+                      }}
+                      className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white text-sm font-medium transition-colors border border-white/10"
+                    >
+                      Login
+                    </button>
+                    <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        onOpenSignup();
+                      }}
+                      className="btn-primary text-center w-full"
+                    >
+                      Sign Up
+                    </button>
+                  </div>
                 )}
               </div>
             </motion.div>

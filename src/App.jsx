@@ -27,6 +27,7 @@ const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
 const TermsOfService = lazy(() => import('./pages/TermsOfService'))
 const Counselling = lazy(() => import('./pages/Counselling'))
 const StudentLogin = lazy(() => import('./pages/StudentLogin'))
+const StudentSignup = lazy(() => import('./pages/StudentSignup'))
 const AdminLogin = lazy(() => import('./pages/AdminLogin'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const WatchVideo = lazy(() => import('./pages/WatchVideo'))
@@ -105,6 +106,7 @@ function AppContent() {
   const { user, loading: authLoading } = useAuth()
   const [initialLoading, setInitialLoading] = useState(() => !sessionStorage.getItem('rbt_splash_done'))
   const [showAutoLogin, setShowAutoLogin] = useState(false)
+  const [showSignupModal, setShowSignupModal] = useState(false)
 
   useEffect(() => {
     if (!initialLoading) return
@@ -138,7 +140,10 @@ function AppContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <Navbar onOpenLogin={() => setShowAutoLogin(true)} />
+            <Navbar 
+              onOpenLogin={() => setShowAutoLogin(true)} 
+              onOpenSignup={() => setShowSignupModal(true)} 
+            />
             <Suspense fallback={<RouteFallback />}>
               <AnimatePresence mode="wait">
                 <Routes location={location} key={location.pathname}>
@@ -229,7 +234,26 @@ function AppContent() {
             <AnimatePresence>
               {showAutoLogin && (
                 <Suspense fallback={null}>
-                  <StudentLogin isPopup={true} onClose={() => setShowAutoLogin(false)} />
+                  <StudentLogin 
+                    isPopup={true} 
+                    onClose={() => setShowAutoLogin(false)} 
+                    onSwitchToSignup={() => {
+                      setShowAutoLogin(false);
+                      setShowSignupModal(true);
+                    }}
+                  />
+                </Suspense>
+              )}
+              {showSignupModal && (
+                <Suspense fallback={null}>
+                  <StudentSignup 
+                    isPopup={true} 
+                    onClose={() => setShowSignupModal(false)} 
+                    onSwitchToLogin={() => {
+                      setShowSignupModal(false);
+                      setShowAutoLogin(true);
+                    }}
+                  />
                 </Suspense>
               )}
             </AnimatePresence>

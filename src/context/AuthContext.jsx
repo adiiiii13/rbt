@@ -5,7 +5,8 @@ import {
   signOut,
   sendPasswordResetEmail,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  createUserWithEmailAndPassword
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
@@ -127,7 +128,7 @@ export function AuthProvider({ children }) {
           photoURL: cred.user.photoURL || null,
           role: 'student',
           status: 'active',
-          studentId: 'G-' + cred.user.uid.substring(0, 6).toUpperCase(),
+          studentId: 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
         })
       } else {
@@ -150,6 +151,29 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error(err);
       return { success: false, message: mapAuthError(err.code || 'Login failed') }
+    }
+  }
+
+  const signupStudent = async (email, password, name) => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, password)
+      
+      const studentRef = doc(db, 'students', cred.user.uid)
+      await setDoc(studentRef, {
+        name: name || 'Student',
+        email: cred.user.email,
+        photoURL: null,
+        role: 'student',
+        status: 'active',
+        studentId: 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase(),
+        createdAt: new Date().toISOString()
+      })
+      
+      const userData = await buildUserFromToken(cred.user)
+      return { success: true, user: userData }
+    } catch (err) {
+      console.error(err);
+      return { success: false, message: mapAuthError(err.code || 'Signup failed') }
     }
   }
 
@@ -177,7 +201,7 @@ export function AuthProvider({ children }) {
           role: 'student',
           batch: true,
           status: 'active',
-          studentId: 'B-' + cred.user.uid.substring(0, 6).toUpperCase(),
+          studentId: 'RBT26B-' + cred.user.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
         })
       } else {
@@ -203,7 +227,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, loginWithBatchCode, resetPassword, logout }}
+      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, loginWithBatchCode, signupStudent, resetPassword, logout }}
     >
       {children}
     </AuthContext.Provider>

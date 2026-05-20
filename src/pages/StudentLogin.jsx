@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 
 const BATCH_CODE = '2026';
 
-export default function StudentLogin({ isPopup, onClose }) {
+export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const [mode, setMode] = useState(null); // null = choose, 'batch', 'basic'
   const [batchCode, setBatchCode] = useState('');
   const [error, setError] = useState('');
@@ -91,30 +91,30 @@ export default function StudentLogin({ isPopup, onClose }) {
 
   const loginContent = (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10 w-full max-w-md">
-      {isPopup && (
-        <button onClick={onClose} className="absolute -top-16 right-0 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-full w-10 h-10 flex items-center justify-center transition-colors shadow-lg z-[210]">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
-        </button>
-      )}
+      <div className="bg-[#0d1117] backdrop-blur-xl p-8 rounded-2xl border border-white/10 relative overflow-hidden shadow-2xl">
+        {isPopup && (
+          <button onClick={onClose} className="absolute top-4 right-4 z-[210] w-8 h-8 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+          </button>
+        )}
 
-      <div className="text-center mb-8">
-        <Link to="/" className="inline-flex items-center gap-3 no-underline mb-6 group">
-          <div className="relative">
-            <div className="absolute -inset-1 bg-gradient-to-r from-green-brand to-emerald-400 rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
-            <img src="/Images/RBT Logo.jpeg" alt="RBT Mission Learning" width="48" height="48" className="relative w-12 h-12 rounded-xl object-cover shadow-lg" />
-          </div>
-          <div className="text-left">
-            <h2 className="text-white font-bold text-lg leading-tight">RBT MISSION</h2>
-            <p className="text-green-brand text-[10px] tracking-widest font-semibold uppercase">Learning</p>
-          </div>
-        </Link>
-        <h1 className="text-3xl font-bold text-white mb-2">Student Login</h1>
-        <p className="text-slate-400 text-sm">Choose your login type to continue</p>
-      </div>
-
-      <div className="bg-[#0d1117] backdrop-blur-xl p-8 rounded-3xl border border-white/10 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-32 h-32 bg-green-brand/20 rounded-full blur-[40px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] pointer-events-none" />
+
+        <div className="text-center mb-8 relative z-10">
+          <Link to="/" onClick={() => { if (onClose) onClose(); }} className="inline-flex items-center gap-3 no-underline mb-6 group">
+            <div className="relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-green-brand to-emerald-400 rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
+              <img src="/Images/RBT Logo.jpeg" alt="RBT Mission Learning" width="48" height="48" className="relative w-12 h-12 rounded-xl object-cover shadow-lg" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-white font-bold text-lg leading-tight">RBT MISSION</h2>
+              <p className="text-green-brand text-[10px] tracking-widest font-semibold uppercase">Learning</p>
+            </div>
+          </Link>
+          <h1 className="text-3xl font-bold text-white mb-2">Student Login</h1>
+          <p className="text-slate-400 text-sm">Choose your login type to continue</p>
+        </div>
 
         {error && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm flex items-center gap-2">
@@ -223,9 +223,17 @@ export default function StudentLogin({ isPopup, onClose }) {
         </AnimatePresence>
       </div>
 
-      <p className="text-center mt-8 text-slate-400 text-sm">
-        Are you an administrator? <Link to="/admin-login" className="text-green-brand font-semibold no-underline hover:text-emerald-400 transition-colors ml-1">Login here</Link>
-      </p>
+      <div className="text-center mt-8 space-y-2 relative z-10">
+        <p className="text-slate-400 text-sm">
+          Don't have an account?{' '}
+          <button type="button" onClick={onSwitchToSignup} className="text-green-brand font-semibold no-underline hover:text-emerald-400 transition-colors ml-1 cursor-pointer">
+            Sign up here
+          </button>
+        </p>
+        <p className="text-slate-400 text-sm">
+          Are you an administrator? <Link to="/admin-login" onClick={() => { if (onClose) onClose(); }} className="text-green-brand font-semibold no-underline hover:text-emerald-400 transition-colors ml-1">Login here</Link>
+        </p>
+      </div>
     </motion.div>
   );
 
