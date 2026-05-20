@@ -1,0 +1,1 @@
+var e=[];function t(){return[]}function n(e){}function r(){}export{e as defaultPdfs,t as getPdfs,r as resetPdfs,n as savePdfs};

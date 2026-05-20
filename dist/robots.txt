@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /student
+Disallow: /admin-login
+Disallow: /student-login
+
+Sitemap: https://rbt-website-918b6.web.app/sitemap.xml

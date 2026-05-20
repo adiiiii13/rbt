@@ -1,5 +1,5 @@
 node_modules
-dist
+# dist — removed so Hostinger can deploy from GitHub
 .env
 .env.local
 .env.*.local
