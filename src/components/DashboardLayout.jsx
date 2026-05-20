@@ -6,54 +6,69 @@ import { messaging, db } from '../lib/firebase'
 import { getToken } from 'firebase/messaging'
 import { doc, updateDoc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
-import {
-  HomeIcon, BookOpenIcon, FileTextIcon, PlayCircleIcon,
-  BellIcon, TrophyIcon, UsersIcon, MessageSquareIcon, StarIcon,
-  CalendarIcon, CreditCardIcon, MailIcon
-} from './Icons'
 
-const studentLinks = [
-  { to: '/student', label: 'Dashboard', icon: <HomeIcon size={18} />, end: true },
-  { to: '/student/courses', label: 'My Courses', icon: <BookOpenIcon size={18} /> },
-  { to: '/student/test-papers', label: 'Test Papers', icon: <FileTextIcon size={18} /> },
-  { to: '/student/pdfs', label: 'Study Material', icon: <FileTextIcon size={18} /> },
-  { to: '/student/videos', label: 'Demo Videos', icon: <PlayCircleIcon size={18} /> },
-  { to: '/student/counselling', label: 'Counselling', icon: <CalendarIcon size={18} /> },
-  { to: '/student/invoices', label: 'My Invoices', icon: <CreditCardIcon size={18} /> },
-  { to: '/student/notices', label: 'Notices', icon: <BellIcon size={18} /> },
-  { to: '/student/achievements', label: 'Achievements', icon: <TrophyIcon size={18} /> },
-]
-
-const basicLinks = [
-  { to: '/basic', label: 'Dashboard', icon: <HomeIcon size={18} />, end: true },
-  { to: '/basic/courses', label: 'Courses', icon: <BookOpenIcon size={18} /> },
-  { to: '/basic/videos', label: 'Demo Videos', icon: <PlayCircleIcon size={18} /> },
-  { to: '/basic/test-papers', label: 'Free Test Series', icon: <FileTextIcon size={18} /> },
-  { to: '/basic/payment', label: 'Payment', icon: <CreditCardIcon size={18} /> },
-]
-
-const adminLinks = [
-  { to: '/admin', label: 'Dashboard', icon: <HomeIcon size={18} />, end: true },
-  { to: '/admin/courses', label: 'Manage Courses', icon: <BookOpenIcon size={18} /> },
-  { to: '/admin/test-papers', label: 'Manage Test Papers', icon: <FileTextIcon size={18} /> },
-  { to: '/admin/pdfs', label: 'Manage PDFs', icon: <FileTextIcon size={18} /> },
-  { to: '/admin/videos', label: 'Manage Videos', icon: <PlayCircleIcon size={18} /> },
-  { to: '/admin/gallery', label: 'Manage Gallery', icon: <UsersIcon size={18} /> },
-  { to: '/admin/testimonials', label: 'Testimonials', icon: <MessageSquareIcon size={18} /> },
-  { to: '/admin/achievements', label: 'Achievements', icon: <TrophyIcon size={18} /> },
-  { to: '/admin/students', label: 'Students', icon: <UsersIcon size={18} /> },
-  { to: '/admin/notices', label: 'Notices', icon: <BellIcon size={18} /> },
-  { to: '/admin/payments', label: 'Payments', icon: <CreditCardIcon size={18} /> },
-  { to: '/admin/counselling', label: 'Counselling', icon: <CalendarIcon size={18} /> },
-  { to: '/admin/offers', label: 'Offers', icon: <BellIcon size={18} /> },
-  { to: '/admin/inquiries', label: 'Inquiries', icon: <MailIcon size={18} /> },
-  { to: '/admin/help', label: 'Help', icon: <StarIcon size={18} /> },
-]
+// Inline SVG icon map — avoids tree-shake issues with lazy-loaded chunks
+const I = (d) => ({ size = 18, className = '' }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d={d} /></svg>
+)
+const IC = {
+  home: I("m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"),
+  book: I("M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"),
+  file: I("M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"),
+  play: I("m5 3 14 9-14 9V3z"),
+  bell: I("M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"),
+  trophy: I("M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"),
+  users: I("M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"),
+  msg: I("M7.9 20A9 9 0 1 0 4 16.1L2 22z"),
+  star: I("M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.13 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"),
+  calendar: I("M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"),
+  card: I("M11 18h2M12 18v4M8 2h8l4 4v10a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z"),
+  mail: I("M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"),
+}
 
 export default function DashboardLayout({ type }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+
+  const studentLinks = [
+    { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
+    { to: '/student/courses', label: 'My Courses', icon: <IC.book size={18} /> },
+    { to: '/student/test-papers', label: 'Test Papers', icon: <IC.file size={18} /> },
+    { to: '/student/pdfs', label: 'Study Material', icon: <IC.file size={18} /> },
+    { to: '/student/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
+    { to: '/student/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
+    { to: '/student/invoices', label: 'My Invoices', icon: <IC.card size={18} /> },
+    { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
+    { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
+  ]
+
+  const basicLinks = [
+    { to: '/basic', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
+    { to: '/basic/courses', label: 'Courses', icon: <IC.book size={18} /> },
+    { to: '/basic/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
+    { to: '/basic/test-papers', label: 'Free Test Series', icon: <IC.file size={18} /> },
+    { to: '/basic/payment', label: 'Payment', icon: <IC.card size={18} /> },
+  ]
+
+  const adminLinks = [
+    { to: '/admin', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
+    { to: '/admin/courses', label: 'Manage Courses', icon: <IC.book size={18} /> },
+    { to: '/admin/test-papers', label: 'Manage Test Papers', icon: <IC.file size={18} /> },
+    { to: '/admin/pdfs', label: 'Manage PDFs', icon: <IC.file size={18} /> },
+    { to: '/admin/videos', label: 'Manage Videos', icon: <IC.play size={18} /> },
+    { to: '/admin/gallery', label: 'Manage Gallery', icon: <IC.users size={18} /> },
+    { to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
+    { to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
+    { to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
+    { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
+    { to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
+    { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
+    { to: '/admin/offers', label: 'Offers', icon: <IC.bell size={18} /> },
+    { to: '/admin/inquiries', label: 'Inquiries', icon: <IC.mail size={18} /> },
+    { to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
+  ]
+
   const links = type === 'admin' ? adminLinks : type === 'basic' ? basicLinks : studentLinks
 
   const handleLogout = () => {

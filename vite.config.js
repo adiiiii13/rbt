@@ -14,7 +14,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (!id.includes('node_modules')) return
           if (id.includes('firebase')) return 'vendor-firebase'
           if (id.includes('framer-motion')) return 'vendor-motion'
           if (id.includes('react-router')) return 'vendor-router'
@@ -23,6 +22,8 @@ export default defineConfig({
           if (id.includes('react-hot-toast')) return 'vendor-toast'
           if (id.includes('react-player') || id.includes('hls.js') || id.includes('dashjs')) return 'vendor-player'
           if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/') || id.includes('scheduler')) return 'vendor-react'
+          // Force Icons.jsx into main bundle — DashboardLayout needs them
+          if (id.includes('/src/components/Icons.jsx')) return 'index'
         },
       },
     },
