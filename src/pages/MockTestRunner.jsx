@@ -454,8 +454,8 @@ export default function MockTestRunner() {
             {q.question}
           </p>
 
-          {q.image && (
-            <img src={q.image} alt="" className="max-w-full max-h-64 object-contain mb-6 rounded border border-slate-200" />
+          {(q.imageUrl || q.image) && (
+            <img src={q.imageUrl || q.image} alt="" className="max-w-full max-h-80 object-contain mb-6 rounded border border-slate-200" />
           )}
 
           <div className="space-y-3 mb-auto">

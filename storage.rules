@@ -28,6 +28,12 @@ service firebase.storage {
       allow write: if isAdmin() && isVideo() && sizeOk(500);
     }
 
+    // Mock test question images (admin uploads, all signed-in users read)
+    match /mockTestImages/{file} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isImage() && sizeOk(5);
+    }
+
     // Per-student private files (id proof, photos, payment screenshots)
     match /students/{uid}/{file} {
       allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);

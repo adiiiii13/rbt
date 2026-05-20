@@ -43,6 +43,7 @@ const StudentCounselling = lazy(() => import('./pages/student/Counselling'))
 const Payment = lazy(() => import('./pages/student/Payment'))
 const Invoices = lazy(() => import('./pages/student/Invoices'))
 const StudentDoubts = lazy(() => import('./pages/student/Doubts'))
+const StudentMockResults = lazy(() => import('./pages/student/MockResults'))
 
 // Basic Pages (lazy)
 const BasicDashboard = lazy(() => import('./pages/basic/Dashboard'))
@@ -62,6 +63,7 @@ const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
 const ManageOffers = lazy(() => import('./pages/admin/ManageOffers'))
 const ManageInquiries = lazy(() => import('./pages/admin/ManageInquiries'))
 const ManageMockTests = lazy(() => import('./pages/admin/ManageMockTests'))
+const MockResults = lazy(() => import('./pages/admin/MockResults'))
 const ManageStudyMaterial = lazy(() => import('./pages/admin/ManageStudyMaterial'))
 const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
 const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications'))
@@ -178,6 +180,7 @@ function AppContent() {
                     <Route path="payment" element={<Payment />} />
                     <Route path="invoices" element={<Invoices />} />
                     <Route path="doubts" element={<StudentDoubts />} />
+                    <Route path="mock-results" element={<StudentMockResults />} />
                   </Route>
 
                   {/* Basic Routes (limited access) */}
@@ -199,6 +202,7 @@ function AppContent() {
                     <Route path="test-papers" element={<ManagePdfs />} />
                     <Route path="pdfs" element={<ManagePdfs />} />
                     <Route path="mock-tests" element={<ManageMockTests />} />
+                    <Route path="mock-results" element={<MockResults />} />
                     <Route path="study-material" element={<ManageStudyMaterial />} />
                     <Route path="videos" element={<ManageVideos />} />
                     <Route path="testimonials" element={<ManageTestimonials />} />

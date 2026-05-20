@@ -46,6 +46,7 @@ export default function DashboardLayout({ type }) {
     { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
     { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
+    { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
   ]
 
   const basicLinks = [
@@ -61,6 +62,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/courses', label: 'Manage Courses', icon: <IC.book size={18} /> },
     { to: '/admin/pdfs', label: 'Manage PDFs', icon: <IC.file size={18} /> },
     { to: '/admin/mock-tests', label: 'Manage Mock Tests', icon: <IC.file size={18} /> },
+    { to: '/admin/mock-results', label: 'Mock Results', icon: <IC.trophy size={18} /> },
     { to: '/admin/study-material', label: 'Study Material', icon: <IC.file size={18} /> },
     { to: '/admin/videos', label: 'Manage Videos', icon: <IC.play size={18} /> },
     { to: '/admin/gallery', label: 'Manage Gallery', icon: <IC.users size={18} /> },

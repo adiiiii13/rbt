@@ -1,7 +1,15 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect } from 'react';
 
-export default function Modal({ isOpen, onClose, title, children }) {
+const SIZE_CLASS = {
+  sm: 'max-w-md',
+  md: 'max-w-2xl',
+  lg: 'max-w-4xl',
+  xl: 'max-w-6xl',
+  full: 'max-w-[95vw] w-[95vw]',
+};
+
+export default function Modal({ isOpen, onClose, title, children, size = 'md' }) {
   // Close on escape key
   useEffect(() => {
     const handleEsc = (e) => {
@@ -33,7 +41,7 @@ export default function Modal({ isOpen, onClose, title, children }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-            className="modal-content"
+            className={`modal-content ${SIZE_CLASS[size] || SIZE_CLASS.md}`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-6">
