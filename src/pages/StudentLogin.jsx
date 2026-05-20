@@ -112,7 +112,7 @@ export default function StudentLogin({ isPopup, onClose }) {
         <p className="text-slate-400 text-sm">Choose your login type to continue</p>
       </div>
 
-      <div className="bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 relative overflow-hidden shadow-2xl">
+      <div className="bg-[#0d1117] backdrop-blur-xl p-8 rounded-3xl border border-white/10 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 w-32 h-32 bg-green-brand/20 rounded-full blur-[40px] pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] pointer-events-none" />
 
@@ -231,7 +231,7 @@ export default function StudentLogin({ isPopup, onClose }) {
 
   if (isPopup) {
     return (
-      <motion.div initial={{ opacity: 0, backdropFilter: "blur(0px)" }} animate={{ opacity: 1, backdropFilter: "blur(10px)" }} exit={{ opacity: 0, backdropFilter: "blur(0px)" }} className="fixed inset-0 z-[200] flex items-center justify-center px-4 bg-transparent" onClick={onClose}>
+      <motion.div initial={{ opacity: 0, backdropFilter: "blur(0px)" }} animate={{ opacity: 1, backdropFilter: "blur(10px)" }} exit={{ opacity: 0, backdropFilter: "blur(0px)" }} className="fixed inset-0 z-[200] flex items-center justify-center px-4 bg-black/80" onClick={onClose}>
         <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md">{loginContent}</div>
       </motion.div>
     );
