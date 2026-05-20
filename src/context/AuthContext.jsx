@@ -40,8 +40,8 @@ async function buildUserFromToken(firebaseUser) {
     const snap = await getDoc(doc(db, 'students', firebaseUser.uid))
     if (snap.exists()) {
       profile = snap.data()
-      if (!role && profile.role === 'student') {
-        role = 'student' // Infer role from document if claim is missing
+      if (!role) {
+        role = profile.role || 'student' // Infer role from document if claim is missing
       }
     }
   }
@@ -52,8 +52,8 @@ async function buildUserFromToken(firebaseUser) {
     email: firebaseUser.email,
     name: firebaseUser.displayName || profile.name || (role === 'admin' ? 'Administrator' : 'Student'),
     photoURL: firebaseUser.photoURL || profile.photoURL || null,
-    role,
     ...profile,
+    role,
   }
 }
 

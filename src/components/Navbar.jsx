@@ -176,7 +176,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup }) {
                         className="absolute right-0 mt-2 w-48 bg-[#111] border border-white/10 rounded-xl shadow-2xl py-2 z-50 overflow-hidden"
                       >
                         <Link
-                          to={user.role === 'admin' ? '/admin' : '/student'}
+                          to={user.role === 'admin' ? '/admin' : user.batch ? '/student' : '/basic'}
                           onClick={() => setProfileOpen(false)}
                           className="block px-4 py-2 text-sm text-white/80 hover:text-white hover:bg-white/5 transition-colors no-underline"
                         >
@@ -309,7 +309,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup }) {
                       </div>
                     </div>
                     <Link 
-                      to={user.role === 'admin' ? '/admin' : '/student'} 
+                      to={user.role === 'admin' ? '/admin' : user.batch ? '/student' : '/basic'} 
                       onClick={() => setMenuOpen(false)}
                       className="flex items-center justify-center w-full py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-sm font-medium transition-colors no-underline"
                     >
