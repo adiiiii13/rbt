@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi'
+import { deleteItemSmart } from '../../lib/contentApi'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, updateDocument, uploadFile, deleteFile } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
@@ -7,7 +8,7 @@ import Modal from '../../components/Modal'
 const emptyForm = { title: '', category: 'Campus', imageUrl: '' }
 
 export default function ManageGallery() {
-  const { data: images, loading } = useRealtimeCollection('gallery', 'createdAt', [])
+  const { data: images, loading } = useRealtimeCollection('gallery')
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)

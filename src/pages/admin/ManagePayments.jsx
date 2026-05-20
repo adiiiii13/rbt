@@ -1,30 +1,15 @@
-import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { getCollection, updateDocument } from '../../lib/firebaseHelpers'
+import { updateDocument } from '../../lib/firebaseHelpers'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { formatCurrency } from '../../lib/invoice'
 
 export default function ManagePayments() {
-  const [payments, setPayments] = useState([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => { loadPayments() }, [])
-
-  const loadPayments = async () => {
-    setLoading(true)
-    try {
-      const data = await getCollection('payments')
-      setPayments(data)
-    } catch (err) {
-      console.error('[payments]', err)
-      toast.error('Failed to load payments')
-    } finally { setLoading(false) }
-  }
+  const { data: payments, loading } = useRealtimeCollection('payments')
 
   const verifyPayment = async (id) => {
     try {
       await updateDocument('payments', id, { status: 'verified', verifiedAt: new Date().toISOString() })
       toast.success('Payment verified')
-      loadPayments()
     } catch (err) { toast.error(err.message || 'Verify failed') }
   }
 
@@ -32,7 +17,6 @@ export default function ManagePayments() {
     try {
       await updateDocument('payments', id, { status: 'rejected', rejectedAt: new Date().toISOString() })
       toast.success('Payment rejected')
-      loadPayments()
     } catch (err) { toast.error(err.message || 'Reject failed') }
   }
 

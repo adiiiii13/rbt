@@ -17,6 +17,9 @@ const Courses = lazy(() => import('./pages/Courses'))
 const Videos = lazy(() => import('./pages/Videos'))
 const Achievements = lazy(() => import('./pages/Achievements'))
 const TestPapers = lazy(() => import('./pages/TestPapers'))
+const TestPapersDownloadable = lazy(() => import('./pages/TestPapersDownloadable'))
+const TestPapersMock = lazy(() => import('./pages/TestPapersMock'))
+const MockTestRunner = lazy(() => import('./pages/MockTestRunner'))
 const Gallery = lazy(() => import('./pages/Gallery'))
 const Contact = lazy(() => import('./pages/Contact'))
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'))
@@ -37,6 +40,7 @@ const StudentAchievements = lazy(() => import('./pages/student/Achievements'))
 const StudentCounselling = lazy(() => import('./pages/student/Counselling'))
 const Payment = lazy(() => import('./pages/student/Payment'))
 const Invoices = lazy(() => import('./pages/student/Invoices'))
+const StudentDoubts = lazy(() => import('./pages/student/Doubts'))
 
 // Basic Pages (lazy)
 const BasicDashboard = lazy(() => import('./pages/basic/Dashboard'))
@@ -55,6 +59,8 @@ const ManagePayments = lazy(() => import('./pages/admin/ManagePayments'))
 const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
 const ManageOffers = lazy(() => import('./pages/admin/ManageOffers'))
 const ManageInquiries = lazy(() => import('./pages/admin/ManageInquiries'))
+const ManageMockTests = lazy(() => import('./pages/admin/ManageMockTests'))
+const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role, batch }) {
@@ -92,7 +98,6 @@ function AppContent() {
   const { user, loading: authLoading } = useAuth()
   const [initialLoading, setInitialLoading] = useState(() => !sessionStorage.getItem('rbt_splash_done'))
   const [showAutoLogin, setShowAutoLogin] = useState(false)
-  const [showAdminPopup, setShowAdminPopup] = useState(false)
 
   useEffect(() => {
     if (!initialLoading) return
@@ -131,7 +136,7 @@ function AppContent() {
               <AnimatePresence mode="wait">
                 <Routes location={location} key={location.pathname}>
                   {/* Public Routes */}
-                  <Route path="/" element={<><Home onOpenLogin={() => setShowAutoLogin(true)} onOpenAdminLogin={() => setShowAdminPopup(true)} /><Footer onOpenAdminLogin={() => setShowAdminPopup(true)} /></>} />
+                  <Route path="/" element={<><Home onOpenLogin={() => setShowAutoLogin(true)} /><Footer /></>} />
                   <Route path="/about" element={<><About /><Footer /></>} />
                   <Route path="/courses" element={<><Courses /><Footer /></>} />
                   <Route path="/videos" element={<><Videos /><Footer /></>} />
@@ -140,6 +145,10 @@ function AppContent() {
                   <Route path="/achievements" element={<><Achievements /><Footer /></>} />
                   <Route path="/contact" element={<><Contact /><Footer /></>} />
                   <Route path="/counselling" element={<><Counselling /><Footer /></>} />
+                  <Route path="/test-papers" element={<><TestPapers /><Footer /></>} />
+                  <Route path="/test-papers/downloadable" element={<><TestPapersDownloadable /><Footer /></>} />
+                  <Route path="/test-papers/mock" element={<><TestPapersMock /><Footer /></>} />
+                  <Route path="/test-papers/mock/:testId" element={<MockTestRunner />} />
                   <Route path="/privacy" element={<><PrivacyPolicy /><Footer /></>} />
                   <Route path="/terms" element={<><TermsOfService /><Footer /></>} />
                   <Route path="/student-login" element={<StudentLogin />} />
@@ -150,6 +159,9 @@ function AppContent() {
                     <Route index element={<StudentDashboard />} />
                     <Route path="courses" element={<StudentCourses />} />
                     <Route path="test-papers" element={<TestPapers />} />
+                    <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
+                    <Route path="test-papers/mock" element={<TestPapersMock />} />
+                    <Route path="test-papers/mock/:testId" element={<MockTestRunner />} />
                     <Route path="pdfs" element={<StudentPdfs />} />
                     <Route path="videos" element={<StudentVideos />} />
                     <Route path="notices" element={<StudentNotices />} />
@@ -157,6 +169,7 @@ function AppContent() {
                     <Route path="counselling" element={<StudentCounselling />} />
                     <Route path="payment" element={<Payment />} />
                     <Route path="invoices" element={<Invoices />} />
+                    <Route path="doubts" element={<StudentDoubts />} />
                   </Route>
 
                   {/* Basic Routes (limited access) */}
@@ -165,6 +178,9 @@ function AppContent() {
                     <Route path="courses" element={<StudentCourses />} />
                     <Route path="videos" element={<StudentVideos />} />
                     <Route path="test-papers" element={<TestPapers />} />
+                    <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
+                    <Route path="test-papers/mock" element={<TestPapersMock />} />
+                    <Route path="test-papers/mock/:testId" element={<MockTestRunner />} />
                     <Route path="payment" element={<Payment />} />
                   </Route>
 
@@ -174,6 +190,7 @@ function AppContent() {
                     <Route path="courses" element={<ManageCourses />} />
                     <Route path="test-papers" element={<ManagePdfs />} />
                     <Route path="pdfs" element={<ManagePdfs />} />
+                    <Route path="mock-tests" element={<ManageMockTests />} />
                     <Route path="videos" element={<ManageVideos />} />
                     <Route path="testimonials" element={<ManageTestimonials />} />
                     <Route path="achievements" element={<ManageAchievements />} />
@@ -184,6 +201,7 @@ function AppContent() {
                     <Route path="counselling" element={<ManageCounselling />} />
                     <Route path="offers" element={<ManageOffers />} />
                     <Route path="inquiries" element={<ManageInquiries />} />
+                    <Route path="doubts" element={<ManageDoubts />} />
                     <Route path="help" element={<AdminHelp />} />
                   </Route>
 
@@ -197,11 +215,6 @@ function AppContent() {
               {showAutoLogin && (
                 <Suspense fallback={null}>
                   <StudentLogin isPopup={true} onClose={() => setShowAutoLogin(false)} />
-                </Suspense>
-              )}
-              {showAdminPopup && (
-                <Suspense fallback={null}>
-                  <AdminLogin isPopup={true} onClose={() => setShowAdminPopup(false)} />
                 </Suspense>
               )}
             </AnimatePresence>

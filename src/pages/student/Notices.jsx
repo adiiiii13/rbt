@@ -1,9 +1,10 @@
-import { useRealtimeCollection } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultNotices } from '../../data/notices';
 import { CalendarIcon } from '../../components/Icons';
 
 export default function StudentNotices() {
-  const { data: notices } = useRealtimeCollection('notices', 'createdAt', defaultNotices);
+  const { data: noticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices });
+  const notices = noticesRaw?.length ? noticesRaw : defaultNotices;
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-1">Notices</h1>

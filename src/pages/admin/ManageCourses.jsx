@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { deleteItemSmart } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultCourses } from '../../data/courses';
 import toast from 'react-hot-toast';
@@ -12,7 +13,8 @@ const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: Gradu
 const emptyForm = { title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', students: 0, image: 'BookOpen', color: '#3b82f6' };
 
 export default function ManageCourses() {
-  const { data: courses, loading } = useRealtimeCollection('courses', 'createdAt', defaultCourses);
+  const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);

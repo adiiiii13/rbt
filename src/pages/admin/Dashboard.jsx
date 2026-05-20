@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { useRealtimeCollection } from '../../lib/contentApi'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { formatCurrency } from '../../lib/invoice'
 import { seedAll } from '../../lib/seedData'
 import { useState } from 'react'
@@ -26,14 +26,14 @@ const statColors = [
 ]
 
 export default function AdminDashboard() {
-  const { data: courses } = useRealtimeCollection('courses', 'createdAt', defaultCourses)
-  const { data: students } = useRealtimeCollection('students', 'createdAt', [])
-  const { data: pdfs } = useRealtimeCollection('pdfs', 'createdAt', defaultPdfs)
-  const { data: videos } = useRealtimeCollection('videos', 'createdAt', defaultVideos)
-  const { data: testimonials } = useRealtimeCollection('testimonials', 'createdAt', defaultTestimonials)
-  const { data: achievements } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements)
-  const { data: payments } = useRealtimeCollection('payments', 'createdAt', [])
-  const { data: bookings } = useRealtimeCollection('counsellingBookings', 'createdAt', [])
+  const { data: courses } = useRealtimeCollection('courses', { fallback: defaultCourses })
+  const { data: students } = useRealtimeCollection('students')
+  const { data: pdfs } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
+  const { data: videos } = useRealtimeCollection('videos', { fallback: defaultVideos })
+  const { data: testimonials } = useRealtimeCollection('testimonials', { fallback: defaultTestimonials })
+  const { data: achievements } = useRealtimeCollection('achievements', { fallback: defaultAchievements })
+  const { data: payments } = useRealtimeCollection('payments')
+  const { data: bookings } = useRealtimeCollection('counsellingBookings')
   const [seeding, setSeeding] = useState(false)
   const [seedMsg, setSeedMsg] = useState('')
 

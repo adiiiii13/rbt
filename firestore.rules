@@ -48,7 +48,9 @@ service cloud.firestore {
         && request.resource.data.studentName.size() < 100
         && request.resource.data.phone is string
         && request.resource.data.phone.size() < 20
-        && request.resource.data.keys().size() < 15;
+        && request.resource.data.keys().size() < 15
+        && request.resource.data.createdAt is timestamp
+        && !exists(/databases/$(database)/documents/counsellingBookings/$(doc));
       allow read: if isSignedIn();
       allow update, delete: if isAdmin();
     }
@@ -59,7 +61,9 @@ service cloud.firestore {
         && request.resource.data.name.size() < 100
         && request.resource.data.phone is string
         && request.resource.data.phone.size() < 20
-        && request.resource.data.keys().size() < 15;
+        && request.resource.data.keys().size() < 15
+        && request.resource.data.createdAt is timestamp
+        && !exists(/databases/$(database)/documents/inquiries/$(doc));
       allow read, update, delete: if isAdmin();
     }
 

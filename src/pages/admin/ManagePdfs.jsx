@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { deleteItemSmart } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpers';
 import { defaultPdfs } from '../../data/pdfs';
 import toast from 'react-hot-toast';
@@ -8,7 +9,8 @@ import Modal from '../../components/Modal';
 const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '' };
 
 export default function ManagePdfs() {
-  const { data: pdfs, loading } = useRealtimeCollection('pdfs', 'createdAt', defaultPdfs);
+  const { data: pdfsRaw, loading } = useRealtimeCollection('pdfs', { fallback: defaultPdfs });
+  const pdfs = pdfsRaw?.length ? pdfsRaw : defaultPdfs;
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);

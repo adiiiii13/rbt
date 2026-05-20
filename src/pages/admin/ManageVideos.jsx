@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi'
+import { deleteItemSmart } from '../../lib/contentApi'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpers'
 import { defaultVideos } from '../../data/videos'
 import toast from 'react-hot-toast'
@@ -8,7 +9,8 @@ import Modal from '../../components/Modal'
 const emptyForm = { title: '', subject: '', class: 'Class 11', duration: '', teacher: '', videoUrl: '', thumbnailUrl: '', isFree: true, price: 0 }
 
 export default function ManageVideos() {
-  const { data: videos, loading } = useRealtimeCollection('videos', 'createdAt', defaultVideos)
+  const { data: videosRaw, loading } = useRealtimeCollection('videos', { fallback: defaultVideos })
+  const videos = videosRaw?.length ? videosRaw : defaultVideos
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)

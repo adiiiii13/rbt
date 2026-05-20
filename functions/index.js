@@ -132,6 +132,13 @@ export const initializeStudentAccount = onCall(async (request) => {
   const uid = request.auth.uid;
   const userRecord = await auth.getUser(uid);
   
+  const allowedDomains = ['students.rbtmission.com', 'rbtmission.com'];
+  const emailDomain = userRecord.email ? userRecord.email.split('@')[1].toLowerCase() : '';
+  
+  if (!allowedDomains.includes(emailDomain)) {
+    throw new HttpsError('permission-denied', 'Email domain not authorized for student account');
+  }
+  
   await auth.setCustomUserClaims(uid, { role: 'student' })
   
   const docRef = db.collection('students').doc(uid);
@@ -146,7 +153,10 @@ export const initializeStudentAccount = onCall(async (request) => {
       role: 'student',
       status: 'active',
       createdAt: FieldValue.serverTimestamp(),
-    })
+    });
+  }
+  return { ok: true, role: 'student' }
+})
   }
   return { ok: true, role: 'student' }
 })

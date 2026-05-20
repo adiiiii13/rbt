@@ -1,9 +1,10 @@
-import { useRealtimeCollection } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultAchievements } from '../../data/achievements';
 import { TrophyIcon } from '../../components/Icons';
 
 export default function StudentAchievements() {
-  const { data: achievements } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements);
+  const { data: achievementsRaw } = useRealtimeCollection('achievements', { fallback: defaultAchievements });
+  const achievements = achievementsRaw?.length ? achievementsRaw : defaultAchievements;
   return (
     <div>
       <h1 className="text-2xl font-bold text-white mb-1">Achievements</h1>

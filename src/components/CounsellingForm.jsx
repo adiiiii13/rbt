@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { addDocument } from '../lib/firebaseHelpers'
+import { useAuth } from '../context/AuthContext'
+import { uploadFile } from '../lib/firebaseHelpers'
 
 const PHONE_RE = /^[0-9+\-\s()]{7,15}$/
 const RATE_KEY = 'rbt_counselling_last'
@@ -22,11 +24,13 @@ const topics = [
 ]
 
 export default function CounsellingForm({ onSuccess, compact = false }) {
+  const { user } = useAuth()
+  const isBatch = !!user?.batch
   const [form, setForm] = useState({
-    studentName: '',
+    studentName: user?.name || '',
     parentName: '',
     phone: '',
-    email: '',
+    email: user?.email || '',
     preferredDate: '',
     preferredTime: '',
     topic: '',
@@ -68,6 +72,8 @@ export default function CounsellingForm({ onSuccess, compact = false }) {
     try {
       await addDocument('counsellingBookings', {
         ...cleaned,
+        studentType: isBatch ? 'Batch Student' : 'Non-batch Student',
+        studentUid: user?.uid || '',
         status: 'pending',
         meetingLink: '',
       })
@@ -101,6 +107,14 @@ export default function CounsellingForm({ onSuccess, compact = false }) {
           {error}
         </div>
       )}
+
+      {/* Student type badge */}
+      <div className={`p-3 rounded-xl ${isBatch ? 'bg-green-brand/10 border border-green-brand/20' : 'bg-blue-500/10 border border-blue-500/20'}`}>
+        <p className="text-xs font-bold uppercase tracking-wider" style={{ color: isBatch ? '#22c55e' : '#3b82f6' }}>
+          {isBatch ? 'Batch Student' : 'Non-batch Student'}
+        </p>
+        {user && <p className="text-xs text-slate-400 mt-1">Logged in as {user.email}</p>}
+      </div>
 
       <div className={compact ? '' : 'grid grid-cols-1 sm:grid-cols-2 gap-4'}>
         <div>

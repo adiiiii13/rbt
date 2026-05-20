@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { deleteItemSmart } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultTestimonials } from '../../data/testimonials';
 import toast from 'react-hot-toast';
@@ -8,7 +9,8 @@ import Modal from '../../components/Modal';
 const emptyForm = { name: '', role: '', text: '', rating: 5, type: 'student' };
 
 export default function ManageTestimonials() {
-  const { data: items, loading } = useRealtimeCollection('testimonials', 'createdAt', defaultTestimonials);
+  const { data: itemsRaw, loading } = useRealtimeCollection('testimonials', { fallback: defaultTestimonials });
+  const items = itemsRaw?.length ? itemsRaw : defaultTestimonials;
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);

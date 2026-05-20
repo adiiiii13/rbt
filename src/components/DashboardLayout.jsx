@@ -41,6 +41,7 @@ export default function DashboardLayout({ type }) {
     { to: '/student/invoices', label: 'My Invoices', icon: <IC.card size={18} /> },
     { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
+    { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
   ]
 
   const basicLinks = [
@@ -54,8 +55,8 @@ export default function DashboardLayout({ type }) {
   const adminLinks = [
     { to: '/admin', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
     { to: '/admin/courses', label: 'Manage Courses', icon: <IC.book size={18} /> },
-    { to: '/admin/test-papers', label: 'Manage Test Papers', icon: <IC.file size={18} /> },
     { to: '/admin/pdfs', label: 'Manage PDFs', icon: <IC.file size={18} /> },
+    { to: '/admin/mock-tests', label: 'Manage Mock Tests', icon: <IC.file size={18} /> },
     { to: '/admin/videos', label: 'Manage Videos', icon: <IC.play size={18} /> },
     { to: '/admin/gallery', label: 'Manage Gallery', icon: <IC.users size={18} /> },
     { to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
@@ -66,6 +67,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
     { to: '/admin/offers', label: 'Offers', icon: <IC.bell size={18} /> },
     { to: '/admin/inquiries', label: 'Inquiries', icon: <IC.mail size={18} /> },
+    { to: '/admin/doubts', label: 'Doubts', icon: <IC.msg size={18} /> },
     { to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
   ]
 

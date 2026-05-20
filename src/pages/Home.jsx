@@ -9,7 +9,7 @@ import { defaultAchievements } from '../data/achievements';
 import {
   UsersIcon, TrendingUpIcon, TrophyIcon, CalendarIcon,
   BookOpenIcon, RocketIcon, HeartPulseIcon, PlayCircleIcon,
-  GraduationCapIcon, LockIcon, StarIcon, FlaskIcon, TargetIcon
+  GraduationCapIcon, StarIcon, FlaskIcon, TargetIcon
 } from '../components/Icons';
 
 const fadeUp = {
@@ -59,7 +59,7 @@ const AnimatedCounter = ({ value, suffix }) => {
   );
 };
 
-export default function Home({ onOpenLogin, onOpenAdminLogin }) {
+export default function Home({ onOpenLogin }) {
   const floatingRef = useRef(null);
 
   useEffect(() => {
@@ -214,12 +214,6 @@ export default function Home({ onOpenLogin, onOpenAdminLogin }) {
               >
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
                 <GraduationCapIcon size={20} /> Student Login
-              </button>
-              <button 
-                onClick={onOpenAdminLogin}
-                className="group btn-navy !px-8 !py-4 !text-base !bg-white/5 hover:!bg-white/10 !border !border-white/10 hover:!border-white/20 no-underline w-full sm:w-auto inline-flex items-center justify-center gap-2 transition-all duration-300 transform hover:-translate-y-1 backdrop-blur-md cursor-pointer"
-              >
-                <LockIcon size={20} className="text-slate-400 group-hover:text-white transition-colors" /> Admin Login
               </button>
               <Link to="/courses" className="group text-white hover:text-green-brand font-medium no-underline w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-4 transition-colors">
                 View Courses <BookOpenIcon size={18} className="transition-transform group-hover:translate-x-1" />

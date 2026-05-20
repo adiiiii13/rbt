@@ -1,11 +1,11 @@
 import { useState } from 'react'
-import { useRealtimeCollection } from '../../lib/contentApi'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 
 export default function ManageCounselling() {
-  const { data: bookings, loading } = useRealtimeCollection('counsellingBookings', 'createdAt', [])
+  const { data: bookings, loading } = useRealtimeCollection('counsellingBookings')
   const [meetModal, setMeetModal] = useState(false)
   const [editModal, setEditModal] = useState(false)
   const [selected, setSelected] = useState(null)
@@ -78,11 +78,12 @@ export default function ManageCounselling() {
         <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
           <div className="table-container">
             <table>
-              <thead><tr><th className="text-white">Topic</th><th className="text-white">Student</th><th className="text-white">Date / Time</th><th className="text-white">Contact</th><th className="text-white">Status</th><th className="text-white">Meet</th><th className="text-white">Actions</th></tr></thead>
+              <thead><tr><th className="text-white">Topic</th><th className="text-white">Student</th><th className="text-white">Type</th><th className="text-white">Date / Time</th><th className="text-white">Contact</th><th className="text-white">Status</th><th className="text-white">Meet</th><th className="text-white">Actions</th></tr></thead>
               <tbody>{bookings.map(b => (
                 <tr key={b.id}>
                   <td className="text-white font-medium text-sm">{b.topic}</td>
                   <td className="text-slate-300 text-sm">{b.studentName}{b.parentName ? ` & ${b.parentName}` : ''}</td>
+                  <td><span className={`badge text-xs ${b.studentType === 'Batch Student' ? 'badge-green' : 'badge-navy'}`}>{b.studentType || 'Unknown'}</span></td>
                   <td className="text-slate-400 text-sm">{b.preferredDate}<br/>{b.preferredTime}</td>
                   <td className="text-slate-400 text-sm">{b.phone}{b.email ? <><br/>{b.email}</> : ''}</td>
                   <td><span className={`badge ${statusColors[b.status]}`}>{b.status}</span></td>

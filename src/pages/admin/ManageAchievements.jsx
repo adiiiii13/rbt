@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { deleteItemSmart } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultAchievements } from '../../data/achievements';
 import toast from 'react-hot-toast';
@@ -8,7 +9,8 @@ import Modal from '../../components/Modal';
 const emptyForm = { studentName: '', course: '', result: '', year: '2025', description: '', marks: '' };
 
 export default function ManageAchievements() {
-  const { data: items, loading } = useRealtimeCollection('achievements', 'createdAt', defaultAchievements);
+  const { data: itemsRaw, loading } = useRealtimeCollection('achievements', { fallback: defaultAchievements });
+  const items = itemsRaw?.length ? itemsRaw : defaultAchievements;
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);

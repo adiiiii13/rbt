@@ -17,7 +17,7 @@ const ChevronUpIcon = ({ size = 18 }) => (
   </svg>
 );
 
-export default function Footer({ onOpenAdminLogin }) {
+export default function Footer() {
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -144,12 +144,6 @@ export default function Footer({ onOpenAdminLogin }) {
           <div className="flex items-center gap-4 sm:gap-6">
             <Link to="/privacy" className="text-slate-500 hover:text-white text-sm transition-colors no-underline">Privacy</Link>
             <Link to="/terms" className="text-slate-500 hover:text-white text-sm transition-colors no-underline">Terms</Link>
-            <button
-              onClick={onOpenAdminLogin}
-              className="text-slate-500 hover:text-white text-sm transition-colors bg-transparent border-none p-0 cursor-pointer"
-            >
-              Admin
-            </button>
             <button
               onClick={scrollToTop}
               className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-green-brand hover:border-green-brand transition-all cursor-pointer"

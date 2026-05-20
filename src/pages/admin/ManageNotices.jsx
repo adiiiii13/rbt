@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
+import { deleteItemSmart } from '../../lib/contentApi';
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultNotices } from '../../data/notices';
 import toast from 'react-hot-toast';
@@ -9,7 +10,8 @@ import { CalendarIcon } from '../../components/Icons';
 const emptyForm = { title: '', content: '', priority: 'medium', category: 'General' };
 
 export default function ManageNotices() {
-  const { data: notices, loading } = useRealtimeCollection('notices', 'createdAt', defaultNotices);
+  const { data: noticesRaw, loading } = useRealtimeCollection('notices', { fallback: defaultNotices });
+  const notices = noticesRaw?.length ? noticesRaw : defaultNotices;
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
