@@ -1,0 +1,11 @@
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # 1. If it's a request for a real file/folder inside the dist directory, serve it
+  RewriteCond %{DOCUMENT_ROOT}/dist/$1 -f [OR]
+  RewriteCond %{DOCUMENT_ROOT}/dist/$1 -d
+  RewriteRule ^(.*)$ dist/$1 [L]
+
+  # 2. Otherwise, route all other requests to dist/index.html for React Router
+  RewriteRule ^(.*)$ dist/index.html [L]
+</IfModule>
