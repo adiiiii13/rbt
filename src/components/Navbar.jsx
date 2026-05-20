@@ -32,7 +32,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup }) {
     return () => { document.body.style.overflow = ''; };
   }, [menuOpen]);
 
-  const isDashboard = location.pathname.startsWith('/student') || location.pathname.startsWith('/admin');
+  const isDashboard = location.pathname.startsWith('/student') || location.pathname.startsWith('/admin') || location.pathname.startsWith('/basic');
   if (isDashboard) return null;
 
   const navLinks = [
