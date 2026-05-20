@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi'
-import { addDocument, updateDocument } from '../../lib/firebaseHelpers'
+import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpers'
 import { defaultVideos } from '../../data/videos'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
@@ -12,6 +12,38 @@ export default function ManageVideos() {
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
+  const [uploading, setUploading] = useState(false)
+  const [inputMode, setInputMode] = useState('url') // 'url' or 'file'
+
+  const handleVideoUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('video/')) { toast.error('Video files only'); return }
+    if (file.size > 500 * 1024 * 1024) { toast.error('Max 500MB'); return }
+    setUploading(true)
+    try {
+      const path = `videos/${Date.now()}_${file.name}`
+      const url = await uploadFile(path, file)
+      setForm({ ...form, videoUrl: url })
+      toast.success('Video uploaded')
+    } catch (err) { toast.error(err.message) }
+    finally { setUploading(false) }
+  }
+
+  const handleThumbnailUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { toast.error('Image only'); return }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return }
+    setUploading(true)
+    try {
+      const path = `videos/thumbs/${Date.now()}_${file.name}`
+      const url = await uploadFile(path, file)
+      setForm({ ...form, thumbnailUrl: url })
+      toast.success('Thumbnail uploaded')
+    } catch (err) { toast.error(err.message) }
+    finally { setUploading(false) }
+  }
 
   const save = async () => {
     if (!form.title || !form.videoUrl) { toast.error('Title and Video URL required'); return }
@@ -37,10 +69,11 @@ export default function ManageVideos() {
   const openEdit = (v) => {
     setEditing(v)
     setForm({ title: v.title, subject: v.subject, class: v.class, duration: v.duration, teacher: v.teacher, videoUrl: v.videoUrl, thumbnailUrl: v.thumbnailUrl || '', isFree: v.isFree !== false, price: v.price || 0 })
+    setInputMode(v.videoUrl && (v.videoUrl.includes('youtube.com') || v.videoUrl.includes('youtu.be')) ? 'url' : 'file')
     setModal(true)
   }
 
-  const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm) }
+  const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); setInputMode('url') }
 
   const deleteAll = async () => {
     if (!confirm(`Delete ALL ${videos.length} videos? This cannot be undone.`)) return
@@ -88,14 +121,60 @@ export default function ManageVideos() {
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Duration</label><input className="input-field" placeholder="45 min" value={form.duration} onChange={e => setForm({...form, duration: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Teacher</label><input className="input-field" value={form.teacher} onChange={e => setForm({...form, teacher: e.target.value})} /></div>
           </div>
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Video URL</label><input className="input-field" placeholder="YouTube link or video URL" value={form.videoUrl} onChange={e => setForm({...form, videoUrl: e.target.value})} /></div>
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Thumbnail URL (optional)</label><input className="input-field" placeholder="https://... image URL" value={form.thumbnailUrl} onChange={e => setForm({...form, thumbnailUrl: e.target.value})} /></div>
+
+          {/* Video Source Toggle */}
+          <div className="flex gap-3">
+            <button type="button" onClick={() => setInputMode('url')} className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all cursor-pointer ${inputMode === 'url' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-slate-700'}`}>
+              YouTube URL
+            </button>
+            <button type="button" onClick={() => setInputMode('file')} className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all cursor-pointer ${inputMode === 'file' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-slate-700'}`}>
+              Upload Video
+            </button>
+          </div>
+
+          {inputMode === 'url' ? (
+            <div>
+              <label className="text-sm font-medium text-slate-300 mb-1 block">YouTube URL</label>
+              <input className="input-field" placeholder="https://www.youtube.com/watch?v=..." value={form.videoUrl} onChange={e => setForm({...form, videoUrl: e.target.value})} />
+              <p className="text-xs text-slate-500 mt-1">Paste any YouTube link (watch, share, or embed)</p>
+            </div>
+          ) : (
+            <div>
+              <label className="text-sm font-medium text-slate-300 mb-1 block">Upload Video (max 500MB)</label>
+              <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
+                {form.videoUrl && !form.videoUrl.includes('youtube') ? (
+                  <p className="text-sm text-green-brand">{form.videoUrl.split('/').pop().split('?')[0]}</p>
+                ) : (
+                  <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to select video file'}</p>
+                )}
+                <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploading} />
+              </label>
+              <p className="text-xs text-slate-500 mt-1">MP4, WebM, MOV supported. Large files take time to upload.</p>
+            </div>
+          )}
+
+          {/* Thumbnail */}
+          <div>
+            <label className="text-sm font-medium text-slate-300 mb-1 block">Thumbnail (optional)</label>
+            <div className="flex gap-3">
+              <label className="border-2 border-dashed border-slate-600 rounded-xl p-3 text-center cursor-pointer hover:border-green-brand transition-colors flex-shrink-0 w-32">
+                {form.thumbnailUrl ? (
+                  <img src={form.thumbnailUrl} alt="" className="w-full h-16 object-cover rounded" />
+                ) : (
+                  <p className="text-xs text-slate-400 mt-3">{uploading ? '...' : 'Upload'}</p>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={handleThumbnailUpload} disabled={uploading} />
+              </label>
+              <input className="input-field flex-1" placeholder="or paste thumbnail URL" value={form.thumbnailUrl} onChange={e => setForm({...form, thumbnailUrl: e.target.value})} />
+            </div>
+          </div>
+
           <div className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10">
             <div><p className="text-sm font-medium text-white">Free or Paid?</p><p className="text-xs text-slate-400">{form.isFree ? 'Anyone can watch' : 'Requires payment'}</p></div>
             <button type="button" onClick={() => setForm({...form, isFree: !form.isFree})} className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer ${form.isFree ? 'bg-green-brand' : 'bg-amber-500'}`}><span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow ${form.isFree ? 'left-0.5' : 'left-7'}`} /></button>
           </div>
           {!form.isFree && <div><label className="text-sm font-medium text-slate-300 mb-1 block">Price (INR)</label><input type="number" className="input-field" placeholder="99" value={form.price} onChange={e => setForm({...form, price: e.target.value})} /></div>}
-          <button onClick={save} className="btn-primary w-full">{editing ? 'Update' : 'Add'} Video</button>
+          <button onClick={save} disabled={uploading} className="btn-primary w-full disabled:opacity-50">{editing ? 'Update' : 'Add'} Video</button>
         </div>
       </Modal>
     </div>

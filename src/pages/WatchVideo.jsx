@@ -10,10 +10,9 @@ function getEmbedUrl(url) {
   // YouTube - extract video ID
   const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|v\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
   if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}?rel=0`;
-  // Direct video
-  if (url.match(/\.(mp4|webm|ogg)(\?.*)?$/i)) return url;
   // Already embed
   if (url.includes('/embed/')) return url;
+  // Everything else: treat as direct video (Storage URLs, mp4, etc)
   return url;
 }
 
