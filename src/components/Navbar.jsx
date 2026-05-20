@@ -7,6 +7,7 @@ export default function Navbar({ onOpenLogin }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
@@ -40,6 +41,9 @@ export default function Navbar({ onOpenLogin }) {
     { to: '/courses', label: 'Courses' },
     { to: '/videos', label: 'Demo Videos' },
     { to: '/gallery', label: 'Gallery' },
+  ];
+
+  const moreLinks = [
     { to: '/achievements', label: 'Achievements' },
     { to: '/counselling', label: 'Counselling' },
     { to: '/contact', label: 'Contact' },
@@ -102,6 +106,34 @@ export default function Navbar({ onOpenLogin }) {
                   )}
                 </Link>
               ))}
+              {/* More Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setMoreOpen(!moreOpen)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  More
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+                </button>
+                {moreOpen && (
+                  <div className="absolute top-full right-0 mt-2 w-48 bg-[#111111] border border-slate-800 rounded-xl shadow-2xl overflow-hidden py-1">
+                    {moreLinks.map((link) => (
+                      <Link
+                        key={link.to}
+                        to={link.to}
+                        onClick={() => setMoreOpen(false)}
+                        className={`block px-4 py-2.5 text-sm font-medium no-underline transition-all ${
+                          location.pathname === link.to
+                            ? 'text-green-brand bg-green-brand/10'
+                            : 'text-slate-300 hover:text-white hover:bg-white/5'
+                        }`}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Desktop Auth Buttons */}
