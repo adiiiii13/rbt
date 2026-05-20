@@ -3,10 +3,10 @@ import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
 import { useRealtimeCollection } from '../../lib/contentApi';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../../lib/firebase';
 
-const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', class: 'Class 10', status: 'active', role: 'student' };
+const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', class: 'Class 10', password: '' };
 
 export default function ManageStudents() {
   const { data: students, loading } = useRealtimeCollection('students', 'createdAt');
@@ -26,8 +26,7 @@ export default function ManageStudents() {
       phone: s.phone || '',
       course: s.course || '',
       class: s.class || 'Class 10',
-      status: s.status || 'active',
-      role: s.role || 'student',
+      password: '',
     });
     setModal(true);
   };
@@ -37,6 +36,7 @@ export default function ManageStudents() {
     setBusy(true);
     try {
       if (editing) {
+        // Edit: update Firestore doc directly
         await updateDocument('students', editing.id, {
           studentId: form.studentId,
           name: form.name,
@@ -44,24 +44,27 @@ export default function ManageStudents() {
           phone: form.phone,
           course: form.course,
           class: form.class,
-          status: form.status,
         });
         toast.success('Student updated');
       } else {
-        // Check if email already exists
-        if (form.email) {
-          const q = query(collection(db, 'students'), where('email', '==', form.email));
-          const snap = await getDocs(q);
-          if (!snap.empty) { toast.error('Email already exists'); setBusy(false); return; }
+        // Create: use Cloud Function (creates Firebase Auth account)
+        if (!form.password || form.password.length < 8) {
+          toast.error('Password required (min 8 characters)');
+          setBusy(false);
+          return;
         }
-        await addDocument('students', {
-          ...form,
+        const createFn = httpsCallable(functions, 'createStudent');
+        const result = await createFn({
+          studentId: form.studentId,
+          name: form.name,
           email: form.email || '',
           phone: form.phone || '',
           course: form.course || '',
+          password: form.password,
         });
-        toast.success('Student added');
-        toast('Note: To allow login, create Firebase Auth account separately', { icon: 'info' });
+        if (result.data.success) {
+          toast.success('Student account created — can login now');
+        }
       }
       closeModal();
     } catch (err) {
@@ -69,12 +72,29 @@ export default function ManageStudents() {
     } finally { setBusy(false); }
   };
 
-  const remove = async (s) => {
-    if (!confirm(`Delete ${s.name} permanently?`)) return;
+  const disable = async (s) => {
+    if (!confirm(`Disable ${s.name}? They can't login after this.`)) return;
     try {
-      await deleteDocument('students', s.id);
-      toast.success('Deleted');
-    } catch (err) { toast.error(err.message || 'Failed'); }
+      const fn = httpsCallable(functions, 'disableStudent');
+      await fn({ uid: s.id });
+      toast.success('Student disabled');
+    } catch (err) { toast.error(err.message); }
+  };
+
+  const enable = async (s) => {
+    try {
+      await updateDocument('students', s.id, { status: 'active' });
+      toast.success('Student enabled');
+    } catch (err) { toast.error(err.message); }
+  };
+
+  const remove = async (s) => {
+    if (!confirm(`Delete ${s.name} permanently? This deletes their account and data.`)) return;
+    try {
+      const fn = httpsCallable(functions, 'deleteStudent');
+      await fn({ uid: s.id });
+      toast.success('Student deleted');
+    } catch (err) { toast.error(err.message); }
   };
 
   return (
@@ -82,7 +102,7 @@ export default function ManageStudents() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Manage Students</h1>
-          <p className="text-sm text-slate-600 font-medium">{students.length} students enrolled</p>
+          <p className="text-sm text-slate-400">{students.length} students enrolled</p>
         </div>
         <button onClick={() => setModal(true)} className="btn-primary shadow-lg">+ Add Student</button>
       </div>
@@ -119,8 +139,13 @@ export default function ManageStudents() {
                     </td>
                     <td>
                       <div className="flex gap-3">
-                        <button onClick={() => openEdit(s)} className="text-sm font-bold text-blue-600 hover:text-blue-700 cursor-pointer">Edit</button>
-                        <button onClick={() => remove(s)} className="text-sm font-bold text-red-500 hover:text-red-600 cursor-pointer">Delete</button>
+                        <button onClick={() => openEdit(s)} className="text-sm font-bold text-blue-400 hover:text-blue-300 cursor-pointer">Edit</button>
+                        {s.status === 'disabled' ? (
+                          <button onClick={() => enable(s)} className="text-sm font-bold text-green-brand cursor-pointer">Enable</button>
+                        ) : (
+                          <button onClick={() => disable(s)} className="text-sm font-bold text-amber-400 cursor-pointer">Disable</button>
+                        )}
+                        <button onClick={() => remove(s)} className="text-sm font-bold text-red-400 cursor-pointer">Delete</button>
                       </div>
                     </td>
                   </tr>
@@ -163,17 +188,15 @@ export default function ManageStudents() {
               <input className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.course} onChange={e => setForm({ ...form, course: e.target.value })} placeholder="Physics Pro" />
             </div>
           </div>
-          {editing && (
+          {!editing && (
             <div>
-              <label className="text-sm font-bold text-white mb-1.5 block">Status</label>
-              <select className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
-                <option value="active">Active</option>
-                <option value="disabled">Disabled</option>
-              </select>
+              <label className="text-sm font-bold text-white mb-1.5 block">Password *</label>
+              <input type="password" className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min 8 characters" />
+              <p className="text-xs text-slate-500 mt-1">Student will login with this password</p>
             </div>
           )}
           <button onClick={save} disabled={busy} className="btn-primary w-full shadow-lg mt-2 disabled:opacity-60">
-            {busy ? 'Saving...' : editing ? 'Update Student' : 'Add Student'}
+            {busy ? 'Saving...' : editing ? 'Update Student' : 'Create Student Account'}
           </button>
         </div>
       </Modal>

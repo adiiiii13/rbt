@@ -8,7 +8,7 @@ import { doc, updateDoc } from 'firebase/firestore'
 import toast from 'react-hot-toast'
 import {
   HomeIcon, BookOpenIcon, FileTextIcon, PlayCircleIcon,
-  BellIcon, TrophyIcon, UsersIcon, MessageSquareIcon,
+  BellIcon, TrophyIcon, UsersIcon, MessageSquareIcon, StarIcon,
   CalendarIcon, CreditCardIcon, MailIcon
 } from './Icons'
 
@@ -22,6 +22,14 @@ const studentLinks = [
   { to: '/student/invoices', label: 'My Invoices', icon: <CreditCardIcon size={18} /> },
   { to: '/student/notices', label: 'Notices', icon: <BellIcon size={18} /> },
   { to: '/student/achievements', label: 'Achievements', icon: <TrophyIcon size={18} /> },
+]
+
+const basicLinks = [
+  { to: '/basic', label: 'Dashboard', icon: <HomeIcon size={18} />, end: true },
+  { to: '/basic/courses', label: 'Courses', icon: <BookOpenIcon size={18} /> },
+  { to: '/basic/videos', label: 'Demo Videos', icon: <PlayCircleIcon size={18} /> },
+  { to: '/basic/test-papers', label: 'Free Test Series', icon: <FileTextIcon size={18} /> },
+  { to: '/basic/payment', label: 'Payment', icon: <CreditCardIcon size={18} /> },
 ]
 
 const adminLinks = [
@@ -39,13 +47,14 @@ const adminLinks = [
   { to: '/admin/counselling', label: 'Counselling', icon: <CalendarIcon size={18} /> },
   { to: '/admin/offers', label: 'Offers', icon: <BellIcon size={18} /> },
   { to: '/admin/inquiries', label: 'Inquiries', icon: <MailIcon size={18} /> },
+  { to: '/admin/help', label: 'Help', icon: <StarIcon size={18} /> },
 ]
 
 export default function DashboardLayout({ type }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const links = type === 'admin' ? adminLinks : studentLinks
+  const links = type === 'admin' ? adminLinks : type === 'basic' ? basicLinks : studentLinks
 
   const handleLogout = () => {
     logout()
@@ -167,7 +176,7 @@ export default function DashboardLayout({ type }) {
             </button>
             <div>
               <h2 className="text-base font-semibold text-white">
-                {type === 'admin' ? 'Admin Panel' : 'Student Portal'}
+                {type === 'admin' ? 'Admin Panel' : type === 'basic' ? 'Basic Portal' : 'Student Portal'}
               </h2>
               <p className="text-xs text-slate-400">Welcome back, {user?.name || 'User'}</p>
             </div>

@@ -1,40 +1,10 @@
 import { useState } from 'react'
 import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi'
-import { addDocument, updateDocument } from '../../lib/firebaseHelpers'
+import { addDocument, updateDocument, uploadFile, deleteFile } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 
 const emptyForm = { title: '', category: 'Campus', imageUrl: '' }
-
-// Compress image to JPEG base64, max 800x600
-function compressImage(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        let w = img.width, h = img.height
-        const maxW = 800, maxH = 600
-        if (w > maxW || h > maxH) {
-          const ratio = Math.min(maxW / w, maxH / h)
-          w = Math.round(w * ratio)
-          h = Math.round(h * ratio)
-        }
-        canvas.width = w
-        canvas.height = h
-        const ctx = canvas.getContext('2d')
-        ctx.drawImage(img, 0, 0, w, h)
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.7)
-        resolve(dataUrl)
-      }
-      img.onerror = () => reject(new Error('Failed to load image'))
-      img.src = e.target.result
-    }
-    reader.onerror = () => reject(new Error('Failed to read file'))
-    reader.readAsDataURL(file)
-  })
-}
 
 export default function ManageGallery() {
   const { data: images, loading } = useRealtimeCollection('gallery', 'createdAt', [])
@@ -51,10 +21,11 @@ export default function ManageGallery() {
     if (file.size > 5 * 1024 * 1024) { toast.error('Max 5MB'); return }
     setUploading(true)
     try {
-      const compressed = await compressImage(file)
-      setForm({ ...form, imageUrl: compressed })
-      setPreview(compressed)
-      toast.success('Image ready')
+      const path = `public/gallery/${Date.now()}_${file.name}`
+      const url = await uploadFile(path, file)
+      setForm({ ...form, imageUrl: url })
+      setPreview(url)
+      toast.success('Uploaded')
     } catch (err) { toast.error(err.message) }
     finally { setUploading(false) }
   }
@@ -121,7 +92,7 @@ export default function ManageGallery() {
               {preview ? (
                 <img src={preview} alt="Preview" className="w-full max-h-40 object-contain mx-auto rounded-lg" />
               ) : (
-                <p className="text-sm text-slate-400">{uploading ? 'Processing...' : 'Click to select image (max 5MB)'}</p>
+                <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to select image (max 5MB)'}</p>
               )}
               <input type="file" accept="image/*" className="hidden" onChange={handleFileUpload} disabled={uploading} />
             </label>

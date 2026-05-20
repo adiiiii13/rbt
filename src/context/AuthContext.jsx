@@ -162,6 +162,40 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const loginWithBatchCode = async () => {
+    try {
+      const provider = new GoogleAuthProvider()
+      const cred = await signInWithPopup(auth, provider)
+
+      const studentRef = doc(db, 'students', cred.user.uid)
+      const snap = await getDoc(studentRef)
+      if (!snap.exists()) {
+        await setDoc(studentRef, {
+          name: cred.user.displayName || 'Student',
+          email: cred.user.email,
+          photoURL: cred.user.photoURL || null,
+          role: 'student',
+          batch: true,
+          status: 'active',
+          studentId: 'B-' + cred.user.uid.substring(0, 6).toUpperCase(),
+          createdAt: new Date().toISOString()
+        })
+      } else {
+        await updateDoc(studentRef, {
+          name: cred.user.displayName || snap.data().name,
+          photoURL: cred.user.photoURL || snap.data().photoURL || null,
+          batch: true,
+        })
+      }
+
+      const userData = await buildUserFromToken(cred.user)
+      userData.batch = true
+      return { success: true, user: userData }
+    } catch (err) {
+      return { success: false, message: mapAuthError(err.code || 'Login failed') }
+    }
+  }
+
   const logout = async () => {
     await signOut(auth)
     setUser(null)
@@ -169,7 +203,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, resetPassword, logout }}
+      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, loginWithBatchCode, resetPassword, logout }}
     >
       {children}
     </AuthContext.Provider>

@@ -75,28 +75,52 @@ export const deleteStudent = onCall(async (request) => {
   return { ok: true }
 })
 
-// Trigger: when counselling/contact docs created, notify admins (placeholder — wire email later)
-export const onCounsellingCreated = onDocumentCreated('counselling/{id}', async (event) => {
+// Trigger: new counselling booking → FCM push to admins
+export const onCounsellingCreated = onDocumentCreated('counsellingBookings/{id}', async (event) => {
   const data = event.data?.data()
   if (!data) return
-  await db.collection('adminNotifications').add({
-    type: 'counselling',
-    refId: event.params.id,
-    name: data.name,
-    createdAt: FieldValue.serverTimestamp(),
-    read: false,
+
+  // Read all students who have fcmToken to push to admins (we store admin tokens in a doc)
+  const tokens = []
+  try {
+    const adminDoc = await db.doc('_meta/adminTokens').get()
+    if (adminDoc.exists && adminDoc.data().tokens) {
+      tokens.push(...adminDoc.data().tokens)
+    }
+  } catch {}
+
+  if (tokens.length === 0) return
+
+  await getMessaging().sendEachForMulticast({
+    notification: {
+      title: 'New Counselling Booking',
+      body: `${data.studentName}: ${data.topic} on ${data.preferredDate}`,
+    },
+    tokens,
   })
 })
 
-export const onContactCreated = onDocumentCreated('contacts/{id}', async (event) => {
+// Trigger: new contact inquiry → FCM push to admins
+export const onContactCreated = onDocumentCreated('inquiries/{id}', async (event) => {
   const data = event.data?.data()
   if (!data) return
-  await db.collection('adminNotifications').add({
-    type: 'contact',
-    refId: event.params.id,
-    name: data.name,
-    createdAt: FieldValue.serverTimestamp(),
-    read: false,
+
+  const tokens = []
+  try {
+    const adminDoc = await db.doc('_meta/adminTokens').get()
+    if (adminDoc.exists && adminDoc.data().tokens) {
+      tokens.push(...adminDoc.data().tokens)
+    }
+  } catch {}
+
+  if (tokens.length === 0) return
+
+  await getMessaging().sendEachForMulticast({
+    notification: {
+      title: 'New Contact Inquiry',
+      body: `${data.name}: ${(data.message || '').substring(0, 80)}`,
+    },
+    tokens,
   })
 })
 

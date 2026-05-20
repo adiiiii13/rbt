@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useRealtimeCollection, deleteItemSmart } from '../../lib/contentApi';
-import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
+import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpers';
 import { defaultPdfs } from '../../data/pdfs';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
@@ -18,18 +18,15 @@ export default function ManagePdfs() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.type !== 'application/pdf') { toast.error('PDF files only'); return; }
-    if (file.size > 500 * 1024) { toast.error('Max 500KB for upload. Use URL for larger files.'); return; }
+    if (file.size > 50 * 1024 * 1024) { toast.error('Max 50MB'); return; }
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setForm({ ...form, url: reader.result, fileName: file.name });
-        toast.success('PDF ready');
-        setUploading(false);
-      };
-      reader.onerror = () => { toast.error('Read failed'); setUploading(false); };
-      reader.readAsDataURL(file);
-    } catch (err) { toast.error(err.message); setUploading(false); }
+      const path = `pdfs/${Date.now()}_${file.name}`;
+      const url = await uploadFile(path, file);
+      setForm({ ...form, url, fileName: file.name });
+      toast.success('Uploaded');
+    } catch (err) { toast.error(err.message); }
+    finally { setUploading(false); }
   };
 
   const save = async () => {
@@ -100,9 +97,9 @@ export default function ManagePdfs() {
 
           {/* Upload PDF file */}
           <div>
-            <label className="text-sm font-medium text-slate-300 mb-1 block">Upload PDF (max 500KB)</label>
+            <label className="text-sm font-medium text-slate-300 mb-1 block">Upload PDF (max 50MB)</label>
             <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
-              {form.fileName ? <p className="text-sm text-green-brand inline-flex items-center gap-1">{form.fileName}</p> : <p className="text-sm text-slate-400">{uploading ? 'Processing...' : 'Click to select PDF file'}</p>}
+              {form.fileName ? <p className="text-sm text-green-brand inline-flex items-center gap-1">{form.fileName}</p> : <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to select PDF file'}</p>}
               <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
             </label>
           </div>

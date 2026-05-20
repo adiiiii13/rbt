@@ -38,6 +38,9 @@ const StudentCounselling = lazy(() => import('./pages/student/Counselling'))
 const Payment = lazy(() => import('./pages/student/Payment'))
 const Invoices = lazy(() => import('./pages/student/Invoices'))
 
+// Basic Pages (lazy)
+const BasicDashboard = lazy(() => import('./pages/basic/Dashboard'))
+
 // Admin Pages (lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
 const ManageCourses = lazy(() => import('./pages/admin/ManageCourses'))
@@ -52,8 +55,9 @@ const ManagePayments = lazy(() => import('./pages/admin/ManagePayments'))
 const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
 const ManageOffers = lazy(() => import('./pages/admin/ManageOffers'))
 const ManageInquiries = lazy(() => import('./pages/admin/ManageInquiries'))
+const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
-function ProtectedRoute({ children, role }) {
+function ProtectedRoute({ children, role, batch }) {
   const { user, loading } = useAuth()
   const location = useLocation()
   if (loading) return <LoadingScreen />
@@ -62,6 +66,8 @@ function ProtectedRoute({ children, role }) {
     return <Navigate to={dest} replace state={{ from: location.pathname + location.search }} />
   }
   if (role && user.role !== role) return <Navigate to="/" replace />
+  // Batch dashboard requires batch: true
+  if (batch && !user.batch) return <Navigate to="/basic" replace />
   return children
 }
 
@@ -101,7 +107,7 @@ function AppContent() {
   useEffect(() => {
     if (initialLoading || authLoading) return
     const path = window.location.pathname
-    const onAuthRoute = path.includes('login') || path.startsWith('/student') || path.startsWith('/admin')
+    const onAuthRoute = path.includes('login') || path.startsWith('/student') || path.startsWith('/admin') || path.startsWith('/basic')
     if (!user && !onAuthRoute) setShowAutoLogin(true)
     else if (user) setShowAutoLogin(false)
   }, [initialLoading, authLoading, user])
@@ -139,8 +145,8 @@ function AppContent() {
                   <Route path="/student-login" element={<StudentLogin />} />
                   <Route path="/admin-login" element={<AdminLogin />} />
 
-                  {/* Student Routes */}
-                  <Route path="/student" element={<ProtectedRoute role="student"><DashboardLayout type="student" /></ProtectedRoute>}>
+                  {/* Student Routes (Batch — full access) */}
+                  <Route path="/student" element={<ProtectedRoute role="student" batch><DashboardLayout type="student" /></ProtectedRoute>}>
                     <Route index element={<StudentDashboard />} />
                     <Route path="courses" element={<StudentCourses />} />
                     <Route path="test-papers" element={<TestPapers />} />
@@ -151,6 +157,15 @@ function AppContent() {
                     <Route path="counselling" element={<StudentCounselling />} />
                     <Route path="payment" element={<Payment />} />
                     <Route path="invoices" element={<Invoices />} />
+                  </Route>
+
+                  {/* Basic Routes (limited access) */}
+                  <Route path="/basic" element={<ProtectedRoute role="student"><DashboardLayout type="basic" /></ProtectedRoute>}>
+                    <Route index element={<BasicDashboard />} />
+                    <Route path="courses" element={<StudentCourses />} />
+                    <Route path="videos" element={<StudentVideos />} />
+                    <Route path="test-papers" element={<TestPapers />} />
+                    <Route path="payment" element={<Payment />} />
                   </Route>
 
                   {/* Admin Routes */}
@@ -169,6 +184,7 @@ function AppContent() {
                     <Route path="counselling" element={<ManageCounselling />} />
                     <Route path="offers" element={<ManageOffers />} />
                     <Route path="inquiries" element={<ManageInquiries />} />
+                    <Route path="help" element={<AdminHelp />} />
                   </Route>
 
                   {/* Catch-all 404 */}
