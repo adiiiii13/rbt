@@ -90,30 +90,37 @@ export default function Navbar({ onOpenLogin }) {
                 <Link
                   key={link.to}
                   to={link.to}
-                  className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-all no-underline ${
+                  className={`group px-4 py-2 text-sm font-medium transition-colors no-underline ${
                     location.pathname === link.to
-                      ? 'text-green-brand'
+                      ? 'text-white'
                       : 'text-white/70 hover:text-white'
                   }`}
                 >
-                  {link.label}
-                  {location.pathname === link.to && (
-                    <motion.div
-                      layoutId="navbar-indicator"
-                      className="absolute inset-0 bg-green-brand/10 rounded-lg border border-green-brand/20"
-                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                    />
-                  )}
+                  <span className="relative inline-block">
+                    {link.label}
+                    <span className={`absolute -bottom-1 left-0 w-full h-[2px] bg-green-brand origin-left transition-transform duration-300 ease-out ${
+                      location.pathname === link.to ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                    }`} />
+                  </span>
                 </Link>
               ))}
               {/* More Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setMoreOpen(!moreOpen)}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white/70 hover:text-white transition-all flex items-center gap-1 cursor-pointer"
+                  className={`group px-4 py-2 text-sm font-medium transition-colors flex items-center gap-1 cursor-pointer ${
+                    moreOpen || moreLinks.some(l => location.pathname === l.to)
+                      ? 'text-white'
+                      : 'text-white/70 hover:text-white'
+                  }`}
                 >
-                  More
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform ${moreOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+                  <span className="relative flex items-center gap-1 inline-block">
+                    More
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className={`transition-transform duration-300 ${moreOpen ? 'rotate-180' : ''}`}><path d="m6 9 6 6 6-6"/></svg>
+                    <span className={`absolute -bottom-1 left-0 w-full h-[2px] bg-green-brand origin-left transition-transform duration-300 ease-out ${
+                      moreOpen || moreLinks.some(l => location.pathname === l.to) ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                    }`} />
+                  </span>
                 </button>
                 {moreOpen && (
                   <div className="absolute top-full right-0 mt-2 w-48 bg-[#111111] border border-slate-800 rounded-xl shadow-2xl overflow-hidden py-1">

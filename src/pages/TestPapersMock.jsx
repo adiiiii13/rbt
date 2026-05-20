@@ -41,32 +41,45 @@ export default function TestPapersMock() {
           <p className="text-slate-400">Timed MCQ tests with instant scoring. Select an exam category below.</p>
         </div>
 
-        {/* Category chips */}
-        <div className="flex flex-wrap gap-2 mb-8">
-          <button
-            onClick={() => setSelectedCat('all')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-              selectedCat === 'all'
-                ? 'bg-green-brand text-white'
-                : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
-            }`}
-          >
-            All
-          </button>
-          {CATEGORIES.map(c => (
+        {/* Education Level Filter Chips */}
+        <div className="mb-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Filter by Category</p>
+          <div className="flex flex-wrap gap-2.5">
             <button
-              key={c.id}
-              onClick={() => setSelectedCat(c.id)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                selectedCat === c.id
-                  ? 'text-white shadow-lg'
-                  : 'bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10'
+              onClick={() => setSelectedCat('all')}
+              className={`group relative inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-300 ${
+                selectedCat === 'all'
+                  ? 'bg-green-brand text-white border border-green-400/40'
+                  : 'bg-white/[0.04] text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
               }`}
-              style={selectedCat === c.id ? { background: c.color } : {}}
             >
-              {c.label}
+              <span className={`w-2 h-2 rounded-full transition-all ${
+                selectedCat === 'all' ? 'bg-white' : 'bg-slate-600 group-hover:bg-slate-400'
+              }`} />
+              All Tests
             </button>
-          ))}
+            {CATEGORIES.map(c => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedCat(c.id)}
+                className={`group relative inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-300 ${
+                  selectedCat === c.id
+                    ? 'text-white border'
+                    : 'bg-white/[0.04] text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
+                }`}
+                style={selectedCat === c.id ? {
+                  background: `linear-gradient(135deg, ${c.color}dd, ${c.color}99)`,
+                  borderColor: `${c.color}50`,
+                } : {}}
+              >
+                <span
+                  className="w-2 h-2 rounded-full transition-all flex-shrink-0"
+                  style={{ background: selectedCat === c.id ? 'rgba(255,255,255,0.9)' : c.color }}
+                />
+                {c.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading && <p className="text-slate-400 text-center py-8">Loading...</p>}

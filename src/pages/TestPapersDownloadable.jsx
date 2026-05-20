@@ -52,20 +52,26 @@ export default function TestPapersDownloadable() {
             className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand transition-colors"
           />
         </div>
-        <div className="flex flex-wrap gap-2 mb-8">
-          {FILTERS.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                filter === f
-                  ? 'bg-green-brand text-white shadow-lg shadow-green-brand/30'
-                  : 'bg-white/5 text-slate-400 hover:bg-white/10 hover:text-white border border-white/10'
-              }`}
-            >
-              {f}
-            </button>
-          ))}
+        <div className="mb-8">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Filter by Level</p>
+          <div className="flex flex-wrap gap-2.5">
+            {FILTERS.map(f => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`group inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-300 ${
+                  filter === f
+                    ? 'bg-green-brand text-white border border-green-400/40'
+                    : 'bg-white/[0.04] text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full flex-shrink-0 transition-all ${
+                  filter === f ? 'bg-white' : 'bg-slate-600 group-hover:bg-green-brand'
+                }`} />
+                {f}
+              </button>
+            ))}
+          </div>
         </div>
 
         {loading && <p className="text-slate-400 text-center py-8">Loading...</p>}

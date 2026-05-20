@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { defaultCourses } from '../data/courses';
@@ -12,9 +13,27 @@ const iconMap = {
   HeartPulse: HeartPulseIcon,
 };
 
+const LEVELS = [
+  { id: 'all', label: 'All Courses', color: '#16a34a' },
+  { id: 'foundation', label: 'Foundation 8–12', color: '#f59e0b' },
+  { id: 'iit-jee', label: 'IIT-JEE', color: '#3b82f6' },
+  { id: 'neet', label: 'NEET', color: '#10b981' },
+];
+
 export default function Courses() {
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
   const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
+  const [activeLevel, setActiveLevel] = useState('all');
+
+  const filtered = activeLevel === 'all'
+    ? courses
+    : courses.filter(c => {
+        const lvl = (c.level || c.category || c.title || '').toLowerCase();
+        if (activeLevel === 'foundation') return lvl.includes('foundation') || lvl.includes('class') || /[89]|10|11|12/.test(lvl);
+        if (activeLevel === 'iit-jee') return lvl.includes('jee') || lvl.includes('iit') || lvl.includes('engineering');
+        if (activeLevel === 'neet') return lvl.includes('neet') || lvl.includes('medical') || lvl.includes('biology');
+        return true;
+      });
   return (
     <div className="bg-black">
       <section className="relative pt-28 pb-20 overflow-hidden min-h-[400px] flex items-center">
@@ -60,10 +79,37 @@ export default function Courses() {
         </div>
       </section>
 
-      <section className="py-20 bg-[#000000]">
+      <section className="py-12 bg-[#000000]">
         <div className="container-main">
+          {/* Education Level Filter */}
+          <div className="mb-10">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Browse by Level</p>
+            <div className="flex flex-wrap gap-2.5">
+              {LEVELS.map(lv => (
+                <button
+                  key={lv.id}
+                  onClick={() => setActiveLevel(lv.id)}
+                  className={`group inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-300 ${
+                    activeLevel === lv.id
+                      ? 'text-white border'
+                      : 'bg-white/[0.04] text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
+                  }`}
+                  style={activeLevel === lv.id ? {
+                    background: `linear-gradient(135deg, ${lv.color}dd, ${lv.color}99)`,
+                    borderColor: `${lv.color}50`,
+                  } : {}}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0 transition-all"
+                    style={{ background: activeLevel === lv.id ? 'rgba(255,255,255,0.9)' : lv.color }}
+                  />
+                  {lv.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {courses.map((course, i) => {
+            {filtered.map((course, i) => {
               const IconComponent = iconMap[course.image] || BookOpenIcon;
               return (
               <motion.div key={course.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: i * 0.08 }} className="glass-card p-6 group hover:-translate-y-2 hover:border-green-brand/30 hover:shadow-[0_10px_30px_rgba(34,197,94,0.15)] transition-all duration-300 border border-transparent cursor-pointer">

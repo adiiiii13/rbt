@@ -155,7 +155,7 @@ export default function Home({ onOpenLogin }) {
               initial={{ opacity: 0, scale: 0.8, y: -20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.6, type: "spring", bounce: 0.5 }}
-              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-md shadow-xl text-green-light text-sm font-semibold mb-8 hover:bg-white/5 transition-colors cursor-default"
+              className="inline-flex items-center gap-3 px-5 py-2.5 rounded-md bg-white/[0.03] border border-white/10 backdrop-blur-md shadow-xl text-green-light text-sm font-semibold mb-8 hover:bg-white/5 transition-colors cursor-default"
             >
               <span className="relative flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-brand opacity-75"></span>

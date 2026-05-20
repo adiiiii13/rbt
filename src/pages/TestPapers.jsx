@@ -53,7 +53,7 @@ export default function TestPapers() {
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-brand/10 border border-green-brand/20 text-green-brand text-sm font-medium mb-6"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-green-brand/10 border border-green-brand/20 text-green-brand text-sm font-medium mb-6"
           >
             <FileTextIcon size={16} />
             <span>Practice Materials</span>

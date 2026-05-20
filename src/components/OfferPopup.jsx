@@ -83,7 +83,7 @@ export default function OfferPopup() {
           {/* Content */}
           <div className="relative p-8 text-center">
             {/* Tag */}
-            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 mb-5">
+            <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-md px-4 py-2 mb-5">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-300">
                 <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
               </svg>
