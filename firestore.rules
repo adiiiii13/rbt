@@ -95,7 +95,7 @@ service cloud.firestore {
     }
 
     // Meta: tracks deleted default IDs. Admin only.
-    match /meta/{collection}/deleted/{id} {
+    match /_deleted/{doc} {
       allow read, write: if isAdmin();
     }
 

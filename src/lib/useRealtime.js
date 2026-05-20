@@ -6,12 +6,15 @@ const state = {}
 const deletedSets = {} // { [name]: Set<string> }
 const deletedLoaded = {} // { [name]: boolean }
 
-// Load deleted IDs from Firestore meta doc
+// Load deleted IDs from _deleted collection
 async function loadDeletedIds(name) {
   if (deletedLoaded[name]) return deletedSets[name]
   try {
-    const snap = await getDocs(collection(db, `meta/${name}/deleted`))
-    const ids = new Set(snap.docs.map(d => d.id))
+    const snap = await getDocs(collection(db, '_deleted'))
+    const ids = new Set()
+    for (const d of snap.docs) {
+      if (d.data().collection === name) ids.add(d.data().originalId)
+    }
     deletedSets[name] = ids
     deletedLoaded[name] = true
     return ids
@@ -22,10 +25,14 @@ async function loadDeletedIds(name) {
   }
 }
 
-// Mark an ID as deleted in Firestore meta
+// Mark an ID as deleted in _deleted collection
 export async function markAsDeleted(collectionName, id) {
   try {
-    await setDoc(doc(db, `meta/${collectionName}/deleted`, id), { deletedAt: new Date().toISOString() })
+    await setDoc(doc(db, '_deleted', `${collectionName}__${id}`), {
+      collection: collectionName,
+      originalId: id,
+      deletedAt: new Date().toISOString()
+    })
     if (!deletedSets[collectionName]) deletedSets[collectionName] = new Set()
     deletedSets[collectionName].add(id)
     broadcast(collectionName)
