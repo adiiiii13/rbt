@@ -1,14 +1,21 @@
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultNotices } from '../../data/notices';
-import { CalendarIcon } from '../../components/Icons';
+import { CalendarIcon, BellIcon } from '../../components/Icons';
 
 export default function StudentNotices() {
   const { data: noticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices });
   const notices = noticesRaw?.length ? noticesRaw : defaultNotices;
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-1">Notices</h1>
-      <p className="text-slate-400 text-sm mb-6">Stay updated with latest announcements</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400">
+          <BellIcon size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Notices</h1>
+          <p className="text-slate-400 text-sm">Stay updated with latest announcements</p>
+        </div>
+      </div>
       <div className="space-y-4">
         {notices.map(n => (
           <div key={n.id} className="bg-[#111111] rounded-2xl p-6 border border-slate-800">

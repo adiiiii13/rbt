@@ -4,6 +4,7 @@ import { getCollectionWhere } from '../../lib/firebaseHelpers'
 import { formatCurrency } from '../../lib/invoice'
 import InvoiceView from '../../components/InvoiceView'
 import Modal from '../../components/Modal'
+import { EyeIcon, ReceiptIcon } from '../../components/Icons'
 
 export default function Invoices() {
   const { user } = useAuth()
@@ -26,15 +27,21 @@ export default function Invoices() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">My Invoices</h1>
-        <p className="text-slate-400 text-sm">View your payment history and invoices</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-purple-500/15 flex items-center justify-center text-purple-400">
+          <ReceiptIcon size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">My Invoices</h1>
+          <p className="text-slate-400 text-sm">View your payment history and invoices</p>
+        </div>
       </div>
 
       {loading ? (
         <div className="text-center py-8 text-slate-400">Loading...</div>
       ) : payments.length === 0 ? (
         <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
+          <ReceiptIcon size={32} className="text-slate-600 mx-auto mb-3" />
           <p className="text-slate-400 mb-2">No payments yet</p>
           <p className="text-sm text-slate-500">Purchase a video to see invoices here</p>
         </div>
@@ -61,7 +68,9 @@ export default function Invoices() {
                     <td className="text-slate-400 text-sm">{p.paidAt}</td>
                     <td><span className={`badge ${statusColors[p.status] || 'badge-navy'}`}>{p.status}</span></td>
                     <td>
-                      <button onClick={() => setSelectedInvoice(p)} className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium">View</button>
+                      <button onClick={() => setSelectedInvoice(p)} className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium inline-flex items-center gap-1.5">
+                        <EyeIcon size={14} /> View
+                      </button>
                     </td>
                   </tr>
                 ))}

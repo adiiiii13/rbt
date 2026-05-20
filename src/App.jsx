@@ -14,6 +14,7 @@ import OfferPopup from './components/OfferPopup'
 const Home = lazy(() => import('./pages/Home'))
 const About = lazy(() => import('./pages/About'))
 const Courses = lazy(() => import('./pages/Courses'))
+const CourseDetail = lazy(() => import('./pages/CourseDetail'))
 const Videos = lazy(() => import('./pages/Videos'))
 const Achievements = lazy(() => import('./pages/Achievements'))
 const TestPapers = lazy(() => import('./pages/TestPapers'))
@@ -34,6 +35,7 @@ const WatchVideo = lazy(() => import('./pages/WatchVideo'))
 const StudentDashboard = lazy(() => import('./pages/student/Dashboard'))
 const StudentCourses = lazy(() => import('./pages/student/Courses'))
 const StudentPdfs = lazy(() => import('./pages/student/Pdfs'))
+const StudyMaterial = lazy(() => import('./pages/student/StudyMaterial'))
 const StudentVideos = lazy(() => import('./pages/student/Videos'))
 const StudentNotices = lazy(() => import('./pages/student/Notices'))
 const StudentAchievements = lazy(() => import('./pages/student/Achievements'))
@@ -60,7 +62,9 @@ const ManageCounselling = lazy(() => import('./pages/admin/ManageCounselling'))
 const ManageOffers = lazy(() => import('./pages/admin/ManageOffers'))
 const ManageInquiries = lazy(() => import('./pages/admin/ManageInquiries'))
 const ManageMockTests = lazy(() => import('./pages/admin/ManageMockTests'))
+const ManageStudyMaterial = lazy(() => import('./pages/admin/ManageStudyMaterial'))
 const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
+const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role, batch }) {
@@ -139,6 +143,7 @@ function AppContent() {
                   <Route path="/" element={<><Home onOpenLogin={() => setShowAutoLogin(true)} /><Footer /></>} />
                   <Route path="/about" element={<><About /><Footer /></>} />
                   <Route path="/courses" element={<><Courses /><Footer /></>} />
+                  <Route path="/courses/:id" element={<><CourseDetail /><Footer /></>} />
                   <Route path="/videos" element={<><Videos /><Footer /></>} />
                   <Route path="/video/:id" element={<><WatchVideo /><Footer /></>} />
                   <Route path="/gallery" element={<><Gallery /><Footer /></>} />
@@ -158,11 +163,13 @@ function AppContent() {
                   <Route path="/student" element={<ProtectedRoute role="student" batch><DashboardLayout type="student" /></ProtectedRoute>}>
                     <Route index element={<StudentDashboard />} />
                     <Route path="courses" element={<StudentCourses />} />
+                    <Route path="courses/:id" element={<CourseDetail />} />
                     <Route path="test-papers" element={<TestPapers />} />
                     <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
                     <Route path="test-papers/mock" element={<TestPapersMock />} />
                     <Route path="test-papers/mock/:testId" element={<MockTestRunner />} />
                     <Route path="pdfs" element={<StudentPdfs />} />
+                    <Route path="study-material" element={<StudyMaterial />} />
                     <Route path="videos" element={<StudentVideos />} />
                     <Route path="notices" element={<StudentNotices />} />
                     <Route path="achievements" element={<StudentAchievements />} />
@@ -191,6 +198,7 @@ function AppContent() {
                     <Route path="test-papers" element={<ManagePdfs />} />
                     <Route path="pdfs" element={<ManagePdfs />} />
                     <Route path="mock-tests" element={<ManageMockTests />} />
+                    <Route path="study-material" element={<ManageStudyMaterial />} />
                     <Route path="videos" element={<ManageVideos />} />
                     <Route path="testimonials" element={<ManageTestimonials />} />
                     <Route path="achievements" element={<ManageAchievements />} />
@@ -202,6 +210,7 @@ function AppContent() {
                     <Route path="offers" element={<ManageOffers />} />
                     <Route path="inquiries" element={<ManageInquiries />} />
                     <Route path="doubts" element={<ManageDoubts />} />
+                    <Route path="notifications" element={<ManageNotifications />} />
                     <Route path="help" element={<AdminHelp />} />
                   </Route>
 

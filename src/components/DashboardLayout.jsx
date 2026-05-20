@@ -15,6 +15,7 @@ const IC = {
   home: I("m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"),
   book: I("M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"),
   file: I("M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"),
+  pdf: I("M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z M14.5 2v5.5H19"),
   play: I("m5 3 14 9-14 9V3z"),
   bell: I("M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"),
   trophy: I("M6 9H4.5a2.5 2.5 0 0 1 0-5H6M18 9h1.5a2.5 2.5 0 0 0 0-5H18M4 22h16M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20 7 22M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20 17 22M18 2H6v7a6 6 0 0 0 12 0V2Z"),
@@ -24,6 +25,9 @@ const IC = {
   calendar: I("M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z"),
   card: I("M11 18h2M12 18v4M8 2h8l4 4v10a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V6a4 4 0 0 1 4-4z"),
   mail: I("M22 13V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v12c0 1.1.9 2 2 2h8"),
+  headset: I("M3 18v-6a9 9 0 0 1 18 0v6M3 18a3 3 0 0 0 3 3h1a3 3 0 0 0 3-3v-4a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v4zM21 18a3 3 0 0 1-3 3h-1a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3h1a3 3 0 0 1 3 3v4z"),
+  help: I("M2 12c0 5.5 4.5 10 10 10s10-4.5 10-10S17.5 2 12 2 2 6.5 2 12zm5.5 3.5a5 5 0 0 1 9 0"),
+  receipt: I("M4 2v20l4-2 4 2 4-2 4 2V2l-4 2-4-2-4 2-4-2zM8 10h8M8 14h5"),
 }
 
 export default function DashboardLayout({ type }) {
@@ -35,10 +39,10 @@ export default function DashboardLayout({ type }) {
     { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
     { to: '/student/courses', label: 'My Courses', icon: <IC.book size={18} /> },
     { to: '/student/test-papers', label: 'Test Papers', icon: <IC.file size={18} /> },
-    { to: '/student/pdfs', label: 'Study Material', icon: <IC.file size={18} /> },
+    { to: '/student/pdfs', label: 'Study Material', icon: <IC.pdf size={18} /> },
     { to: '/student/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
-    { to: '/student/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
-    { to: '/student/invoices', label: 'My Invoices', icon: <IC.card size={18} /> },
+    { to: '/student/counselling', label: 'Counselling', icon: <IC.headset size={18} /> },
+    { to: '/student/invoices', label: 'My Invoices', icon: <IC.receipt size={18} /> },
     { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
     { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
@@ -57,6 +61,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/courses', label: 'Manage Courses', icon: <IC.book size={18} /> },
     { to: '/admin/pdfs', label: 'Manage PDFs', icon: <IC.file size={18} /> },
     { to: '/admin/mock-tests', label: 'Manage Mock Tests', icon: <IC.file size={18} /> },
+    { to: '/admin/study-material', label: 'Study Material', icon: <IC.file size={18} /> },
     { to: '/admin/videos', label: 'Manage Videos', icon: <IC.play size={18} /> },
     { to: '/admin/gallery', label: 'Manage Gallery', icon: <IC.users size={18} /> },
     { to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
@@ -68,6 +73,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/offers', label: 'Offers', icon: <IC.bell size={18} /> },
     { to: '/admin/inquiries', label: 'Inquiries', icon: <IC.mail size={18} /> },
     { to: '/admin/doubts', label: 'Doubts', icon: <IC.msg size={18} /> },
+    { to: '/admin/notifications', label: 'Send Notifications', icon: <IC.bell size={18} /> },
     { to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
   ]
 
@@ -131,16 +137,16 @@ export default function DashboardLayout({ type }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
-          {links.map((link) => (
+          {links.map((link, idx) => (
             <NavLink
               key={link.to}
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'active' : ''}`
+                `sidebar-link group ${isActive ? 'active' : ''}`
               }
             >
-              {link.icon}
+              <span className="sidebar-icon-wrap">{link.icon}</span>
               {link.label}
             </NavLink>
           ))}
@@ -292,10 +298,10 @@ export default function DashboardLayout({ type }) {
                     end={link.end}
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
-                      `sidebar-link ${isActive ? 'active' : ''}`
+                      `sidebar-link group ${isActive ? 'active' : ''}`
                     }
                   >
-                    {link.icon}
+                    <span className="sidebar-icon-wrap">{link.icon}</span>
                     {link.label}
                   </NavLink>
                 ))}

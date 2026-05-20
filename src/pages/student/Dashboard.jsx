@@ -32,18 +32,22 @@ export default function StudentDashboard() {
   const notices = allNotices.slice(0, 3)
   const [payments, setPayments] = useState([])
   const [bookings, setBookings] = useState([])
+  const [myNotifications, setMyNotifications] = useState([])
   const [showSupportModal, setShowSupportModal] = useState(false)
 
   useEffect(() => {
     if (!user) return
     let alive = true
+    const uid = user.uid || user.id || ''
     Promise.all([
-      getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || ''),
+      getCollectionWhere('payments', 'studentId', '==', user.studentId || uid),
       getCollectionWhere('counsellingBookings', 'studentName', '==', user.name || ''),
-    ]).then(([pay, book]) => {
+      getCollectionWhere('notifications', 'studentUid', '==', uid),
+    ]).then(([pay, book, notifs]) => {
       if (!alive) return
       setPayments(pay)
       setBookings(book)
+      setMyNotifications(notifs.filter(n => !n.read).slice(0, 5))
     }).catch(console.error)
     return () => { alive = false }
   }, [user])
@@ -96,11 +100,12 @@ export default function StudentDashboard() {
           >
             <Link
               to={s.link}
-              className={`block bg-gradient-to-br ${statColors[i].bg} rounded-2xl p-5 border ${statColors[i].border} hover:border-green-brand/30 transition-all duration-300 hover:-translate-y-1 no-underline group`}
+              className={`block bg-gradient-to-br ${statColors[i].bg} rounded-2xl p-5 border ${statColors[i].border} hover:border-green-brand/30 transition-all duration-300 hover:-translate-y-1 no-underline group relative overflow-hidden`}
             >
-              <div className={`${statColors[i].icon} mb-3`}>{s.icon}</div>
-              <p className="text-2xl font-bold text-white mb-0.5">{s.value}</p>
-              <p className="text-xs text-slate-400 font-medium">{s.label}</p>
+              <div className={`absolute top-0 right-0 w-20 h-20 ${statColors[i].icon} opacity-5 group-hover:opacity-10 transition-opacity rounded-full blur-xl -translate-y-4 translate-x-4`} />
+              <div className={`relative ${statColors[i].icon} mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300`}>{s.icon}</div>
+              <p className="relative text-2xl font-bold text-white mb-0.5">{s.value}</p>
+              <p className="relative text-xs text-slate-400 font-medium">{s.label}</p>
             </Link>
           </motion.div>
         ))}
@@ -119,7 +124,7 @@ export default function StudentDashboard() {
             to={link.to}
             className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-green-brand/20 hover:bg-white/[0.06] transition-all duration-300 no-underline group"
           >
-            <span className={`${link.color} opacity-70 group-hover:opacity-100 transition-opacity`}>{link.icon}</span>
+            <span className={`${link.color} opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300`}>{link.icon}</span>
             <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{link.label}</span>
           </Link>
         ))}
@@ -246,6 +251,28 @@ export default function StudentDashboard() {
                     <span className={`badge text-xs shrink-0 ${p.status === 'verified' ? 'badge-green' : p.status === 'pending' ? 'badge-gold' : 'badge-red'}`}>
                       {p.status}
                     </span>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Admin Notifications */}
+          {myNotifications.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.55 }}
+              className="bg-[#111111] rounded-2xl p-6 border border-amber-500/20"
+            >
+              <h3 className="font-bold text-white mb-3 flex items-center gap-2">
+                <BellIcon size={18} className="text-amber-400" /> Notifications
+              </h3>
+              <div className="space-y-2">
+                {myNotifications.map((n) => (
+                  <div key={n.id} className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                    <p className="text-sm text-white font-medium">{n.subject}</p>
+                    <p className="text-xs text-slate-400 mt-1">{n.message}</p>
                   </div>
                 ))}
               </div>

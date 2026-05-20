@@ -274,11 +274,21 @@
     border-radius: 14px;
     color: #94a3b8;
     font-weight: 500;
-    transition: all 0.2s ease;
+    transition: all 0.25s ease;
     cursor: pointer;
     text-decoration: none;
     font-size: 0.9rem;
     position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-link::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(22, 163, 74, 0.05), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
   }
 
   .sidebar-link:hover {
@@ -286,10 +296,25 @@
     color: #e2e8f0;
   }
 
+  .sidebar-link:hover::before {
+    opacity: 1;
+  }
+
+  .sidebar-link:hover .sidebar-icon-wrap {
+    transform: scale(1.15) rotate(-5deg);
+    background: rgba(22, 163, 74, 0.15);
+    box-shadow: 0 0 12px rgba(22, 163, 74, 0.2);
+  }
+
   .sidebar-link.active {
     background: rgba(22, 163, 74, 0.12);
     color: #16a34a;
     font-weight: 600;
+  }
+
+  .sidebar-link.active .sidebar-icon-wrap {
+    background: rgba(22, 163, 74, 0.2);
+    box-shadow: 0 0 12px rgba(22, 163, 74, 0.3);
   }
 
   .sidebar-link.active::before {
@@ -302,6 +327,18 @@
     height: 24px;
     background: var(--color-green-brand);
     border-radius: 0 2px 2px 0;
+  }
+
+  .sidebar-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    transition: all 0.25s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    flex-shrink: 0;
   }
 
   /* Stat Cards */

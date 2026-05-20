@@ -7,8 +7,15 @@ export default function StudentAchievements() {
   const achievements = achievementsRaw?.length ? achievementsRaw : defaultAchievements;
   return (
     <div>
-      <h1 className="text-2xl font-bold text-white mb-1">Achievements</h1>
-      <p className="text-slate-400 text-sm mb-6">Our top performers and their results</p>
+      <div className="flex items-center gap-3 mb-6">
+        <div className="w-10 h-10 rounded-xl bg-amber-500/15 flex items-center justify-center text-amber-400">
+          <TrophyIcon size={20} />
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-1">Achievements</h1>
+          <p className="text-slate-400 text-sm">Our top performers and their results</p>
+        </div>
+      </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {achievements.map(a => (
           <div key={a.id} className="bg-[#111111] rounded-2xl p-6 border border-slate-800 text-center">
