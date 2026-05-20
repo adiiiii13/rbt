@@ -204,7 +204,10 @@ export default function DashboardLayout({ type }) {
               <h2 className="text-base font-semibold text-white">
                 {type === 'admin' ? 'Admin Panel' : type === 'basic' ? 'Basic Portal' : 'Student Portal'}
               </h2>
-              <p className="text-xs text-slate-400">Welcome back, {user?.name || 'User'}</p>
+              <p className="text-xs text-slate-400">
+                {user?.name || 'User'}
+                {user?.studentId ? ` • ${user.studentId}` : ''}
+              </p>
             </div>
           </div>
 
