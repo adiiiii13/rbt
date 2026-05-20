@@ -74,6 +74,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/inquiries', label: 'Inquiries', icon: <IC.mail size={18} /> },
     { to: '/admin/doubts', label: 'Doubts', icon: <IC.msg size={18} /> },
     { to: '/admin/notifications', label: 'Send Notifications', icon: <IC.bell size={18} /> },
+    { to: '/admin/invoices', label: 'Create Invoices', icon: <IC.receipt size={18} /> },
     { to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
   ]
 

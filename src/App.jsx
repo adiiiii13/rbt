@@ -65,6 +65,7 @@ const ManageMockTests = lazy(() => import('./pages/admin/ManageMockTests'))
 const ManageStudyMaterial = lazy(() => import('./pages/admin/ManageStudyMaterial'))
 const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
 const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications'))
+const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role, batch }) {
@@ -211,6 +212,7 @@ function AppContent() {
                     <Route path="inquiries" element={<ManageInquiries />} />
                     <Route path="doubts" element={<ManageDoubts />} />
                     <Route path="notifications" element={<ManageNotifications />} />
+                    <Route path="invoices" element={<ManageInvoices />} />
                     <Route path="help" element={<AdminHelp />} />
                   </Route>
 

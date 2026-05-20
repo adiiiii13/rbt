@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, deleteDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
@@ -10,6 +10,14 @@ export default function ManageNotifications() {
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({ studentUid: '', studentName: '', subject: '', message: '' })
   const [sending, setSending] = useState(false)
+  const [search, setSearch] = useState('')
+  const [dropdownOpen, setDropdownOpen] = useState(false)
+
+  const filteredStudents = useMemo(() => {
+    if (!search) return students
+    const q = search.toLowerCase()
+    return students.filter(s => (s.name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q) || (s.studentId || '').toLowerCase().includes(q))
+  }, [students, search])
 
   const send = async () => {
     if (!form.studentUid || !form.subject || !form.message) { toast.error('All fields required'); return }
@@ -25,6 +33,7 @@ export default function ManageNotifications() {
       toast.success('Notification sent')
       setModal(false)
       setForm({ studentUid: '', studentName: '', subject: '', message: '' })
+      setSearch('')
     } catch (err) { toast.error(err.message) }
     finally { setSending(false) }
   }
@@ -33,10 +42,6 @@ export default function ManageNotifications() {
     if (!confirm('Delete?')) return
     try { await deleteDocument('notifications', id); toast.success('Deleted') }
     catch (err) { toast.error(err.message) }
-  }
-
-  const selectStudent = (s) => {
-    setForm({ ...form, studentUid: s.id || s.uid, studentName: s.name })
   }
 
   return (
@@ -64,19 +69,50 @@ export default function ManageNotifications() {
         ))}
       </div>
 
-      <Modal isOpen={modal} onClose={() => { setModal(false); setForm({ studentUid: '', studentName: '', subject: '', message: '' }) }} title="Send Notification">
+      <Modal isOpen={modal} onClose={() => { setModal(false); setForm({ studentUid: '', studentName: '', subject: '', message: '' }); setSearch('') }} title="Send Notification">
         <div className="space-y-4">
-          <div>
+          {/* Search + Dropdown */}
+          <div className="relative">
             <label className="text-sm font-medium text-slate-300 mb-1 block">Select Student</label>
-            <select className="input-field" value={form.studentUid} onChange={e => {
-              const s = students.find(st => (st.id || st.uid) === e.target.value)
-              if (s) selectStudent(s)
-              else setForm({ ...form, studentUid: e.target.value, studentName: e.target.value })
-            }}>
-              <option value="">Choose student...</option>
-              {students.map(s => <option key={s.id || s.uid} value={s.id || s.uid}>{s.name} ({s.email || s.id})</option>)}
-            </select>
+            <div className="relative">
+              <input
+                className="input-field"
+                placeholder="Search by name, email, or ID..."
+                value={form.studentUid ? `${form.studentName} (${form.studentUid})` : search}
+                onChange={e => {
+                  setSearch(e.target.value)
+                  setDropdownOpen(true)
+                  if (!e.target.value) setForm({ ...form, studentUid: '', studentName: '' })
+                }}
+                onFocus={() => { if (!form.studentUid) setDropdownOpen(true) }}
+              />
+              {form.studentUid && (
+                <button
+                  onClick={() => { setForm({ ...form, studentUid: '', studentName: '' }); setSearch(''); setDropdownOpen(true) }}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
+                >✕</button>
+              )}
+            </div>
+            {dropdownOpen && !form.studentUid && filteredStudents.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-[#111111] border border-slate-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
+                {filteredStudents.slice(0, 20).map(s => (
+                  <button
+                    key={s.id || s.uid}
+                    onClick={() => {
+                      setForm({ ...form, studentUid: s.id || s.uid, studentName: s.name })
+                      setSearch('')
+                      setDropdownOpen(false)
+                    }}
+                    className="w-full text-left px-4 py-2.5 hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer"
+                  >
+                    <span className="text-white text-sm">{s.name}</span>
+                    <span className="text-slate-500 text-xs">{s.email || s.studentId || s.id}</span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
           <div>
             <label className="text-sm font-medium text-slate-300 mb-1 block">Subject</label>
             <input className="input-field" value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })} placeholder="Fee reminder, Performance update..." />
