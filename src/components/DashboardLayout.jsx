@@ -28,21 +28,38 @@ const IC = {
   headset: I("M3 18v-6a9 9 0 0 1 18 0v6M3 18a3 3 0 0 0 3 3h1a3 3 0 0 0 3-3v-4a3 3 0 0 0-3-3H6a3 3 0 0 0-3 3v4zM21 18a3 3 0 0 1-3 3h-1a3 3 0 0 1-3-3v-4a3 3 0 0 1 3-3h1a3 3 0 0 1 3 3v4z"),
   help: I("M2 12c0 5.5 4.5 10 10 10s10-4.5 10-10S17.5 2 12 2 2 6.5 2 12zm5.5 3.5a5 5 0 0 1 9 0"),
   receipt: I("M4 2v20l4-2 4 2 4-2 4 2V2l-4 2-4-2-4 2-4-2zM8 10h8M8 14h5"),
+  search: I("M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zM21 21l-4.35-4.35"),
+  chevronLeft: I("m15 18-6-6 6-6"),
+  chevronRight: I("m9 18 6-6-6-6")
 }
 
 export default function DashboardLayout({ type }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    const saved = localStorage.getItem('sidebarCollapsed')
+    return saved ? JSON.parse(saved) : false
+  })
+  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const sidebarRef = useRef(null)
   const mainRef = useRef(null)
 
-  // Reset sidebar scroll + main scroll on route change
+  // Only reset main content scroll on route change, keep sidebar untouched
   useEffect(() => {
-    if (sidebarRef.current) sidebarRef.current.scrollTop = 0
     if (mainRef.current) mainRef.current.scrollTop = 0
   }, [pathname])
+
+  const toggleCollapse = () => {
+    setIsCollapsed(prev => {
+      const next = !prev
+      localStorage.setItem('sidebarCollapsed', JSON.stringify(next))
+      return next
+    })
+  }
 
   const studentLinks = [
     { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
@@ -91,6 +108,8 @@ export default function DashboardLayout({ type }) {
 
   const links = type === 'admin' ? adminLinks : type === 'basic' ? basicLinks : studentLinks
 
+  const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchQuery.toLowerCase()))
+
   const handleLogout = () => {
     logout()
     navigate('/')
@@ -133,37 +152,51 @@ export default function DashboardLayout({ type }) {
 
   return (
     <div className="flex h-screen bg-[#f1f5f9] overflow-hidden">
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex flex-col w-[260px] bg-navy text-white shrink-0">
-        <div className="p-5 border-b border-white/10">
+      
+      {/* Spacer for fixed desktop sidebar */}
+      <div className={`hidden lg:block shrink-0 transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-[80px]' : 'w-[260px]'}`}></div>
+      
+      {/* Fixed Desktop Sidebar */}
+      <aside className={`hidden lg:flex flex-col fixed top-0 bottom-0 left-0 bg-navy text-white z-50 transition-[width] duration-300 ease-in-out group/sidebar overflow-hidden border-r border-white/10 ${
+        isCollapsed ? 'w-[80px] hover:w-[260px]' : 'w-[260px]'
+      }`}>
+        <div className="p-5 border-b border-white/10 flex items-center justify-between min-w-[260px]">
           <div className="flex items-center gap-3">
-            <img src="/Images/RBT Logo.jpeg" alt="RBT Mission Learning" className="w-9 h-9 rounded-lg object-cover" />
-            <div>
-              <h3 className="text-sm font-bold">RBT MISSION</h3>
-              <p className="text-[9px] tracking-widest text-green-light">LEARNING</p>
+            <img src="/Images/RBT Logo.jpeg" alt="RBT Mission Learning" className="w-9 h-9 rounded-lg object-cover shrink-0" />
+            <div className={`transition-opacity duration-300 ${isCollapsed ? 'opacity-0 group-hover/sidebar:opacity-100' : 'opacity-100'}`}>
+              <h3 className="text-sm font-bold truncate">RBT MISSION</h3>
+              <p className="text-[9px] tracking-widest text-green-light truncate">LEARNING</p>
             </div>
           </div>
+          <button 
+            onClick={toggleCollapse} 
+            className={`w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center shrink-0 text-slate-400 hover:text-white transition-opacity duration-300 ${isCollapsed ? 'opacity-0 group-hover/sidebar:opacity-100' : 'opacity-100'}`}
+          >
+            {isCollapsed ? <IC.chevronRight size={16} /> : <IC.chevronLeft size={16} />}
+          </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
-          {links.map((link, idx) => (
+        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-2 sidebar-scroll">
+          {links.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0`
+                `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0 min-w-[228px]`
               }
             >
-              <span className="sidebar-icon-wrap">{link.icon}</span>
-              {link.label}
+              <span className="sidebar-icon-wrap shrink-0">{link.icon}</span>
+              <span className={`transition-opacity duration-300 truncate ${isCollapsed ? 'opacity-0 group-hover/sidebar:opacity-100' : 'opacity-100'}`}>
+                {link.label}
+              </span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-3 mb-4 px-2">
-            <div className="w-9 h-9 rounded-full bg-green-brand/20 flex items-center justify-center text-green-light font-bold text-sm overflow-hidden">
+        <div className="p-4 border-t border-white/10 min-w-[260px]">
+          <div className={`flex items-center gap-3 mb-4 px-2 transition-opacity duration-300 ${isCollapsed ? 'opacity-0 group-hover/sidebar:opacity-100' : 'opacity-100'}`}>
+            <div className="w-9 h-9 rounded-full bg-green-brand/20 flex items-center justify-center text-green-light font-bold text-sm overflow-hidden shrink-0">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" />
               ) : (
@@ -173,31 +206,37 @@ export default function DashboardLayout({ type }) {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
               <p className="text-xs text-slate-400 truncate">
-                {user?.role === 'admin' ? 'Administrator' : user?.course || 'Student'}
+                {type === 'admin' ? 'Administrator' : user?.course || 'Student'}
               </p>
             </div>
           </div>
           <div className="flex flex-col gap-2">
             <NavLink
               to="/"
-              className="w-full py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-sm font-medium transition-all text-center no-underline"
+              className={`w-full py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-sm font-medium transition-all flex items-center justify-center gap-2 no-underline`}
             >
-              ⌂ Back to Home
+              <IC.home size={16} className="shrink-0" />
+              <span className={`transition-opacity duration-300 ${isCollapsed ? 'opacity-0 w-0 group-hover/sidebar:opacity-100 group-hover/sidebar:w-auto' : 'opacity-100'}`}>
+                Back to Home
+              </span>
             </NavLink>
             <button
               onClick={handleLogout}
-              className="w-full py-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400 text-sm font-medium transition-all cursor-pointer"
+              className={`w-full py-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400 text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer`}
             >
-              ← Logout
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              <span className={`transition-opacity duration-300 ${isCollapsed ? 'opacity-0 w-0 group-hover/sidebar:opacity-100 group-hover/sidebar:w-auto' : 'opacity-100'}`}>
+                Logout
+              </span>
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Top Bar */}
-        <header className="h-16 bg-[#0a1628] border-b border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0">
+        <header className="h-16 bg-[#0a1628] border-b border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 z-40">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -206,7 +245,7 @@ export default function DashboardLayout({ type }) {
             >
               ☰
             </button>
-            <div>
+            <div className="hidden sm:block">
               <h2 className="text-base font-semibold text-white">
                 {type === 'admin' ? 'Admin Panel' : type === 'basic' ? 'Basic Portal' : 'Student Portal'}
               </h2>
@@ -217,28 +256,77 @@ export default function DashboardLayout({ type }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
+            
+            {/* Global Search Bar */}
+            <div className="relative z-50">
+              <div className="flex items-center bg-slate-800/80 rounded-lg px-3 py-1.5 border border-slate-700 w-[180px] sm:w-[240px] focus-within:border-green-brand focus-within:bg-slate-800 transition-all">
+                <IC.search size={14} className="text-slate-400 mr-2 shrink-0" />
+                <input 
+                  type="text" 
+                  placeholder="Search pages..." 
+                  className="bg-transparent border-none outline-none text-sm text-white w-full placeholder:text-slate-500"
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value)
+                    setIsSearchOpen(true)
+                  }}
+                  onFocus={() => setIsSearchOpen(true)}
+                  onBlur={() => setTimeout(() => setIsSearchOpen(false), 200)}
+                />
+              </div>
+              
+              {/* Search Dropdown */}
+              <AnimatePresence>
+                {isSearchOpen && searchQuery && (
+                  <motion.div 
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full right-0 lg:left-0 mt-2 w-[240px] sm:w-[300px] bg-[#1a1a1a] border border-slate-700 rounded-xl shadow-2xl overflow-hidden"
+                  >
+                    <div className="max-h-[300px] overflow-y-auto">
+                      {filteredLinks.length > 0 ? (
+                        filteredLinks.map(link => (
+                          <button
+                            key={link.to}
+                            onClick={() => {
+                              navigate(link.to)
+                              setSearchQuery('')
+                              setIsSearchOpen(false)
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-800 text-left transition-colors border-b border-slate-800/50 last:border-0 cursor-pointer group"
+                          >
+                            <span className="text-green-brand bg-green-brand/10 p-1.5 rounded-md group-hover:bg-green-brand/20 transition-colors shrink-0">
+                              {link.icon}
+                            </span>
+                            <span className="text-sm font-medium text-slate-200 group-hover:text-white transition-colors">{link.label}</span>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="px-4 py-4 text-sm text-slate-500 text-center">No results found for "{searchQuery}"</div>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             <button
               onClick={() => window.location.reload()}
-              className="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
               title="Refresh"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
             </button>
-            <span className={`badge ${type === 'admin' ? 'badge-navy' : 'badge-green'}`}>
+            <span className={`badge ${type === 'admin' ? 'badge-navy' : 'badge-green'} shrink-0`}>
               {type === 'admin' ? 'Admin' : 'Student'}
             </span>
-            <button
-              onClick={handleLogout}
-              className="hidden md:flex items-center gap-2 text-sm text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
-            >
-              Logout
-            </button>
           </div>
         </header>
 
         {/* Scrollable Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8 bg-[#0a0a0a]">
+        <main ref={mainRef} className="flex-1 overflow-y-auto p-4 lg:p-8 bg-[#0a0a0a]">
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -256,7 +344,7 @@ export default function DashboardLayout({ type }) {
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs no-underline transition-colors ${
+                `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs no-underline transition-colors shrink-0 ${
                   isActive ? 'text-green-brand' : 'text-slate-400'
                 }`
               }
@@ -313,7 +401,7 @@ export default function DashboardLayout({ type }) {
                       `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0`
                     }
                   >
-                    <span className="sidebar-icon-wrap">{link.icon}</span>
+                    <span className="sidebar-icon-wrap shrink-0">{link.icon}</span>
                     {link.label}
                   </NavLink>
                 ))}
