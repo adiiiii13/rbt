@@ -75,7 +75,7 @@ export default function TestPapersDownloadable() {
           </div>
         </div>
 
-        {loading && <GridSkeleton count={6} type={type === "card" ? "card" : "list"} /> /* FIXME: adjust type */}
+        {loading && <GridSkeleton count={6} type="card" />}
 
         {!loading && filtered.length === 0 && (
           <div className="text-center py-16">
