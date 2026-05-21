@@ -80,7 +80,24 @@ export default function MockTestRunner() {
         if (!alive) return;
         if (!snap.exists()) { setError('Mock test not found'); setLoading(false); return; }
         const data = { id: snap.id, ...snap.data() };
-        if (!data.questions || !data.questions.length) setError('This test has no questions yet.');
+        if (!data.questions || !data.questions.length) {
+          setError('This test has no questions yet.');
+          setLoading(false);
+          return;
+        }
+        // Normalize Q shape: ensure id + options array (old tests may lack these)
+        data.questions = data.questions.map((q, i) => ({
+          id: q.id || `q_${i}_${Math.random().toString(36).slice(2, 7)}`,
+          question: q.question || '',
+          options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ['', '', '', ''],
+          correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
+          imageUrl: q.imageUrl || q.image || '',
+          explanation: q.explanation || '',
+          section: q.section || '',
+          marks: q.marks ?? null,
+          ...q,
+          id: q.id || `q_${i}_${Math.random().toString(36).slice(2, 7)}`,
+        }));
         setTest(data);
         setTimeLeft((data.duration || 30) * 60);
         setLoading(false);
@@ -411,6 +428,16 @@ export default function MockTestRunner() {
 
   // ─── Exam in progress (NTA-style) ───
   const q = test.questions[currentQ];
+  if (!q) {
+    return (
+      <div className="min-h-screen bg-[#050B14] flex items-center justify-center px-4">
+        <div className="text-center">
+          <p className="text-red-400 mb-4">Question {currentQ + 1} not found.</p>
+          <button onClick={() => setCurrentQ(0)} className="btn-primary">Go to Q1</button>
+        </div>
+      </div>
+    );
+  }
   const selected = answers[q.id];
 
   return (
