@@ -91,6 +91,15 @@ export function AuthProvider({ children }) {
         await signOut(auth)
         return { success: false, message: 'Not a student account' }
       }
+
+      // Migrate old-format studentId for email logins
+      if (userData.studentId && !userData.studentId.match(/^RBT\d{2}[GEB]-/)) {
+        const studentRef = doc(db, 'students', cred.user.uid);
+        const newStudentId = 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase();
+        await updateDoc(studentRef, { studentId: newStudentId });
+        userData.studentId = newStudentId;
+      }
+
       return { success: true, user: userData }
     } catch (err) {
       return { success: false, message: mapAuthError(err.code) }
