@@ -16,7 +16,7 @@ const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', c
 export default function ManageStudents() {
   const { data: students, loading } = useRealtimeCollection('students', 'createdAt');
   const { data: courses } = useRealtimeCollection('courses', 'createdAt');
-  const { data: allEnrollments } = useRealtimeCollection('enrollments', 'createdAt');
+  const { data: allEnrollments } = useRealtimeCollection('enrollments', 'enrolledAt');
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null);
