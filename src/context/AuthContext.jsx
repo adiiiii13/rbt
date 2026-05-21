@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import {
   signInWithEmailAndPassword,
   onAuthStateChanged,
@@ -60,12 +60,15 @@ async function buildUserFromToken(firebaseUser) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const isAuthActionInProgress = useRef(false)
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
+        if (isAuthActionInProgress.current) return;
         if (firebaseUser) {
           const userData = await buildUserFromToken(firebaseUser)
+          if (isAuthActionInProgress.current) return;
           setUser(userData)
         } else {
           setUser(null)
@@ -74,13 +77,16 @@ export function AuthProvider({ children }) {
         console.error('[auth] state error', err)
         setUser(null)
       } finally {
-        setLoading(false)
+        if (!isAuthActionInProgress.current) {
+          setLoading(false)
+        }
       }
     })
     return () => unsubscribe()
   }, [])
 
   const loginStudent = async (idOrEmail, password) => {
+    isAuthActionInProgress.current = true;
     try {
       const email = idOrEmail.includes('@')
         ? idOrEmail
@@ -104,10 +110,14 @@ export function AuthProvider({ children }) {
       return { success: true, user: userData }
     } catch (err) {
       return { success: false, message: mapAuthError(err.code) }
+    } finally {
+      isAuthActionInProgress.current = false;
+      setLoading(false);
     }
   }
 
   const loginAdmin = async (idOrEmail, password) => {
+    isAuthActionInProgress.current = true;
     try {
       const email = idOrEmail.includes('@')
         ? idOrEmail
@@ -122,10 +132,14 @@ export function AuthProvider({ children }) {
       return { success: true, user: userData }
     } catch (err) {
       return { success: false, message: mapAuthError(err.code) }
+    } finally {
+      isAuthActionInProgress.current = false;
+      setLoading(false);
     }
   }
 
   const loginWithGoogle = async () => {
+    isAuthActionInProgress.current = true;
     try {
       const provider = new GoogleAuthProvider()
       const cred = await signInWithPopup(auth, provider)
@@ -165,10 +179,14 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error(err);
       return { success: false, message: mapAuthError(err.code || 'Login failed') }
+    } finally {
+      isAuthActionInProgress.current = false;
+      setLoading(false);
     }
   }
 
   const signupStudent = async (email, password, name) => {
+    isAuthActionInProgress.current = true;
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password)
       
@@ -189,6 +207,9 @@ export function AuthProvider({ children }) {
     } catch (err) {
       console.error(err);
       return { success: false, message: mapAuthError(err.code || 'Signup failed') }
+    } finally {
+      isAuthActionInProgress.current = false;
+      setLoading(false);
     }
   }
 
@@ -202,6 +223,7 @@ export function AuthProvider({ children }) {
   }
 
   const loginWithBatchCode = async () => {
+    isAuthActionInProgress.current = true;
     try {
       const provider = new GoogleAuthProvider()
       const cred = await signInWithPopup(auth, provider)
@@ -239,6 +261,9 @@ export function AuthProvider({ children }) {
       return { success: true, user: userData }
     } catch (err) {
       return { success: false, message: mapAuthError(err.code || 'Login failed') }
+    } finally {
+      isAuthActionInProgress.current = false;
+      setLoading(false);
     }
   }
 
