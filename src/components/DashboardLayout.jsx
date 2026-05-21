@@ -206,7 +206,7 @@ export default function DashboardLayout({ type }) {
               </h2>
               <p className="text-xs text-slate-400">
                 {user?.name || 'User'}
-                {user?.studentId ? ` • ${user.studentId}` : ''}
+                {user?.studentId ? ` • ${user.studentId}` : user?.id ? ` • RBT-${user.id.substring(0, 6).toUpperCase()}` : ''}
               </p>
             </div>
           </div>

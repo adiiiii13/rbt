@@ -140,10 +140,12 @@ function AppContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <Navbar 
-              onOpenLogin={() => setShowAutoLogin(true)} 
-              onOpenSignup={() => setShowSignupModal(true)} 
-            />
+            {!location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && (
+              <Navbar 
+                onOpenLogin={() => setShowAutoLogin(true)} 
+                onOpenSignup={() => setShowSignupModal(true)} 
+              />
+            )}
             <Suspense fallback={<RouteFallback />}>
               <AnimatePresence mode="wait">
                 <Routes location={location} key={location.pathname}>
@@ -259,7 +261,7 @@ function AppContent() {
             </AnimatePresence>
 
             {/* Offer popup - shows on public pages only */}
-            {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.includes('login') && (
+            {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !location.pathname.includes('login') && (
               <OfferPopup />
             )}
           </motion.div>

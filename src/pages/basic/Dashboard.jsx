@@ -19,7 +19,10 @@ export default function BasicDashboard() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Welcome, {user?.name || 'Student'}</h1>
-        <p className="text-slate-400 text-sm">Browse free content and courses</p>
+        <p className="text-slate-400 text-sm">
+          Browse free content and courses
+          {user?.studentId ? ` • ID: ${user.studentId}` : user?.id ? ` • ID: RBT-${user.id.substring(0, 6).toUpperCase()}` : ''}
+        </p>
       </div>
 
       {/* Quick stats */}

@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RBT Mission Learning — Development Session Report</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: #fff;
+      color: #1a1a2e;
+      line-height: 1.7;
+      padding: 48px 56px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      border-bottom: 3px solid #16a34a;
+      padding-bottom: 24px;
+      margin-bottom: 32px;
+    }
+
+    .header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.5px;
+    }
+
+    .header .subtitle {
+      font-size: 14px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+
+    .meta-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0 32px;
+      font-size: 13px;
+    }
+
+    .meta-table td {
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .meta-table td:first-child {
+      font-weight: 600;
+      color: #334155;
+      background: #f8fafc;
+      width: 180px;
+    }
+
+    .section {
+      margin-bottom: 28px;
+      page-break-inside: avoid;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #16a34a;
+      border-left: 4px solid #16a34a;
+      padding-left: 12px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .change-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 12px;
+    }
+
+    .change-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+
+    .change-card .tag {
+      display: inline-block;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-right: 6px;
+      margin-bottom: 6px;
+    }
+
+    .tag-fix { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .tag-feature { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
+    .tag-ui { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+    .tag-security { background: #fefce8; color: #ca8a04; border: 1px solid #fef08a; }
+
+    .change-card p {
+      font-size: 13px;
+      color: #475569;
+      margin-top: 6px;
+    }
+
+    .files-affected {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-top: 8px;
+      font-family: 'Courier New', monospace;
+    }
+
+    .id-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+
+    .id-table th {
+      background: #0f172a;
+      color: #fff;
+      padding: 8px 12px;
+      text-align: left;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .id-table td {
+      padding: 8px 12px;
+      border: 1px solid #e2e8f0;
+    }
+
+    .id-table tr:nth-child(even) { background: #f8fafc; }
+
+    .id-example {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      color: #16a34a;
+      font-size: 14px;
+    }
+
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 2px solid #e2e8f0;
+      font-size: 12px;
+      color: #94a3b8;
+      text-align: center;
+    }
+
+    .summary-stats {
+      display: flex;
+      gap: 16px;
+      margin: 16px 0 28px;
+    }
+
+    .stat-box {
+      flex: 1;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      text-align: center;
+    }
+
+    .stat-box .num {
+      font-size: 28px;
+      font-weight: 800;
+      color: #16a34a;
+    }
+
+    .stat-box .label {
+      font-size: 11px;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    @media print {
+      body { padding: 32px 40px; }
+      .change-card { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <h1>RBT Mission Learning — Development Session Report</h1>
+    <p class="subtitle">All changes, fixes, and implementations documented for the GKK Intern Team</p>
+  </div>
+
+  <table class="meta-table">
+    <tr><td>Developer</td><td><strong>Debraj Pradhan</strong></td></tr>
+    <tr><td>Project</td><td>RBT Mission Learning — Educational Web Platform</td></tr>
+    <tr><td>Session Date</td><td>21 May 2026</td></tr>
+    <tr><td>Repository</td><td>github.com/rbtmission/rbtmissionlearning (main branch)</td></tr>
+    <tr><td>Tech Stack</td><td>React + Vite, Firebase Auth, Firestore, Tailwind CSS</td></tr>
+  </table>
+
+  <div class="summary-stats">
+    <div class="stat-box"><div class="num">9</div><div class="label">Total Changes</div></div>
+    <div class="stat-box"><div class="num">3</div><div class="label">Bug Fixes</div></div>
+    <div class="stat-box"><div class="num">4</div><div class="label">New Features</div></div>
+    <div class="stat-box"><div class="num">2</div><div class="label">UI Upgrades</div></div>
+  </div>
+
+  <!-- SECTION 1: UI IMPROVEMENTS -->
+  <div class="section">
+    <h2 class="section-title">UI / Design Improvements</h2>
+
+    <div class="change-card">
+      <span class="tag tag-ui">UI</span>
+      <h3>1. Professional Button Redesign (Sitewide)</h3>
+      <p>Replaced all rounded, AI-looking buttons across the entire website (all sections, headers, landing page, modals) with clean, professional, squared-edge buttons. Removed the generic pill-shaped button styling and replaced it with a modern, minimal aesthetic that feels premium and hand-crafted.</p>
+      <div class="files-affected">Files: index.css, all section components</div>
+    </div>
+
+    <div class="change-card">
+      <span class="tag tag-ui">UI</span>
+      <h3>2. Navbar Hover Underline Animation</h3>
+      <p>Implemented a smooth animated underline hover effect on all desktop navbar links. The underline slides in from the left on hover and stays active on the current page. The underline length is precisely matched to the text/word length (not the full clickable padding area), achieved by wrapping the label text in a relative inline span.</p>
+      <div class="files-affected">Files: src/components/Navbar.jsx</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: BUG FIXES -->
+  <div class="section">
+    <h2 class="section-title">Bug Fixes</h2>
+
+    <div class="change-card">
+      <span class="tag tag-fix">FIX</span>
+      <h3>3. Modal Close Button Positioning</h3>
+      <p>Fixed the Student Login modal's close (✕) button. It was previously floating outside the modal border. Restructured the modal so that the logo, title, form, and close button are all wrapped inside a single bordered container. The close button is now smartly positioned inside the top-right corner of the modal border.</p>
+      <div class="files-affected">Files: src/pages/StudentLogin.jsx</div>
+    </div>
+
+    <div class="change-card">
+      <span class="tag tag-fix">FIX</span>
+      <h3>4. Admin Login Link — Modal Overlap Bug</h3>
+      <p>Fixed a critical UX bug where clicking "Administrator Login" inside the Student Login popup would navigate to the admin login page, but the Student Login modal would remain open and visible in the foreground. Added an <code>onClick</code> handler to explicitly close the modal before navigating away.</p>
+      <div class="files-affected">Files: src/pages/StudentLogin.jsx</div>
+    </div>
+
+    <div class="change-card">
+      <span class="tag tag-fix">FIX</span>
+      <h3>5. Logo Link — Modal Persistence Fix</h3>
+      <p>Same fix applied to the RBT Mission logo link at the top of the login modal. Clicking the logo now correctly closes the popup before navigating to the homepage.</p>
+      <div class="files-affected">Files: src/pages/StudentLogin.jsx</div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: NEW FEATURES -->
+  <div class="section">
+    <h2 class="section-title">New Features Implemented</h2>
+
+    <div class="change-card">
+      <span class="tag tag-feature">FEATURE</span>
+      <h3>6. Student Signup Modal (New Component)</h3>
+      <p>Built a brand-new Student Signup modal component (<code>StudentSignup.jsx</code>) with two registration methods:</p>
+      <p><strong>a) Google Auth Signup:</strong> One-click registration using Google. Automatically creates a Firestore profile with basic student access.</p>
+      <p><strong>b) Email & Password Signup:</strong> Manual registration with form fields for Full Name, Email, Password, and Confirm Password. Includes real-time validation — passwords must match and be at least 6 characters. Prevents submission on mismatch.</p>
+      <p>The modal matches the existing premium dark design system (glassmorphism, animated gradients, smooth transitions).</p>
+      <div class="files-affected">Files: src/pages/StudentSignup.jsx (NEW), src/context/AuthContext.jsx, src/App.jsx</div>
+    </div>
+
+    <div class="change-card">
+      <span class="tag tag-feature">FEATURE</span>
+      <h3>7. Navbar — Separate Login & Sign Up Buttons</h3>
+      <p>Updated the Navbar to show two distinct buttons for unauthenticated users:</p>
+      <p>• <strong>Login</strong> — subtle ghost-style button (text only, hover highlight)</p>
+      <p>• <strong>Sign Up</strong> — prominent green CTA button (primary action)</p>
+      <p>This applies to both desktop and mobile navigation. Both modals support seamless switching between Login ↔ Sign Up via footer links ("Don't have an account?" / "Already have an account?").</p>
+      <div class="files-affected">Files: src/components/Navbar.jsx, src/App.jsx</div>
+    </div>
+
+    <div class="change-card">
+      <span class="tag tag-feature">FEATURE</span> <span class="tag tag-security">AUTH</span>
+      <h3>8. Firebase Email/Password Signup Backend</h3>
+      <p>Created a new <code>signupStudent(email, password, name)</code> function in the Auth Context. It uses Firebase's <code>createUserWithEmailAndPassword</code> to register the user, then creates a Firestore document in the <code>students</code> collection with their profile data, role, and auto-generated RBT ID. All new signups are granted <strong>Basic Student Access</strong> by default.</p>
+      <div class="files-affected">Files: src/context/AuthContext.jsx</div>
+    </div>
+
+    <div class="change-card">
+      <span class="tag tag-feature">FEATURE</span> <span class="tag tag-security">SYSTEM</span>
+      <h3>9. RBT Student ID System (RBT ID)</h3>
+      <p>Implemented a standardized, unique Student Identification system. Every student who registers on the platform is automatically assigned a permanent, privacy-compliant RBT ID.</p>
+
+      <p style="margin-top: 10px; font-weight: 600;">Format Breakdown:</p>
+      <table class="id-table">
+        <tr>
+          <th>Part</th>
+          <th>Value</th>
+          <th>Meaning</th>
+        </tr>
+        <tr>
+          <td><code>RBT</code></td>
+          <td>Institution Code</td>
+          <td>Identifies RBT Mission Learning</td>
+        </tr>
+        <tr>
+          <td><code>26</code></td>
+          <td>Cohort Year</td>
+          <td>Year of account creation (2026)</td>
+        </tr>
+        <tr>
+          <td><code>G / E / B</code></td>
+          <td>Auth Method</td>
+          <td>G = Google, E = Email, B = Batch</td>
+        </tr>
+        <tr>
+          <td><code>-</code></td>
+          <td>Separator</td>
+          <td>Readability</td>
+        </tr>
+        <tr>
+          <td><code>XXXXXX</code></td>
+          <td>Unique Hash</td>
+          <td>6-char alphanumeric from Firebase UID</td>
+        </tr>
+      </table>
+
+      <p style="margin-top: 12px; font-weight: 600;">Examples:</p>
+      <p><span class="id-example">RBT26G-A1B2C3</span> — Student signed up via Google</p>
+      <p><span class="id-example">RBT26E-X9Y8Z7</span> — Student signed up via Email</p>
+      <p><span class="id-example">RBT26B-Q1W2E3</span> — Batch student (enrolled)</p>
+
+      <p style="margin-top: 10px;"><strong>Visibility:</strong> The RBT ID is displayed on the Student Dashboard (under the student's name) and is visible to Administrators in the Manage Students panel.</p>
+      <div class="files-affected">Files: src/context/AuthContext.jsx</div>
+    </div>
+  </div>
+
+  <!-- SECTION: FILES MODIFIED -->
+  <div class="section">
+    <h2 class="section-title">Files Modified / Created</h2>
+    <table class="id-table">
+      <tr><th>Action</th><th>File</th></tr>
+      <tr><td style="color:#16a34a;font-weight:700;">NEW</td><td><code>src/pages/StudentSignup.jsx</code></td></tr>
+      <tr><td style="color:#2563eb;font-weight:700;">MODIFIED</td><td><code>src/context/AuthContext.jsx</code></td></tr>
+      <tr><td style="color:#2563eb;font-weight:700;">MODIFIED</td><td><code>src/App.jsx</code></td></tr>
+      <tr><td style="color:#2563eb;font-weight:700;">MODIFIED</td><td><code>src/components/Navbar.jsx</code></td></tr>
+      <tr><td style="color:#2563eb;font-weight:700;">MODIFIED</td><td><code>src/pages/StudentLogin.jsx</code></td></tr>
+      <tr><td style="color:#2563eb;font-weight:700;">MODIFIED</td><td><code>dist/*</code> (production build)</td></tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    <p><strong>RBT Mission Learning</strong> — Development Session Report</p>
+    <p>Prepared by Debraj Pradhan | 21 May 2026 | For GKK Intern Team</p>
+    <p>All changes committed and pushed to GitHub (main branch)</p>
+  </div>
+
+</body>
+</html>
