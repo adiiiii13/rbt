@@ -3,7 +3,11 @@ service firebase.storage {
   match /b/{bucket}/o {
 
     function isSignedIn() { return request.auth != null; }
-    function isAdmin()    { return isSignedIn() && request.auth.token.role == 'admin'; }
+    function isAdminEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        && request.auth.token.email.matches('.*@rbtmission[.]com');
+    }
+    function isAdmin()    { return isSignedIn() && (request.auth.token.role == 'admin' || isAdminEmail()); }
     function isStudent()  { return isSignedIn() && request.auth.token.role == 'student'; }
     function sizeOk(maxMB) { return request.resource.size < maxMB * 1024 * 1024; }
     function isImage()    { return request.resource.contentType.matches('image/.*'); }
