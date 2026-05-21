@@ -47,6 +47,21 @@ export default function DashboardLayout({ type }) {
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const mainRef = useRef(null)
+  const sidebarRef = useRef(null)
+
+  // Restore sidebar scroll position on mount
+  useEffect(() => {
+    if (sidebarRef.current) {
+      const savedScroll = sessionStorage.getItem('rbt_sidebar_scroll')
+      if (savedScroll) {
+        sidebarRef.current.scrollTop = parseInt(savedScroll, 10)
+      }
+    }
+  }, [])
+
+  const handleSidebarScroll = (e) => {
+    sessionStorage.setItem('rbt_sidebar_scroll', e.target.scrollTop)
+  }
 
   // Only reset main content scroll on route change, keep sidebar untouched
   useEffect(() => {
@@ -179,7 +194,11 @@ export default function DashboardLayout({ type }) {
           </button>
         </div>
 
-        <nav className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-2 sidebar-scroll">
+        <nav 
+          ref={sidebarRef}
+          onScroll={handleSidebarScroll}
+          className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-2 sidebar-scroll"
+        >
           {links.map((link) => (
             <NavLink
               key={link.to}
