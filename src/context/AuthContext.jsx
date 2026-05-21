@@ -93,7 +93,7 @@ export function AuthProvider({ children }) {
       }
 
       // Migrate old-format studentId for email logins
-      if (userData.studentId && !userData.studentId.match(/^RBT\d{2}[GEB]-/)) {
+      if (!userData.studentId || !userData.studentId.match(/^RBT\d{2}[GEB]-/)) {
         const studentRef = doc(db, 'students', cred.user.uid);
         const newStudentId = 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase();
         await updateDoc(studentRef, { studentId: newStudentId });
@@ -147,7 +147,7 @@ export function AuthProvider({ children }) {
         if (data.name !== cred.user.displayName) updates.name = cred.user.displayName || data.name;
         if (data.photoURL !== cred.user.photoURL) updates.photoURL = cred.user.photoURL || data.photoURL || null;
         // Migrate old-format studentId (missing G/E/B letter) to new format
-        if (data.studentId && !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
+        if (!data.studentId || !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
           updates.studentId = 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase();
         }
         if (Object.keys(updates).length > 0) await updateDoc(studentRef, updates);
@@ -223,7 +223,7 @@ export function AuthProvider({ children }) {
           batch: true,
         };
         // Migrate old-format studentId (missing G/E/B letter) to new format
-        if (data.studentId && !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
+        if (!data.studentId || !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
           updates.studentId = 'RBT26B-' + cred.user.uid.substring(0, 6).toUpperCase();
         }
         await updateDoc(studentRef, updates);
