@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
+import { collection, query, where, getDocs } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import Modal from '../../components/Modal'
 import { TrophyIcon, CheckCircleIcon } from '../../components/Icons'
@@ -18,13 +18,22 @@ export default function StudentMockResults() {
     let alive = true
     const load = async () => {
       try {
-        const q = query(collection(db, 'mockAttempts'), where('uid', '==', user.uid), orderBy('submittedAt', 'desc'))
+        // No orderBy → avoids needing a composite index for (uid + submittedAt).
+        // Sort client-side by submittedAt desc.
+        const q = query(collection(db, 'mockAttempts'), where('uid', '==', user.uid))
         const snap = await getDocs(q)
         if (!alive) return
-        const data = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        const data = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => {
+            const ta = a.submittedAt?.toMillis?.() ?? new Date(a.submittedAt || 0).getTime()
+            const tb = b.submittedAt?.toMillis?.() ?? new Date(b.submittedAt || 0).getTime()
+            return tb - ta
+          })
         setAttempts(data)
-      } catch (err) { console.error(err) }
-      finally { if (alive) setLoading(false) }
+      } catch (err) {
+        console.error('[StudentMockResults]', err)
+      } finally { if (alive) setLoading(false) }
     }
     load()
     return () => { alive = false }
