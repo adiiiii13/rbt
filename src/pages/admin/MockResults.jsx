@@ -335,25 +335,84 @@ export default function MockResults() {
               </div>
             )}
 
-            {/* Per-Q breakdown */}
-            {detail.breakdown && detail.breakdown.length > 0 && (
-              <div>
-                <h4 className="text-white font-bold mb-2 text-sm">Per-Question Breakdown</h4>
-                <div className="space-y-1 max-h-60 overflow-y-auto">
-                  {detail.breakdown.map((b, i) => (
-                    <div key={i} className={`flex justify-between items-center p-2 rounded text-xs ${
-                      b.status === 'correct' ? 'bg-green-500/10 text-green-400' :
-                      b.status === 'wrong' ? 'bg-red-500/10 text-red-400' :
-                      'bg-slate-500/10 text-slate-400'
-                    }`}>
-                      <span>Q{i + 1}</span>
-                      <span className="font-bold uppercase">{b.status}</span>
-                      <span>{b.marks > 0 ? '+' : ''}{b.marks}</span>
-                    </div>
-                  ))}
+            {/* Full Q+Answer Detail */}
+            {(() => {
+              const test = tests.find(t => t.id === detail.testId);
+              const questions = test?.questions || [];
+              if (!questions.length) {
+                return (
+                  <div>
+                    <h4 className="text-white font-bold mb-2 text-sm">Question Detail</h4>
+                    <p className="text-xs text-slate-500">Test data unavailable (test may have been deleted).</p>
+                  </div>
+                );
+              }
+              return (
+                <div>
+                  <h4 className="text-white font-bold mb-3 text-sm">Question-by-Question Detail</h4>
+                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                    {questions.map((q, idx) => {
+                      const bk = detail.breakdown?.find(b => b.qid === q.id);
+                      const userAns = bk?.selectedIndex;
+                      const isCorrect = bk?.status === 'correct';
+                      const isSkipped = !bk || bk.status === 'unattempted' || bk.status === 'skipped';
+                      return (
+                        <div key={q.id || idx} className={`rounded-lg p-3 border ${
+                          isCorrect ? 'bg-green-500/5 border-green-500/30' :
+                          isSkipped ? 'bg-slate-500/5 border-slate-700' :
+                          'bg-red-500/5 border-red-500/30'
+                        }`}>
+                          <div className="flex items-start gap-2 mb-2">
+                            <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                              isCorrect ? 'bg-green-500/20 text-green-400' :
+                              isSkipped ? 'bg-slate-500/20 text-slate-400' :
+                              'bg-red-500/20 text-red-400'
+                            }`}>
+                              {isCorrect ? '✓' : isSkipped ? '—' : '✗'}
+                            </span>
+                            <div className="flex-1">
+                              <p className="text-sm text-white font-medium">Q{idx + 1}. {q.question}</p>
+                              {q.imageUrl && (
+                                <img src={q.imageUrl} alt="" className="mt-2 max-h-40 rounded border border-white/10" loading="lazy" />
+                              )}
+                            </div>
+                          </div>
+                          <div className="ml-8 space-y-1">
+                            {q.options?.map((opt, oi) => {
+                              const isUserPick = userAns === oi;
+                              const isRight = q.correctIndex === oi;
+                              let cls = 'text-slate-400';
+                              if (isRight) cls = 'text-green-400 font-medium';
+                              else if (isUserPick && !isRight) cls = 'text-red-400 line-through';
+                              return (
+                                <div key={oi} className={`flex items-center gap-2 text-xs ${cls}`}>
+                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                                    isRight ? 'bg-green-500/20 text-green-400' :
+                                    isUserPick ? 'bg-red-500/20 text-red-400' :
+                                    'bg-white/5 text-slate-500'
+                                  }`}>
+                                    {String.fromCharCode(65 + oi)}
+                                  </span>
+                                  <span className="flex-1">{opt}</span>
+                                  {isRight && <span className="text-[10px] text-green-400 font-bold">(Correct)</span>}
+                                  {isUserPick && !isRight && <span className="text-[10px] text-red-400 font-bold">(Picked)</span>}
+                                </div>
+                              );
+                            })}
+                            {q.explanation && (
+                              <div className="mt-2 p-2 rounded bg-blue-500/5 border border-blue-500/20">
+                                <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Explanation</p>
+                                <p className="text-xs text-slate-300">{q.explanation}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* Meta */}
             <div className="text-xs text-slate-500 space-y-1 pt-2 border-t border-white/10">

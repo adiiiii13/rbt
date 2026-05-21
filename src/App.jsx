@@ -172,7 +172,10 @@ function AppContent() {
                   <Route path="/test-papers" element={<><TestPapers /><Footer /></>} />
                   <Route path="/test-papers/downloadable" element={<><TestPapersDownloadable /><Footer /></>} />
                   <Route path="/test-papers/mock" element={<><TestPapersMock /><Footer /></>} />
-                  <Route path="/test-papers/mock/:testId" element={<MockTestRunner />} />
+                  {/* Mock test runner — top-level, no nav/sidebar (NTA-style fullscreen) */}
+                  <Route path="/test-papers/mock/:testId" element={<ProtectedRoute role="student"><MockTestRunner /></ProtectedRoute>} />
+                  <Route path="/student/test-papers/mock/:testId" element={<ProtectedRoute role="student"><MockTestRunner /></ProtectedRoute>} />
+                  <Route path="/basic/test-papers/mock/:testId" element={<ProtectedRoute role="student"><MockTestRunner /></ProtectedRoute>} />
                   <Route path="/privacy" element={<><PrivacyPolicy /><Footer /></>} />
                   <Route path="/terms" element={<><TermsOfService /><Footer /></>} />
                   <Route path="/student-login" element={<StudentLogin />} />
@@ -186,7 +189,6 @@ function AppContent() {
                     <Route path="test-papers" element={<TestPapers />} />
                     <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
                     <Route path="test-papers/mock" element={<TestPapersMock />} />
-                    <Route path="test-papers/mock/:testId" element={<MockTestRunner />} />
                     <Route path="pdfs" element={<StudentPdfs />} />
                     <Route path="study-material" element={<StudyMaterial />} />
                     <Route path="videos" element={<StudentVideos />} />
@@ -208,7 +210,6 @@ function AppContent() {
                     <Route path="test-papers" element={<TestPapers />} />
                     <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
                     <Route path="test-papers/mock" element={<TestPapersMock />} />
-                    <Route path="test-papers/mock/:testId" element={<MockTestRunner />} />
                     <Route path="payment" element={<BasicPayment />} />
                   </Route>
 
