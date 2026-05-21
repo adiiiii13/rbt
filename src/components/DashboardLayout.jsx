@@ -139,7 +139,7 @@ export default function DashboardLayout({ type }) {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
+        <nav className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
           {links.map((link, idx) => (
             <NavLink
               key={link.to}
@@ -296,7 +296,7 @@ export default function DashboardLayout({ type }) {
                 </button>
               </div>
 
-              <nav className="flex-1 overflow-y-auto p-4 flex flex-col gap-1">
+              <nav className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
                 {links.map((link) => (
                   <NavLink
                     key={link.to}
