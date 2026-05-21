@@ -92,7 +92,11 @@ function ProtectedRoute({ children, role, batch }) {
 function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
-    window.scrollTo(0, 0)
+    // Don't auto-scroll in dashboard (admin/student/basic)
+    const inDashboard = pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/basic')
+    if (!inDashboard) {
+      window.scrollTo(0, 0)
+    }
   }, [pathname])
   return null
 }

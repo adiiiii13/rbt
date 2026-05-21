@@ -52,6 +52,7 @@ async function buildUserFromToken(firebaseUser) {
     email: firebaseUser.email,
     name: firebaseUser.displayName || profile.name || (role === 'admin' ? 'Administrator' : 'Student'),
     photoURL: firebaseUser.photoURL || profile.photoURL || null,
+    batch: profile.batch || false,
     ...profile,
     role,
   }

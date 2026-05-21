@@ -29,8 +29,41 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
-    // Students: admin full access; signed-in user creates own doc (Google login flow);
-    // student read/update own doc; immutable fields protected.
+    // Mock Tests: public read; admin write
+    match /mockTests/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Mock Attempts: student create own; admin read all; student read own
+    match /mockAttempts/{doc} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Study Material: public read; admin write
+    match /studyMaterial/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Notifications: admin write; student read own
+    match /notifications/{doc} {
+      allow create: if isAdmin();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Doubts: student create own; admin read all; student read own; admin update for reply
+    match /doubts/{doc} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Students: admin full access; signed-in user creates own doc
     match /students/{uid} {
       allow read: if isAdmin() || isOwner(uid);
       allow create: if isAdmin() || (isOwner(uid)
@@ -42,28 +75,24 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Counselling submissions: anyone create with size limits; admin full; signed-in read
+    // Counselling: anyone create; signed-in read; admin full
     match /counsellingBookings/{doc} {
       allow create: if request.resource.data.studentName is string
         && request.resource.data.studentName.size() < 100
         && request.resource.data.phone is string
         && request.resource.data.phone.size() < 20
-        && request.resource.data.keys().size() < 15
-        && request.resource.data.createdAt is timestamp
-        && !exists(/databases/$(database)/documents/counsellingBookings/$(doc));
+        && request.resource.data.keys().size() < 20;
       allow read: if isSignedIn();
       allow update, delete: if isAdmin();
     }
 
-    // Contact / inquiry form: anyone create; admin read/delete
+    // Inquiries: anyone create; admin read/delete
     match /inquiries/{doc} {
       allow create: if request.resource.data.name is string
         && request.resource.data.name.size() < 100
         && request.resource.data.phone is string
         && request.resource.data.phone.size() < 20
-        && request.resource.data.keys().size() < 15
-        && request.resource.data.createdAt is timestamp
-        && !exists(/databases/$(database)/documents/inquiries/$(doc));
+        && request.resource.data.keys().size() < 15;
       allow read, update, delete: if isAdmin();
     }
 
@@ -76,25 +105,25 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // Invoices: read-only for owner student + admin; admin writes
+    // Invoices: read for owner student + admin; admin writes
     match /invoices/{doc} {
       allow read: if isAdmin() ||
-        (isStudent() && resource.data.studentId == request.auth.uid);
+        (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow write: if isAdmin();
     }
 
-    // Offers: public read active; admin full
+    // Offers: public read; admin write
     match /offers/{doc} {
       allow read: if true;
       allow write: if isAdmin();
     }
 
-    // Guest access codes: anonymous-flow lookup happens via Cloud Function only
+    // Guest access codes: admin only
     match /guestCodes/{doc} {
       allow read, write: if isAdmin();
     }
 
-    // Meta: tracks deleted default IDs. Admin only.
+    // Deleted IDs tracking: admin only
     match /_deleted/{doc} {
       allow read, write: if isAdmin();
     }

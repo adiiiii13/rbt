@@ -1,5 +1,5 @@
-import { NavLink, useNavigate, Outlet } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { NavLink, useNavigate, Outlet, useLocation } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
 import { messaging, db } from '../lib/firebase'
@@ -34,6 +34,15 @@ export default function DashboardLayout({ type }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { pathname } = useLocation()
+  const sidebarRef = useRef(null)
+  const mainRef = useRef(null)
+
+  // Reset sidebar scroll + main scroll on route change
+  useEffect(() => {
+    if (sidebarRef.current) sidebarRef.current.scrollTop = 0
+    if (mainRef.current) mainRef.current.scrollTop = 0
+  }, [pathname])
 
   const studentLinks = [
     { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
