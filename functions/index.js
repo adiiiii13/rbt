@@ -5,7 +5,6 @@ import { getMessaging } from 'firebase-admin/messaging'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { setGlobalOptions } from 'firebase-functions/v2'
-import { defineString } from 'firebase-functions/params'
 import Razorpay from 'razorpay'
 import crypto from 'crypto'
 
@@ -16,8 +15,8 @@ const auth = getAuth()
 const db = getFirestore()
 
 // Razorpay keys — set in functions/.env file
-const razorpayKeyId = defineString('RAZORPAY_KEY_ID')
-const razorpayKeySecret = defineString('RAZORPAY_KEY_SECRET')
+const razorpayKeyId = process.env.RAZORPAY_KEY_ID
+const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET
 
 function assertAdmin(ctxAuth) {
   if (!ctxAuth) throw new HttpsError('unauthenticated', 'Sign in required')
@@ -216,8 +215,8 @@ export const createRazorpayOrder = onCall(async (request) => {
     }
 
     const rzp = new Razorpay({
-      key_id: razorpayKeyId.value(),
-      key_secret: razorpayKeySecret.value(),
+      key_id: razorpayKeyId,
+      key_secret: razorpayKeySecret,
     })
 
     let order
@@ -256,7 +255,7 @@ export const createRazorpayOrder = onCall(async (request) => {
       orderId: order.id,
       amount: order.amount,
       currency: order.currency,
-      key: razorpayKeyId.value(),
+      key: razorpayKeyId,
     }
   }
 )
@@ -282,7 +281,7 @@ export const verifyRazorpayPayment = onCall(async (request) => {
     // 1. Verify HMAC signature
     const body = razorpay_order_id + '|' + razorpay_payment_id
     const expectedSignature = crypto
-      .createHmac('sha256', razorpayKeySecret.value())
+      .createHmac('sha256', razorpayKeySecret)
       .update(body)
       .digest('hex')
 
