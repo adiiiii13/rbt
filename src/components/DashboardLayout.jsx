@@ -146,7 +146,7 @@ export default function DashboardLayout({ type }) {
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 mb-1.5 shadow-sm`
+                `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0`
               }
             >
               <span className="sidebar-icon-wrap">{link.icon}</span>
@@ -304,7 +304,7 @@ export default function DashboardLayout({ type }) {
                     end={link.end}
                     onClick={() => setSidebarOpen(false)}
                     className={({ isActive }) =>
-                      `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 mb-1.5 shadow-sm`
+                      `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0`
                     }
                   >
                     <span className="sidebar-icon-wrap">{link.icon}</span>
