@@ -5,12 +5,37 @@ import { defaultVideos } from '../../data/videos'
 import { defaultPdfs } from '../../data/pdfs'
 import { Link } from 'react-router-dom'
 import { BookOpenIcon, PlayCircleIcon, FileTextIcon } from '../../components/Icons'
+import { collection, query, where, getDocs } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
+import { useEffect, useState } from 'react'
 
 export default function BasicDashboard() {
   const { user } = useAuth()
   const { data: courses } = useRealtimeCollection('courses', 'createdAt', defaultCourses)
   const { data: videos } = useRealtimeCollection('videos', 'createdAt', defaultVideos)
   const { data: pdfs } = useRealtimeCollection('pdfs', 'createdAt', defaultPdfs)
+
+  const [enrolledCourseIds, setEnrolledCourseIds] = useState([])
+
+  useEffect(() => {
+    if (!user?.uid) return
+    let alive = true
+    const fetchEnrollments = async () => {
+      try {
+        const q = query(collection(db, 'enrollments'), where('uid', '==', user.uid))
+        const snap = await getDocs(q)
+        if (!alive) return
+        const ids = snap.docs.map(d => d.data().courseId)
+        setEnrolledCourseIds(ids)
+      } catch (err) {
+        console.error("Error fetching enrollments:", err)
+      }
+    }
+    fetchEnrollments()
+    return () => { alive = false }
+  }, [user])
+
+  const myCourses = courses.filter(c => enrolledCourseIds.includes(c.id))
 
   const freeVideos = videos.filter(v => v.isFree !== false).slice(0, 3)
   const freePdfs = pdfs.slice(0, 3)
@@ -64,6 +89,24 @@ export default function BasicDashboard() {
           ))}
         </div>
       </div>
+
+      {/* My Courses */}
+      {myCourses.length > 0 && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-white">My Enrolled Courses</h2>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {myCourses.map(c => (
+              <Link key={c.id} to={`/basic/courses/${c.id}`} className="bg-green-brand/10 border border-green-brand/20 rounded-2xl p-5 block no-underline hover:border-green-brand/50 transition-all">
+                <h3 className="font-bold text-white mb-1">{c.title}</h3>
+                <p className="text-sm text-slate-400 mb-2 line-clamp-2">{c.description}</p>
+                <div className="text-xs text-green-brand font-medium mt-3">Continue Learning →</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Free Videos */}
       <div className="mb-8">

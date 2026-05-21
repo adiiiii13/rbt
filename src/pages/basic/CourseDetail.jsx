@@ -113,7 +113,19 @@ export default function BasicCourseDetail() {
   if (!course) return null;
 
   // ─── Enrolled: show player ───
-  if (enrollment && lessons.length > 0) {
+  if (enrollment) {
+    if (lessons.length === 0) {
+      return (
+        <div>
+          <Link to="/basic/courses" className="text-slate-400 hover:text-white text-sm mb-4 inline-block no-underline">← Back to Courses</Link>
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center mt-6">
+            <h2 className="text-2xl font-bold text-white mb-2">You are enrolled! 🎉</h2>
+            <p className="text-slate-400">Content for this course will be uploaded soon. Check back later.</p>
+          </div>
+        </div>
+      );
+    }
+
     const lesson = lessons[currentLesson];
     return (
       <div>
