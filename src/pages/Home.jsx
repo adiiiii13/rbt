@@ -149,7 +149,7 @@ export default function Home({ onOpenLogin }) {
           <span className="float-icon absolute bottom-[25%] right-[12%] text-white/10 backdrop-blur-sm bg-white/5 p-4 rounded-2xl border border-white/10"><FlaskIcon size={32} /></span>
         </div>
 
-        <div className="container-main relative z-10 pt-32 pb-24">
+        <div className="container-main relative z-10 pt-44 pb-24">
           <div className="max-w-4xl mx-auto text-center">
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: -20 }}
