@@ -104,20 +104,17 @@ export default function DashboardLayout({ type }) {
         
         const permission = await Notification.requestPermission()
         if (permission === 'granted') {
-          // Register SW manually so we can pass config
-          const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js')
-          registration.active?.postMessage({
-            type: 'FIREBASE_CONFIG',
-            config: {
-              apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-              projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-              messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-              appId: import.meta.env.VITE_FIREBASE_APP_ID,
-            }
-          });
+          // Register SW manually with config in URL params to avoid async warnings
+          const swUrl = `/firebase-messaging-sw.js?apiKey=${import.meta.env.VITE_FIREBASE_API_KEY}&projectId=${import.meta.env.VITE_FIREBASE_PROJECT_ID}&messagingSenderId=${import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID}&appId=${import.meta.env.VITE_FIREBASE_APP_ID}`
+          const registration = await navigator.serviceWorker.register(swUrl)
+
+          if (!import.meta.env.VITE_FIREBASE_VAPID_KEY) {
+            console.warn('[FCM] VITE_FIREBASE_VAPID_KEY is missing in .env. Push notifications are disabled.')
+            return
+          }
 
           const currentToken = await getToken(msg, {
-            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeZ1vskM29Z1vskM', // Placeholder if no vapidKey
+            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
             serviceWorkerRegistration: registration,
           })
 
