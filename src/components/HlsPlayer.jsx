@@ -3,14 +3,13 @@ import ReactPlayer from 'react-player';
 import { Skeleton } from './ui/Skeleton';
 
 /**
- * Universal player — handles YouTube, MP4, HLS (.m3u8), DASH (.mpd).
- * Uses react-player 3.x API (`src`, native <video> attrs, native events).
- * Adds RBT watermark, blocks right-click on video element.
+ * Universal player — YouTube via iframe, MP4/HLS via video.
+ * Falls back gracefully if react-player fails.
  */
 export default function HlsPlayer({ url, onEnded, onProgress, autoPlay = true, watermark = 'RBT SECURE STREAM' }) {
-  const playerRef = useRef(null);
   const [ready, setReady] = useState(false);
   const [err, setErr] = useState(null);
+  const playerRef = useRef(null);
 
   useEffect(() => {
     const handleContextMenu = (e) => {
@@ -30,7 +29,37 @@ export default function HlsPlayer({ url, onEnded, onProgress, autoPlay = true, w
     );
   }
 
-  // Wrap onProgress in a timeupdate-like signature for callers expecting { played, playedSeconds }
+  const isYouTube = /(?:youtube\.com|youtu\.be)/.test(url);
+
+  // YouTube: direct iframe — most reliable
+  if (isYouTube) {
+    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+    const ytId = ytMatch ? ytMatch[1] : null;
+    if (!ytId) {
+      return (
+        <div className="relative pt-[56.25%] w-full bg-black rounded-2xl overflow-hidden border border-white/10">
+          <div className="absolute inset-0 flex items-center justify-center text-slate-500">Invalid YouTube URL</div>
+        </div>
+      );
+    }
+    return (
+      <div className="relative pt-[56.25%] w-full bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
+        <iframe
+          src={`https://www.youtube.com/embed/${ytId}?rel=0&modestbranding=1`}
+          title="Video"
+          className="absolute top-0 left-0 w-full h-full"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+        <div className="absolute top-4 right-4 pointer-events-none opacity-30 text-white font-bold text-xs sm:text-sm tracking-widest z-10 select-none">
+          {watermark}
+        </div>
+      </div>
+    );
+  }
+
+  // MP4 / HLS / DASH: use ReactPlayer
   const handleTimeUpdate = (e) => {
     if (!onProgress) return;
     const video = e.target;
