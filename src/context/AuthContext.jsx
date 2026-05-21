@@ -134,12 +134,14 @@ export function AuthProvider({ children }) {
       } else {
         // Sync the latest Google profile data if they already have an account
         const data = snap.data();
-        if (data.name !== cred.user.displayName || data.photoURL !== cred.user.photoURL) {
-          await updateDoc(studentRef, {
-            name: cred.user.displayName || data.name,
-            photoURL: cred.user.photoURL || data.photoURL || null,
-          });
+        const updates = {};
+        if (data.name !== cred.user.displayName) updates.name = cred.user.displayName || data.name;
+        if (data.photoURL !== cred.user.photoURL) updates.photoURL = cred.user.photoURL || data.photoURL || null;
+        // Migrate old-format studentId (missing G/E/B letter) to new format
+        if (data.studentId && !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
+          updates.studentId = 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase();
         }
+        if (Object.keys(updates).length > 0) await updateDoc(studentRef, updates);
       }
       
       const userData = await buildUserFromToken(cred.user)
@@ -205,11 +207,17 @@ export function AuthProvider({ children }) {
           createdAt: new Date().toISOString()
         })
       } else {
-        await updateDoc(studentRef, {
-          name: cred.user.displayName || snap.data().name,
-          photoURL: cred.user.photoURL || snap.data().photoURL || null,
+        const data = snap.data();
+        const updates = {
+          name: cred.user.displayName || data.name,
+          photoURL: cred.user.photoURL || data.photoURL || null,
           batch: true,
-        })
+        };
+        // Migrate old-format studentId (missing G/E/B letter) to new format
+        if (data.studentId && !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
+          updates.studentId = 'RBT26B-' + cred.user.uid.substring(0, 6).toUpperCase();
+        }
+        await updateDoc(studentRef, updates);
       }
 
       const userData = await buildUserFromToken(cred.user)
