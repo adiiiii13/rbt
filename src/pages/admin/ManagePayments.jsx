@@ -14,6 +14,9 @@ export default function ManagePayments() {
   const { data: settings } = useRealtimeCollection('settings')
   const [selectedInvoice, setSelectedInvoice] = useState(null)
 
+  const [isEditRevenueModalOpen, setIsEditRevenueModalOpen] = useState(false)
+  const [revenueInput, setRevenueInput] = useState('')
+
   const overrideRevenue = settings?.find(s => s.id === 'revenue')?.overrideAmount
 
   const verifyPayment = async (id) => {
@@ -39,20 +42,23 @@ export default function ManagePayments() {
     }
   }
 
-  const editRevenue = async () => {
-    const val = window.prompt("Enter new total revenue override amount (leave blank to auto-calculate):", overrideRevenue || '');
-    if (val === null) return; // Cancelled
-    
+  const openEditRevenueModal = () => {
+    setRevenueInput(overrideRevenue !== undefined && overrideRevenue !== null ? overrideRevenue.toString() : '');
+    setIsEditRevenueModalOpen(true);
+  }
+
+  const saveRevenue = async () => {
     try {
-      if (val.trim() === '') {
+      if (revenueInput.trim() === '') {
         await setDoc(doc(db, 'settings', 'revenue'), { overrideAmount: null }, { merge: true })
         toast.success('Revenue calculation set to automatic')
       } else {
-        const num = parseFloat(val);
+        const num = parseFloat(revenueInput);
         if (isNaN(num)) throw new Error("Invalid amount");
         await setDoc(doc(db, 'settings', 'revenue'), { overrideAmount: num }, { merge: true })
         toast.success('Total revenue updated')
       }
+      setIsEditRevenueModalOpen(false)
     } catch (err) {
       toast.error(err.message || 'Update failed')
     }
@@ -89,7 +95,7 @@ export default function ManagePayments() {
           <div className="flex justify-between items-start mb-1">
             <p className="text-xs text-slate-400">Total Revenue</p>
             <button 
-              onClick={editRevenue}
+              onClick={openEditRevenueModal}
               className="text-xs text-slate-500 hover:text-white transition-colors"
               title="Edit Revenue"
             >
@@ -186,6 +192,39 @@ export default function ManagePayments() {
             onClose={() => setSelectedInvoice(null)} 
           />
         )}
+      </Modal>
+
+      {/* Edit Revenue Modal */}
+      <Modal isOpen={isEditRevenueModalOpen} onClose={() => setIsEditRevenueModalOpen(false)} title="Edit Total Revenue">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Enter new total revenue override amount. Leave blank to automatically calculate from invoices.
+          </p>
+          <div>
+            <label className="block text-sm font-medium text-slate-400 mb-1">Override Amount (₹)</label>
+            <input
+              type="number"
+              value={revenueInput}
+              onChange={(e) => setRevenueInput(e.target.value)}
+              placeholder="e.g. 50000"
+              className="w-full bg-[#0a0a0a] border border-slate-800 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-brand/50 transition-colors"
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              onClick={() => setIsEditRevenueModalOpen(false)}
+              className="flex-1 px-4 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={saveRevenue}
+              className="flex-1 px-4 py-3 bg-green-brand hover:bg-green-500 text-[#0a0a0a] rounded-xl font-bold transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   )
