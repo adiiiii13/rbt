@@ -48,15 +48,24 @@ export function useRealtimeCollection(name, opts = {}) {
       return
     }
 
+    // Safety net: if neither success nor error fires within 8s
+    // (e.g. ad-blocker or offline), stop the spinner so UI is usable.
+    const stuckTimer = setTimeout(() => {
+      console.warn(`[useRealtimeCollection] ${name} timed out — stopping spinner`)
+      setLoading(false)
+    }, 8000)
+
     const unsub = onSnapshot(
       q,
       (snap) => {
+        clearTimeout(stuckTimer)
         const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         setData(rows)
         setLoading(false)
         try { localStorage.setItem(`rbt_cache_${name}`, JSON.stringify(rows)) } catch {}
       },
       (err) => {
+        clearTimeout(stuckTimer)
         console.warn(`[useRealtimeCollection] ${name}`, err.message)
         // Retry without orderBy if index missing
         if (err.code === 'failed-precondition') {
@@ -72,7 +81,7 @@ export function useRealtimeCollection(name, opts = {}) {
         setLoading(false)
       }
     )
-    return () => unsub()
+    return () => { clearTimeout(stuckTimer); unsub() }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [name, orderField, orderDir, enabled, JSON.stringify(whereClauses)])
 
