@@ -1,15 +1,20 @@
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import toast from 'react-hot-toast'
-import { updateDocument } from '../../lib/firebaseHelpers'
+import { updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { formatCurrency } from '../../lib/invoice'
 import { useState } from 'react'
 import Modal from '../../components/Modal'
 import InvoiceView from '../../components/InvoiceView'
+import { doc, setDoc } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
 
 export default function ManagePayments() {
   const { data: payments, loading } = useRealtimeCollection('payments')
+  const { data: settings } = useRealtimeCollection('settings')
   const [selectedInvoice, setSelectedInvoice] = useState(null)
+
+  const overrideRevenue = settings?.find(s => s.id === 'revenue')?.overrideAmount
 
   const verifyPayment = async (id) => {
     try {
@@ -25,9 +30,39 @@ export default function ManagePayments() {
     } catch (err) { toast.error(err.message || 'Reject failed') }
   }
 
-  const totalRevenue = payments
+  const deleteInvoice = async (id) => {
+    if (window.confirm("Are you sure you want to delete this invoice? This action cannot be undone.")) {
+      try {
+        await deleteDocument('payments', id)
+        toast.success('Invoice deleted')
+      } catch (err) { toast.error(err.message || 'Delete failed') }
+    }
+  }
+
+  const editRevenue = async () => {
+    const val = window.prompt("Enter new total revenue override amount (leave blank to auto-calculate):", overrideRevenue || '');
+    if (val === null) return; // Cancelled
+    
+    try {
+      if (val.trim() === '') {
+        await setDoc(doc(db, 'settings', 'revenue'), { overrideAmount: null }, { merge: true })
+        toast.success('Revenue calculation set to automatic')
+      } else {
+        const num = parseFloat(val);
+        if (isNaN(num)) throw new Error("Invalid amount");
+        await setDoc(doc(db, 'settings', 'revenue'), { overrideAmount: num }, { merge: true })
+        toast.success('Total revenue updated')
+      }
+    } catch (err) {
+      toast.error(err.message || 'Update failed')
+    }
+  }
+
+  const calculatedRevenue = payments
     .filter((p) => p.status === 'verified' || p.status === 'paid' || p.status === 'success')
     .reduce((sum, p) => sum + (p.amount || 0), 0)
+
+  const totalRevenue = overrideRevenue !== undefined && overrideRevenue !== null ? overrideRevenue : calculatedRevenue;
 
   const pendingCount = payments.filter((p) => p.status === 'pending').length
 
@@ -51,8 +86,20 @@ export default function ManagePayments() {
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800">
-          <p className="text-xs text-slate-400 mb-1">Total Revenue</p>
+          <div className="flex justify-between items-start mb-1">
+            <p className="text-xs text-slate-400">Total Revenue</p>
+            <button 
+              onClick={editRevenue}
+              className="text-xs text-slate-500 hover:text-white transition-colors"
+              title="Edit Revenue"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>
+            </button>
+          </div>
           <p className="text-xl font-bold text-green-brand">{formatCurrency(totalRevenue)}</p>
+          {overrideRevenue !== undefined && overrideRevenue !== null && (
+            <p className="text-[10px] text-slate-500 mt-1">Manual Override Active</p>
+          )}
         </div>
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800">
           <p className="text-xs text-slate-400 mb-1">Pending Verification</p>
@@ -97,6 +144,12 @@ export default function ManagePayments() {
                           className="text-xs text-blue-400 font-bold cursor-pointer hover:text-blue-300 transition-colors"
                         >
                           Download
+                        </button>
+                        <button 
+                          onClick={() => deleteInvoice(p.id)} 
+                          className="text-xs text-red-500 font-bold cursor-pointer hover:text-red-400 transition-colors"
+                        >
+                          Delete
                         </button>
                         {p.status === 'pending' && (
                           <>
