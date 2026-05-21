@@ -4,7 +4,8 @@ import { Skeleton } from './ui/Skeleton';
 
 /**
  * Universal player — handles YouTube, MP4, HLS (.m3u8), DASH (.mpd).
- * Adds RBT watermark, nodownload attr, right-click block on video element.
+ * Uses react-player 3.x API (`src`, native <video> attrs, native events).
+ * Adds RBT watermark, blocks right-click on video element.
  */
 export default function HlsPlayer({ url, onEnded, onProgress, autoPlay = true, watermark = 'RBT SECURE STREAM' }) {
   const playerRef = useRef(null);
@@ -29,46 +30,39 @@ export default function HlsPlayer({ url, onEnded, onProgress, autoPlay = true, w
     );
   }
 
-  const isHls = typeof url === 'string' && url.includes('.m3u8');
-  const isDash = typeof url === 'string' && url.includes('.mpd');
+  // Wrap onProgress in a timeupdate-like signature for callers expecting { played, playedSeconds }
+  const handleTimeUpdate = (e) => {
+    if (!onProgress) return;
+    const video = e.target;
+    if (!video || !video.duration) return;
+    onProgress({
+      played: video.currentTime / video.duration,
+      playedSeconds: video.currentTime,
+      loaded: video.buffered?.length ? video.buffered.end(0) / video.duration : 0,
+      loadedSeconds: video.buffered?.length ? video.buffered.end(0) : 0,
+    });
+  };
 
   return (
     <div className="relative pt-[56.25%] w-full bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl">
       <div className="absolute top-0 left-0 w-full h-full">
         <ReactPlayer
           ref={playerRef}
-          url={url}
+          src={url}
           width="100%"
           height="100%"
           controls
           playing={autoPlay}
-          onReady={() => setReady(true)}
+          playsInline
+          controlsList="nodownload noremoteplayback"
+          disablePictureInPicture
+          onCanPlay={() => setReady(true)}
           onEnded={onEnded}
-          onProgress={onProgress}
+          onTimeUpdate={handleTimeUpdate}
           onError={(e) => { console.error('[HlsPlayer]', e); setErr('Playback error'); }}
-          config={{
-            file: {
-              forceHLS: isHls,
-              forceDASH: isDash,
-              attributes: {
-                controlsList: 'nodownload noremoteplayback',
-                disablePictureInPicture: true,
-              },
-            },
-            youtube: {
-              playerVars: {
-                rel: 0,
-                modestbranding: 1,
-                showinfo: 0,
-                fs: 1,
-                iv_load_policy: 3,
-              },
-            },
-          }}
         />
       </div>
 
-      {/* Watermark */}
       <div className="absolute top-4 right-4 pointer-events-none opacity-30 text-white font-bold text-xs sm:text-sm tracking-widest z-10 select-none">
         {watermark}
       </div>

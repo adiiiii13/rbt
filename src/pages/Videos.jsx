@@ -53,11 +53,19 @@ export default function Videos() {
                 onClick={() => v.videoUrl && v.videoUrl !== '#' && window.open(`/video/${v.id}`, '_blank')}
               >
                 <div className="relative w-full aspect-video bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center overflow-hidden">
-                  {v.thumbnailUrl ? (
-                    <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500" loading="lazy" />
-                  ) : (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-10 text-white"><PlayCircleIcon size={60} /></div>
-                  )}
+                  {(() => {
+                    let thumb = v.thumbnailUrl;
+                    if (!thumb && v.videoUrl) {
+                      const yt = v.videoUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+                      if (yt) thumb = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
+                    }
+                    return thumb ? (
+                      <img src={thumb} alt={v.title} className="w-full h-full object-cover opacity-60 group-hover:opacity-80 transition-opacity duration-500" loading="lazy"
+                        onError={(e) => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10 text-white"><PlayCircleIcon size={60} /></div>
+                    );
+                  })()}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30 group-hover:bg-black/20 transition-colors">
                     <div className="w-16 h-16 rounded-full bg-green-brand flex items-center justify-center text-white text-2xl shadow-2xl shadow-green-brand/40 group-hover:scale-110 transition-transform duration-300">
                       ▶

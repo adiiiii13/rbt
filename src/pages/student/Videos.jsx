@@ -61,14 +61,22 @@ export default function StudentVideos() {
                 className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden hover:border-green-brand/30 transition-all group cursor-pointer"
               >
                 <div className="relative aspect-video bg-white/5 flex items-center justify-center">
-                  {v.thumbnailUrl ? (
-                    <img src={v.thumbnailUrl} alt={v.title} className="w-full h-full object-cover" loading="lazy" />
-                  ) : (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/3" />
-                      <span className="relative opacity-30 text-white"><PlayCircleIcon size={40} /></span>
-                    </>
-                  )}
+                  {(() => {
+                    let thumb = v.thumbnailUrl;
+                    if (!thumb && v.videoUrl) {
+                      const yt = v.videoUrl.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+                      if (yt) thumb = `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
+                    }
+                    return thumb ? (
+                      <img src={thumb} alt={v.title} className="w-full h-full object-cover" loading="lazy"
+                        onError={(e) => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-white/3" />
+                        <span className="relative opacity-30 text-white"><PlayCircleIcon size={40} /></span>
+                      </>
+                    );
+                  })()}
                   <div className="absolute bottom-2 left-2">
                     <span className="badge badge-green text-xs">{v.subject}</span>
                   </div>
