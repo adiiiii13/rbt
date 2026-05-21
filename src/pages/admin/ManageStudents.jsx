@@ -16,6 +16,7 @@ const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', c
 export default function ManageStudents() {
   const { data: students, loading } = useRealtimeCollection('students', 'createdAt');
   const { data: courses } = useRealtimeCollection('courses', 'createdAt');
+  const { data: allEnrollments } = useRealtimeCollection('enrollments', 'createdAt');
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null);
@@ -159,6 +160,27 @@ export default function ManageStudents() {
     } catch (err) { toast.error(err.message); }
   };
 
+  const getStudentCourses = (s) => {
+    // Get active enrollments for this student
+    const activeEnrollments = allEnrollments.filter(e => e.uid === s.id && e.status !== 'revoked');
+    
+    let courseNames = [];
+    if (activeEnrollments.length > 0) {
+      courseNames = activeEnrollments.map(e => {
+        const c = courses.find(course => course.id === e.courseId);
+        return c ? c.title : 'Unknown Course';
+      });
+    }
+
+    // Include manually typed course if any
+    if (s.course && !courseNames.includes(s.course)) {
+      courseNames.unshift(s.course);
+    }
+
+    if (courseNames.length === 0) return 'No courses';
+    return courseNames.join(', ');
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -193,7 +215,7 @@ export default function ManageStudents() {
                     <td className="font-mono text-[11px] text-slate-500 font-bold">{s.studentId}</td>
                     <td className="font-semibold text-white">{s.name}</td>
                     <td className="text-slate-700 text-sm">{s.email || '-'}</td>
-                    <td className="text-slate-700 font-medium">{s.course || '-'}</td>
+                    <td className="text-slate-700 font-medium">{getStudentCourses(s)}</td>
                     <td>
                       <span className={`badge ${s.status === 'disabled' ? 'badge-red' : 'badge-green'}`}>
                         {s.status === 'disabled' ? 'Disabled' : 'Active'}
