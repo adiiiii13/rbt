@@ -38,6 +38,14 @@ service firebase.storage {
       allow write: if isAdmin() && isImage() && sizeOk(5);
     }
 
+    // Study material — folders/videos/images/PDFs (admin write, signed-in read)
+    match /studyMaterial/{file} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin()
+        && (isImage() || isPdf() || isVideo())
+        && sizeOk(500);
+    }
+
     // Per-student private files (id proof, photos, payment screenshots)
     match /students/{uid}/{file} {
       allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
