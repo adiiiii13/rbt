@@ -40,7 +40,8 @@ export default function BasicCourseDetail() {
             where('courseId', '==', id),
           );
           const enrolSnap = await getDocs(q);
-          if (!enrolSnap.empty) setEnrollment({ id: enrolSnap.docs[0].id, ...enrolSnap.docs[0].data() });
+          const validEnrollment = enrolSnap.docs.map(d => ({id: d.id, ...d.data()})).find(e => e.status !== 'revoked');
+          if (validEnrollment) setEnrollment(validEnrollment);
         }
       } catch (err) { toast.error(err.message); }
       finally { if (alive) setLoading(false); }

@@ -25,7 +25,10 @@ export default function BasicDashboard() {
         const q = query(collection(db, 'enrollments'), where('uid', '==', user.uid))
         const snap = await getDocs(q)
         if (!alive) return
-        const ids = snap.docs.map(d => d.data().courseId)
+        const ids = snap.docs
+          .map(d => d.data())
+          .filter(e => e.status !== 'revoked')
+          .map(e => e.courseId)
         setEnrolledCourseIds(ids)
       } catch (err) {
         console.error("Error fetching enrollments:", err)

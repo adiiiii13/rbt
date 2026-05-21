@@ -6,17 +6,52 @@ import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseH
 import { useRealtimeCollection } from '../../lib/contentApi';
 import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../lib/firebase';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 
 const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', class: 'Class 10', password: '' };
 
 export default function ManageStudents() {
   const { data: students, loading } = useRealtimeCollection('students', 'createdAt');
+  const { data: courses } = useRealtimeCollection('courses', 'createdAt');
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
 
+  const [coursesModal, setCoursesModal] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [enrollments, setEnrollments] = useState([]);
+  const [fetchingEnrollments, setFetchingEnrollments] = useState(false);
+
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
+
+  const openCourses = async (s) => {
+    setSelectedStudent(s);
+    setCoursesModal(true);
+    setFetchingEnrollments(true);
+    try {
+      const q = query(collection(db, 'enrollments'), where('uid', '==', s.id));
+      const snap = await getDocs(q);
+      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setEnrollments(data);
+    } catch (err) {
+      toast.error('Failed to fetch enrollments');
+    } finally {
+      setFetchingEnrollments(false);
+    }
+  };
+
+  const toggleCourseStatus = async (enrollmentId, currentStatus) => {
+    const newStatus = currentStatus === 'revoked' ? 'active' : 'revoked';
+    try {
+      await updateDocument('enrollments', enrollmentId, { status: newStatus });
+      setEnrollments(prev => prev.map(e => e.id === enrollmentId ? { ...e, status: newStatus } : e));
+      toast.success(`Course ${newStatus === 'revoked' ? 'revoked' : 'reactivated'}`);
+    } catch (err) {
+      toast.error('Failed to update status');
+    }
+  };
 
   const openEdit = (s) => {
     setEditing(s);
@@ -140,6 +175,7 @@ export default function ManageStudents() {
                     </td>
                     <td>
                       <div className="flex gap-3">
+                        <button onClick={() => openCourses(s)} className="text-sm font-bold text-purple-400 hover:text-purple-300 cursor-pointer">Courses</button>
                         <button onClick={() => openEdit(s)} className="text-sm font-bold text-blue-400 hover:text-blue-300 cursor-pointer">Edit</button>
                         {s.status === 'disabled' ? (
                           <button onClick={() => enable(s)} className="text-sm font-bold text-green-brand cursor-pointer">Enable</button>
@@ -199,6 +235,38 @@ export default function ManageStudents() {
           <button onClick={save} disabled={busy} className="btn-primary w-full shadow-lg mt-2 disabled:opacity-60">
             {busy ? 'Saving...' : editing ? 'Update Student' : 'Create Student Account'}
           </button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={coursesModal} onClose={() => setCoursesModal(false)} title={`Courses for ${selectedStudent?.name}`}>
+        <div className="p-1">
+          {fetchingEnrollments ? (
+            <div className="text-slate-400 text-center py-4">Loading enrollments...</div>
+          ) : enrollments.length === 0 ? (
+            <div className="text-slate-500 text-center py-4">No enrolled courses.</div>
+          ) : (
+            <div className="space-y-3">
+              {enrollments.map(e => {
+                const course = courses.find(c => c.id === e.courseId);
+                const isRevoked = e.status === 'revoked';
+                return (
+                  <div key={e.id} className="bg-white/5 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+                    <div>
+                      <p className="font-bold text-white mb-0.5">{course?.title || 'Unknown Course'}</p>
+                      <p className="text-xs text-slate-400">Purchased: {e.purchasedAt?.toDate ? new Date(e.purchasedAt.toDate()).toLocaleDateString() : 'Unknown'}</p>
+                      {isRevoked && <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider text-red-400 bg-red-400/10 px-2 py-0.5 rounded">Revoked</span>}
+                    </div>
+                    <button 
+                      onClick={() => toggleCourseStatus(e.id, e.status)}
+                      className={`text-sm font-bold cursor-pointer ${isRevoked ? 'text-green-brand hover:text-green-400' : 'text-amber-400 hover:text-amber-300'}`}
+                    >
+                      {isRevoked ? 'Reactivate' : 'Revoke Access'}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </Modal>
     </div>
