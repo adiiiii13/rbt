@@ -8,6 +8,8 @@ import { httpsCallable } from 'firebase/functions';
 import { functions } from '../../lib/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
+import InvoiceView from '../../components/InvoiceView';
+import { formatCurrency } from '../../lib/invoice';
 
 const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', class: 'Class 10', password: '' };
 
@@ -22,7 +24,9 @@ export default function ManageStudents() {
   const [coursesModal, setCoursesModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [enrollments, setEnrollments] = useState([]);
+  const [purchases, setPurchases] = useState([]);
   const [fetchingEnrollments, setFetchingEnrollments] = useState(false);
+  const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
 
@@ -35,8 +39,30 @@ export default function ManageStudents() {
       const snap = await getDocs(q);
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       setEnrollments(data);
+
+      const payQ1 = getDocs(query(collection(db, 'payments'), where('studentId', '==', s.id)));
+      const payQ2 = getDocs(query(collection(db, 'payments'), where('studentId', '==', s.studentId)));
+      const invQ = getDocs(query(collection(db, 'invoices'), where('studentUid', '==', s.id)));
+
+      const [p1, p2, inv] = await Promise.all([payQ1, payQ2, invQ]);
+      const combined = [];
+      const seen = new Set();
+      
+      [...p1.docs, ...p2.docs].forEach(d => {
+        if (!seen.has(d.id)) {
+          seen.add(d.id);
+          combined.push({ id: d.id, _type: 'payment', ...d.data() });
+        }
+      });
+      inv.docs.forEach(d => {
+        combined.push({ id: d.id, _type: 'invoice', ...d.data() });
+      });
+      
+      // Sort by latest first based on ID or whatever, or just leave as is
+      setPurchases(combined);
+
     } catch (err) {
-      toast.error('Failed to fetch enrollments');
+      toast.error('Failed to fetch data');
     } finally {
       setFetchingEnrollments(false);
     }
@@ -241,33 +267,103 @@ export default function ManageStudents() {
       <Modal isOpen={coursesModal} onClose={() => setCoursesModal(false)} title={`Courses for ${selectedStudent?.name}`}>
         <div className="p-1">
           {fetchingEnrollments ? (
-            <div className="text-slate-400 text-center py-4">Loading enrollments...</div>
-          ) : enrollments.length === 0 ? (
-            <div className="text-slate-500 text-center py-4">No enrolled courses.</div>
+            <div className="text-slate-400 text-center py-4">Loading data...</div>
           ) : (
-            <div className="space-y-3">
-              {enrollments.map(e => {
-                const course = courses.find(c => c.id === e.courseId);
-                const isRevoked = e.status === 'revoked';
-                return (
-                  <div key={e.id} className="bg-white/5 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
-                    <div>
-                      <p className="font-bold text-white mb-0.5">{course?.title || 'Unknown Course'}</p>
-                      <p className="text-xs text-slate-400">Purchased: {e.enrolledAt?.toDate ? new Date(e.enrolledAt.toDate()).toLocaleString() : 'Unknown'}</p>
-                      {isRevoked && <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider text-red-400 bg-red-400/10 px-2 py-0.5 rounded">Revoked</span>}
-                    </div>
-                    <button 
-                      onClick={() => toggleCourseStatus(e.id, e.status)}
-                      className={`text-sm font-bold cursor-pointer ${isRevoked ? 'text-green-brand hover:text-green-400' : 'text-amber-400 hover:text-amber-300'}`}
-                    >
-                      {isRevoked ? 'Reactivate' : 'Revoke Access'}
-                    </button>
+            <div className="space-y-6">
+              <div>
+                <h3 className="text-white font-bold mb-3">Enrolled Courses</h3>
+                {enrollments.length === 0 ? (
+                  <div className="text-slate-500 text-center py-4 bg-white/5 rounded-xl border border-slate-800">No enrolled courses.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {enrollments.map(e => {
+                      const course = courses.find(c => c.id === e.courseId);
+                      const isRevoked = e.status === 'revoked';
+                      return (
+                        <div key={e.id} className="bg-white/5 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
+                          <div>
+                            <p className="font-bold text-white mb-0.5">{course?.title || 'Unknown Course'}</p>
+                            <p className="text-xs text-slate-400">Purchased: {e.enrolledAt?.toDate ? new Date(e.enrolledAt.toDate()).toLocaleString() : 'Unknown'}</p>
+                            {isRevoked && <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider text-red-400 bg-red-400/10 px-2 py-0.5 rounded">Revoked</span>}
+                          </div>
+                          <button 
+                            onClick={() => toggleCourseStatus(e.id, e.status)}
+                            className={`text-sm font-bold cursor-pointer ${isRevoked ? 'text-green-brand hover:text-green-400' : 'text-amber-400 hover:text-amber-300'}`}
+                          >
+                            {isRevoked ? 'Reactivate' : 'Revoke Access'}
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                )}
+              </div>
+
+              <div>
+                <h3 className="text-white font-bold mb-3">Invoices & Payments</h3>
+                {purchases.length === 0 ? (
+                  <div className="text-slate-500 text-center py-4 bg-white/5 rounded-xl border border-slate-800">No purchases found.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {purchases.map(p => (
+                      <div key={p.id} className="bg-white/5 border border-slate-700 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-white mb-0.5">{p.invoiceNumber || p.paymentId || 'INV-MANUAL'}</p>
+                          <p className="text-xs text-slate-400">{p._type === 'invoice' ? p.courseName : (p.courseTitle || p.videoTitle)}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-green-brand font-semibold text-sm">{formatCurrency(p.amount)}</span>
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-300 bg-slate-800 px-2 py-0.5 rounded">{p.status}</span>
+                          </div>
+                        </div>
+                        <button 
+                          onClick={() => setSelectedInvoice(p)}
+                          className="text-sm font-bold text-blue-400 hover:text-blue-300 cursor-pointer text-left sm:text-right"
+                        >
+                          View Invoice
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
+      </Modal>
+
+      {/* Invoice Modal overlaid */}
+      <Modal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} title="Invoice Details">
+        {selectedInvoice && (
+          <InvoiceView 
+            invoice={
+              selectedInvoice._type === 'payment' ? {
+                invoiceNumber: selectedInvoice.invoiceNumber || selectedInvoice.paymentId || selectedInvoice.id,
+                date: selectedInvoice.paidAt?.toDate ? new Date(selectedInvoice.paidAt.toDate()).toLocaleString() : new Date(selectedInvoice.createdAt?.toDate?.() || Date.now()).toLocaleString(),
+                studentName: selectedInvoice.studentName || selectedStudent?.name,
+                studentEmail: selectedInvoice.studentEmail || selectedStudent?.email,
+                videoTitle: selectedInvoice.videoTitle || selectedInvoice.courseTitle,
+                amount: selectedInvoice.amount,
+                transactionId: selectedInvoice.gpayTransactionId || selectedInvoice.paymentId || selectedInvoice.id,
+                paymentMethod: selectedInvoice.type === 'razorpay_webhook' || selectedInvoice.type === 'razorpay' ? 'Razorpay' : 'UPI / Google Pay',
+                upiId: (selectedInvoice.type === 'razorpay_webhook' || selectedInvoice.type === 'razorpay') ? null : (import.meta.env.VITE_UPI_ID || 'rbtmission@upi'),
+                status: selectedInvoice.status
+              } : {
+                invoiceNumber: selectedInvoice.invoiceNumber,
+                date: selectedInvoice.dueDate || 'N/A',
+                studentName: selectedInvoice.studentName || selectedStudent?.name,
+                studentEmail: selectedInvoice.studentEmail || selectedStudent?.email,
+                courseName: selectedInvoice.courseName,
+                description: selectedInvoice.description,
+                amount: selectedInvoice.amount,
+                transactionId: selectedInvoice.id,
+                paymentMethod: 'Manual Invoice',
+                upiId: null,
+                status: selectedInvoice.status
+              }
+            } 
+            onClose={() => setSelectedInvoice(null)} 
+          />
+        )}
       </Modal>
     </div>
   );

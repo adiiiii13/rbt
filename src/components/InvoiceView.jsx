@@ -47,8 +47,9 @@ export default function InvoiceView({ invoice, onClose }) {
           <tbody>
             <tr className="border-t border-white/10 print:border-black/10">
               <td className="p-3">
-                <p className="text-sm font-medium text-white print:text-black">{invoice.videoTitle}</p>
+                <p className="text-sm font-medium text-white print:text-black">{invoice.videoTitle || invoice.courseTitle || invoice.courseName}</p>
                 {invoice.videoSubject && <p className="text-xs text-slate-400">{invoice.videoSubject}</p>}
+                {invoice.description && <p className="text-xs text-slate-400">{invoice.description}</p>}
               </td>
               <td className="p-3 text-right text-sm font-semibold text-white print:text-black">
                 {formatCurrency(invoice.amount)}
@@ -68,12 +69,14 @@ export default function InvoiceView({ invoice, onClose }) {
       <div className="bg-white/5 print:bg-slate-50 rounded-xl p-4 space-y-2 print:border print:border-black/10">
         <div className="flex justify-between text-sm">
           <span className="text-slate-400 print:text-slate-600">Payment Method</span>
-          <span className="text-white print:text-black font-medium">UPI / Google Pay</span>
+          <span className="text-white print:text-black font-medium">{invoice.paymentMethod || 'UPI / Google Pay'}</span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-slate-400 print:text-slate-600">UPI ID</span>
-          <span className="text-white print:text-black font-medium">{invoice.upiId}</span>
-        </div>
+        {invoice.upiId && (
+          <div className="flex justify-between text-sm">
+            <span className="text-slate-400 print:text-slate-600">UPI ID</span>
+            <span className="text-white print:text-black font-medium">{invoice.upiId}</span>
+          </div>
+        )}
         <div className="flex justify-between text-sm">
           <span className="text-slate-400 print:text-slate-600">Transaction ID</span>
           <span className="text-white print:text-black font-mono text-xs">{invoice.transactionId}</span>
