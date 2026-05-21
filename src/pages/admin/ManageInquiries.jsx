@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react'
 import { useRealtimeCollection } from '../../lib/contentApi'
 import { updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
@@ -30,7 +31,7 @@ export default function ManageInquiries() {
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Unread</p><p className="text-xl font-bold text-amber-500">{unreadCount}</p></div>
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Total</p><p className="text-xl font-bold text-white">{inquiries.length}</p></div>
       </div>
-      {loading ? <p className="text-slate-400 text-center py-8">Loading...</p> : inquiries.length === 0 ? <p className="text-slate-500 text-center py-8">No inquiries yet.</p> : (
+      {loading ? <TableSkeleton /> : inquiries.length === 0 ? <p className="text-slate-500 text-center py-8">No inquiries yet.</p> : (
         <div className="space-y-4">
           {inquiries.map(i => (
             <div key={i.id} className={`bg-[#111111] rounded-2xl p-5 border ${i.read ? 'border-slate-800' : 'border-amber-500/30'}`}>

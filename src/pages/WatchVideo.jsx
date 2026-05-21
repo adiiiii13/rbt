@@ -6,6 +6,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { defaultVideos } from '../data/videos';
 import HlsPlayer from '../components/HlsPlayer';
+import { Skeleton } from '../components/ui/Skeleton';
 
 export default function WatchVideo() {
   const { id } = useParams();
@@ -40,8 +41,27 @@ export default function WatchVideo() {
   }, [id]);
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-slate-700 border-t-green-brand rounded-full animate-spin" />
+    <div className="min-h-screen bg-[#050B14]">
+      <div className="bg-[#0a1628] border-b border-slate-800 px-4 py-3 flex items-center gap-3 animate-pulse">
+        <Skeleton className="w-8 h-8 rounded-full" />
+        <div className="flex-1 space-y-2">
+          <Skeleton className="w-1/3 h-5" />
+          <Skeleton className="w-1/4 h-3" />
+        </div>
+      </div>
+      <div className="max-w-5xl mx-auto px-4 py-6">
+        <Skeleton className="w-full aspect-video rounded-xl mb-6" />
+        <div className="bg-[#111111] rounded-2xl p-6 border border-slate-800 animate-pulse">
+          <Skeleton className="w-1/2 h-7 mb-4" />
+          <div className="flex gap-3 mb-4">
+            <Skeleton className="w-16 h-6 rounded-full" />
+            <Skeleton className="w-20 h-6 rounded-full" />
+          </div>
+          <Skeleton className="w-full h-4 mb-2" />
+          <Skeleton className="w-3/4 h-4 mb-2" />
+          <Skeleton className="w-1/2 h-4" />
+        </div>
+      </div>
     </div>
   );
 

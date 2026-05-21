@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { updateDocument } from '../../lib/firebaseHelpers'
@@ -32,7 +33,7 @@ export default function ManageDoubts() {
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Pending</p><p className="text-xl font-bold text-amber-500">{pendingCount}</p></div>
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Total</p><p className="text-xl font-bold text-white">{doubts.length}</p></div>
       </div>
-      {loading ? <p className="text-slate-400 text-center py-8">Loading...</p> : doubts.length === 0 ? <p className="text-slate-500 text-center py-8">No doubts yet.</p> : (
+      {loading ? <TableSkeleton /> : doubts.length === 0 ? <p className="text-slate-500 text-center py-8">No doubts yet.</p> : (
         <div className="space-y-4">
           {doubts.map(d => (
             <div key={d.id} className={`bg-[#111111] rounded-2xl p-5 border ${d.status === 'pending' ? 'border-amber-500/20' : 'border-slate-800'}`}>

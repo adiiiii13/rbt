@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
@@ -74,7 +75,7 @@ export default function ManageCounselling() {
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Approved</p><p className="text-xl font-bold text-green-brand">{bookings.filter(b => b.status === 'approved').length}</p></div>
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Total</p><p className="text-xl font-bold text-white">{bookings.length}</p></div>
       </div>
-      {loading ? <p className="text-slate-400 text-center py-8">Loading...</p> : bookings.length === 0 ? <p className="text-slate-500 text-center py-8">No bookings yet.</p> : (
+      {loading ? <TableSkeleton /> : bookings.length === 0 ? <p className="text-slate-500 text-center py-8">No bookings yet.</p> : (
         <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
           <div className="table-container">
             <table>

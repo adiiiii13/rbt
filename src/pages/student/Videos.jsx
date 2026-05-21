@@ -4,6 +4,7 @@ import { getCollectionWhere } from '../../lib/firebaseHelpers'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { useAuth } from '../../context/AuthContext'
 import { PlayCircleIcon, LockIcon } from '../../components/Icons'
+import { GridSkeleton } from '../../components/ui/Skeleton'
 import { formatCurrency } from '../../lib/invoice'
 
 export default function StudentVideos() {
@@ -48,7 +49,7 @@ export default function StudentVideos() {
       </div>
 
       {loading ? (
-        <p className="text-slate-400 text-center py-8">Loading...</p>
+        <div className="py-8"><GridSkeleton count={6} type="card" /></div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {videos.map((v) => {

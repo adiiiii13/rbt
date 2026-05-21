@@ -4,6 +4,7 @@ import { doc, getDoc, addDoc, collection, serverTimestamp } from 'firebase/fires
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { useExamGuard } from '../hooks/useExamGuard';
+import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 
 function formatTime(s) {
@@ -217,8 +218,25 @@ export default function MockTestRunner() {
 
   // ─── Loading / error ───
   if (loading) return (
-    <div className="min-h-screen bg-[#050B14] flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-slate-700 border-t-green-brand rounded-full animate-spin" />
+    <div className="min-h-screen bg-[#050B14] py-8 px-4">
+      <div className="max-w-4xl mx-auto">
+        <Skeleton className="w-16 h-4 mb-6" />
+        <div className="bg-white/5 border border-white/10 rounded-3xl p-8 animate-pulse">
+          <Skeleton className="w-3/4 h-10 mb-4" />
+          <Skeleton className="w-full h-4 mb-2" />
+          <Skeleton className="w-1/2 h-4 mb-8" />
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+            <Skeleton className="w-full h-24 rounded-xl" />
+            <Skeleton className="w-full h-24 rounded-xl" />
+            <Skeleton className="w-full h-24 rounded-xl" />
+            <Skeleton className="w-full h-24 rounded-xl" />
+          </div>
+          
+          <Skeleton className="w-full h-32 rounded-xl mb-6" />
+          <Skeleton className="w-full h-14 rounded-xl" />
+        </div>
+      </div>
     </div>
   );
 

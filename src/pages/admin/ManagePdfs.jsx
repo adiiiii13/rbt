@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react';
 import { deleteItemSmart } from '../../lib/contentApi';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
@@ -61,7 +62,7 @@ export default function ManagePdfs() {
         <div><h1 className="text-2xl font-bold text-white">Manage PDFs</h1><p className="text-sm text-slate-400">{pdfs.length} test papers</p></div>
         <button onClick={() => setModal(true)} className="btn-primary">+ Add PDF</button>
       </div>
-      {loading && <div className="text-slate-400 text-sm mb-4">Loading...</div>}
+      {loading && <TableSkeleton />}
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
         <div className="table-container">
           <table>

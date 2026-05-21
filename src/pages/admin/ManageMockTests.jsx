@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState, useMemo } from 'react';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument, deleteDocument, uploadFile } from '../../lib/firebaseHelpers';
@@ -235,7 +236,7 @@ export default function ManageMockTests() {
         })}
       </div>
 
-      {loading && <p className="text-slate-400 text-center py-8">Loading...</p>}
+      {loading && <TableSkeleton />}
 
       {!loading && filtered.length === 0 && (
         <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">

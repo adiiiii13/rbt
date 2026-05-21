@@ -9,6 +9,7 @@ import DashboardLayout from './components/DashboardLayout'
 import LoadingScreen from './components/LoadingScreen'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfferPopup from './components/OfferPopup'
+import { GridSkeleton } from './components/ui/Skeleton'
 
 // Public Pages (lazy)
 const Home = lazy(() => import('./pages/Home'))
@@ -95,8 +96,9 @@ function ScrollToTop() {
 
 function RouteFallback() {
   return (
-    <div className="min-h-[60vh] flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+    <div className="container-main py-12 w-full animate-pulse">
+      <div className="h-8 bg-slate-800 rounded w-1/4 mb-8"></div>
+      <GridSkeleton count={6} type="card" />
     </div>
   )
 }

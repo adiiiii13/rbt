@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState, useMemo } from 'react'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, deleteDocument } from '../../lib/firebaseHelpers'
@@ -50,7 +51,7 @@ export default function ManageNotifications() {
         <div><h1 className="text-2xl font-bold text-white">Send Notifications</h1><p className="text-sm text-slate-400">{notifications.length} sent</p></div>
         <button onClick={() => setModal(true)} className="btn-primary">+ Send Notification</button>
       </div>
-      {loading && <p className="text-slate-400 text-sm mb-4">Loading...</p>}
+      {loading && <TableSkeleton />}
       <div className="space-y-4">
         {notifications.map(n => (
           <div key={n.id} className="bg-[#111111] rounded-2xl p-5 border border-slate-800">

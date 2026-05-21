@@ -6,6 +6,7 @@ import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { openCheckout } from '../lib/razorpay';
 import HlsPlayer from '../components/HlsPlayer';
+import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 
 export default function CourseDetail() {
@@ -90,8 +91,35 @@ export default function CourseDetail() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-[#050B14] flex items-center justify-center">
-      <div className="w-10 h-10 border-4 border-slate-700 border-t-green-brand rounded-full animate-spin" />
+    <div className="min-h-screen bg-[#050B14] py-12 px-4">
+      <div className="max-w-5xl mx-auto">
+        <Skeleton className="w-32 h-4 mb-6" />
+        <div className="grid lg:grid-cols-[1fr_360px] gap-8 animate-pulse">
+          <div>
+            <Skeleton className="w-full aspect-video rounded-2xl mb-6" />
+            <Skeleton className="w-3/4 h-10 mb-3" />
+            <div className="flex gap-2 mb-4">
+              <Skeleton className="w-20 h-6 rounded-full" />
+              <Skeleton className="w-24 h-6 rounded-full" />
+              <Skeleton className="w-24 h-6 rounded-full" />
+            </div>
+            <Skeleton className="w-full h-4 mb-2" />
+            <Skeleton className="w-full h-4 mb-2" />
+            <Skeleton className="w-2/3 h-4 mb-6" />
+            <Skeleton className="w-1/3 h-6 mb-3" />
+            <Skeleton className="w-full h-12 rounded-lg mb-2" />
+            <Skeleton className="w-full h-12 rounded-lg mb-2" />
+          </div>
+          <aside>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+              <Skeleton className="w-1/2 h-6 mb-4" />
+              <Skeleton className="w-full h-24 rounded-xl mb-3" />
+              <Skeleton className="w-full h-24 rounded-xl mb-6" />
+              <Skeleton className="w-full h-12 rounded-xl" />
+            </div>
+          </aside>
+        </div>
+      </div>
     </div>
   );
 

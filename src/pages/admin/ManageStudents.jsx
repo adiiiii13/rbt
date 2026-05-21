@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
@@ -110,7 +111,7 @@ export default function ManageStudents() {
       <div className="bg-[#111111] rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
         <div className="table-container">
           {loading ? (
-            <div className="p-12 text-center text-slate-500">Loading...</div>
+            <div className="py-8"><TableSkeleton /></div>
           ) : students.length === 0 ? (
             <div className="p-12 text-center text-slate-500">No students yet. Click + Add Student to begin.</div>
           ) : (

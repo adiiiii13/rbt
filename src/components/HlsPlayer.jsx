@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactPlayer from 'react-player';
+import { Skeleton } from './ui/Skeleton';
 
 /**
  * Universal player — handles YouTube, MP4, HLS (.m3u8), DASH (.mpd).
@@ -73,8 +74,8 @@ export default function HlsPlayer({ url, onEnded, onProgress, autoPlay = true, w
       </div>
 
       {!ready && !err && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="w-10 h-10 border-4 border-slate-700 border-t-green-brand rounded-full animate-spin" />
+        <div className="absolute inset-0 pointer-events-none bg-slate-900 animate-pulse">
+          <Skeleton className="w-full h-full rounded-none" />
         </div>
       )}
       {err && (

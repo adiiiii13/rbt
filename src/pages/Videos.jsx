@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { GridSkeleton } from '../components/ui/Skeleton'
 import { useRealtimeCollection } from '../lib/useRealtimeCollection'
 import { defaultVideos } from '../data/videos'
 import { PlayCircleIcon, StarIcon } from '../components/Icons'
@@ -39,7 +40,7 @@ export default function Videos() {
 
       <section className="py-24 bg-black">
         <div className="container-main">
-          {loading && <p className="text-slate-400 text-center py-8">Loading...</p>}
+          {loading && <GridSkeleton count={6} type="card" />}
           <motion.div initial="hidden" animate="visible" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {videos.map((v, i) => (
               <motion.div

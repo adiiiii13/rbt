@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { deleteDocument } from '../../lib/firebaseHelpers';
 import Modal from '../../components/Modal';
@@ -155,7 +156,7 @@ export default function MockResults() {
         </div>
       </div>
 
-      {loading && <p className="text-slate-400 text-center py-8">Loading...</p>}
+      {loading && <div className="py-8"><TableSkeleton /></div>}
 
       {!loading && filtered.length === 0 && (
         <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">

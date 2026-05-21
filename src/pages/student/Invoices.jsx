@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
+import { ListSkeleton } from '../../components/ui/Skeleton'
 import { getCollectionWhere } from '../../lib/firebaseHelpers'
 import { formatCurrency } from '../../lib/invoice'
 import InvoiceView from '../../components/InvoiceView'
@@ -38,7 +39,7 @@ export default function Invoices() {
       </div>
 
       {loading ? (
-        <div className="text-center py-8 text-slate-400">Loading...</div>
+        <div className="py-8"><ListSkeleton count={4} /></div>
       ) : payments.length === 0 ? (
         <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
           <ReceiptIcon size={32} className="text-slate-600 mx-auto mb-3" />

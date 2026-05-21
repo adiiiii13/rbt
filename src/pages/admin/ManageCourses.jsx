@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react';
 import { deleteItemSmart } from '../../lib/contentApi';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
@@ -116,7 +117,7 @@ export default function ManageCourses() {
         </div>
         <button onClick={openCreate} className="btn-primary">+ Add Course</button>
       </div>
-      {loading && <div className="text-slate-400 text-sm mb-4">Loading...</div>}
+      {loading && <TableSkeleton />}
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
         <div className="table-container">
           <table>

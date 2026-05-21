@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState, useMemo } from 'react'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, deleteDocument } from '../../lib/firebaseHelpers'
@@ -59,7 +60,7 @@ export default function ManageInvoices() {
         <div><h1 className="text-2xl font-bold text-white">Manage Invoices</h1><p className="text-sm text-slate-400">{invoices.length} invoices</p></div>
         <button onClick={() => setModal(true)} className="btn-primary">+ Create Invoice</button>
       </div>
-      {loading && <p className="text-slate-400 text-sm mb-4">Loading...</p>}
+      {loading && <TableSkeleton />}
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">

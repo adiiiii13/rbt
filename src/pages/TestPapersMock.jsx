@@ -1,3 +1,4 @@
+import { GridSkeleton } from '../components/ui/Skeleton';
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
@@ -82,7 +83,7 @@ export default function TestPapersMock() {
           </div>
         </div>
 
-        {loading && <p className="text-slate-400 text-center py-8">Loading...</p>}
+        {loading && <GridSkeleton count={6} type={type === "card" ? "card" : "list"} /> /* FIXME: adjust type */}
 
         {!loading && filtered.length === 0 && (
           <div className="text-center py-16">

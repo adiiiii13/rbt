@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { GridSkeleton } from '../../components/ui/Skeleton';
 import { motion } from 'framer-motion';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import HlsPlayer from '../../components/HlsPlayer';
@@ -76,7 +77,7 @@ export default function StudyMaterial() {
         ))}
       </div>
 
-      {loading && <p className="text-slate-400 text-center py-8">Loading...</p>}
+      {loading && <div className="py-8"><GridSkeleton count={4} /></div>}
 
       {!loading && children.length === 0 && (
         <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">

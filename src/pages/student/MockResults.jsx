@@ -4,6 +4,7 @@ import { collection, query, where, getDocs, orderBy } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import Modal from '../../components/Modal'
 import { TrophyIcon, CheckCircleIcon } from '../../components/Icons'
+import { ListSkeleton } from '../../components/ui/Skeleton'
 
 export default function StudentMockResults() {
   const { user } = useAuth()
@@ -61,7 +62,7 @@ export default function StudentMockResults() {
       </div>
 
       {loading ? (
-        <p className="text-slate-400 text-center py-8">Loading...</p>
+        <div className="py-8"><ListSkeleton count={4} /></div>
       ) : attempts.length === 0 ? (
         <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
           <TrophyIcon size={32} className="text-slate-600 mx-auto mb-3" />

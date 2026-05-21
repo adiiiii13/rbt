@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import toast from 'react-hot-toast'
 import { updateDocument } from '../../lib/firebaseHelpers'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
@@ -58,7 +59,7 @@ export default function ManagePayments() {
       </div>
 
       {loading ? (
-        <p className="text-slate-400 text-center py-8">Loading...</p>
+        <div className="py-8"><TableSkeleton /></div>
       ) : (
         <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
           <div className="table-container">

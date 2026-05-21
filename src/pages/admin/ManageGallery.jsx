@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react'
 import { deleteItemSmart } from '../../lib/contentApi'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
@@ -66,7 +67,7 @@ export default function ManageGallery() {
         <div><h1 className="text-2xl font-bold text-white">Manage Gallery</h1><p className="text-sm text-slate-400">{images.length} images</p></div>
         <button onClick={() => setModal(true)} className="btn-primary">+ Add Image</button>
       </div>
-      {loading && <div className="text-slate-400 text-sm mb-4">Loading...</div>}
+      {loading && <TableSkeleton />}
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {images.map(img => (
           <div key={img.id} className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden group">

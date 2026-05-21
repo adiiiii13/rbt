@@ -1,3 +1,4 @@
+import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react';
 import { useRealtimeCollection } from '../../lib/contentApi';
 import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
@@ -46,7 +47,7 @@ export default function ManageOffers() {
         <div><h1 className="text-2xl font-bold text-white">Manage Offers</h1><p className="text-sm text-slate-400">{offers.length} offers</p></div>
         <button onClick={() => setModal(true)} className="btn-primary">+ Add Offer</button>
       </div>
-      {loading && <div className="text-slate-400 text-sm mb-4">Loading...</div>}
+      {loading && <TableSkeleton />}
       <div className="space-y-4">
         {offers.map(o => (
           <div key={o.id} className="bg-[#111111] rounded-2xl p-5 border border-slate-800">

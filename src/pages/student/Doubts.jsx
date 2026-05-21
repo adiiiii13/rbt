@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { ListSkeleton } from '../../components/ui/Skeleton'
 import { useAuth } from '../../context/AuthContext'
 import { getCollectionWhere } from '../../lib/firebaseHelpers'
 import DoubtForm from '../../components/DoubtForm'
@@ -51,7 +52,7 @@ export default function StudentDoubts() {
         <ClockIcon size={18} className="text-slate-500" /> Your Doubts
       </h2>
       {loading ? (
-        <div className="text-center py-8 text-slate-400">Loading...</div>
+        <div className="py-8"><ListSkeleton count={4} /></div>
       ) : doubts.length === 0 ? (
         <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
           <MessageSquareIcon size={32} className="text-slate-600 mx-auto mb-3" />
