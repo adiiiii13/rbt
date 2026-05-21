@@ -117,14 +117,14 @@ function AppContent() {
     return () => clearTimeout(timer)
   }, [initialLoading])
 
-  // Auto-show login modal only if not authenticated and on public route
+
+  // Close login modal if authenticated
   useEffect(() => {
-    if (initialLoading || authLoading) return
-    const path = window.location.pathname
-    const onAuthRoute = path.includes('login') || path.startsWith('/student') || path.startsWith('/admin') || path.startsWith('/basic')
-    if (!user && !onAuthRoute) setShowAutoLogin(true)
-    else if (user) setShowAutoLogin(false)
-  }, [initialLoading, authLoading, user])
+    if (user) {
+      setShowAutoLogin(false)
+      setShowSignupModal(false)
+    }
+  }, [user])
 
   return (
     <>

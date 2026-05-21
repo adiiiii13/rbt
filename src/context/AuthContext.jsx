@@ -100,6 +100,7 @@ export function AuthProvider({ children }) {
         userData.studentId = newStudentId;
       }
 
+      setUser(userData)
       return { success: true, user: userData }
     } catch (err) {
       return { success: false, message: mapAuthError(err.code) }
@@ -117,6 +118,7 @@ export function AuthProvider({ children }) {
         await signOut(auth)
         return { success: false, message: 'Not an admin account' }
       }
+      setUser(userData)
       return { success: true, user: userData }
     } catch (err) {
       return { success: false, message: mapAuthError(err.code) }
@@ -158,6 +160,7 @@ export function AuthProvider({ children }) {
         await signOut(auth)
         return { success: false, message: 'Not a student account' }
       }
+      setUser(userData)
       return { success: true, user: userData }
     } catch (err) {
       console.error(err);
@@ -181,6 +184,7 @@ export function AuthProvider({ children }) {
       })
       
       const userData = await buildUserFromToken(cred.user)
+      setUser(userData)
       return { success: true, user: userData }
     } catch (err) {
       console.error(err);
@@ -231,6 +235,7 @@ export function AuthProvider({ children }) {
 
       const userData = await buildUserFromToken(cred.user)
       userData.batch = true
+      setUser(userData)
       return { success: true, user: userData }
     } catch (err) {
       return { success: false, message: mapAuthError(err.code || 'Login failed') }
