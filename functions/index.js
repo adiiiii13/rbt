@@ -224,7 +224,7 @@ export const createRazorpayOrder = onCall(async (request) => {
       order = await rzp.orders.create({
         amount: Math.round(amount * 100), // convert to paise
         currency: 'INR',
-        receipt: `course_${courseId}_${Date.now()}`,
+        receipt: `rcpt_${Date.now()}`,
         notes: {
           courseId,
           courseTitle: courseTitle || '',
