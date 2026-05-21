@@ -253,7 +253,7 @@ export default function ManageStudents() {
                   <div key={e.id} className="bg-white/5 border border-slate-700 rounded-xl p-4 flex items-center justify-between">
                     <div>
                       <p className="font-bold text-white mb-0.5">{course?.title || 'Unknown Course'}</p>
-                      <p className="text-xs text-slate-400">Purchased: {e.purchasedAt?.toDate ? new Date(e.purchasedAt.toDate()).toLocaleDateString() : 'Unknown'}</p>
+                      <p className="text-xs text-slate-400">Purchased: {e.enrolledAt?.toDate ? new Date(e.enrolledAt.toDate()).toLocaleDateString() : 'Unknown'}</p>
                       {isRevoked && <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider text-red-400 bg-red-400/10 px-2 py-0.5 rounded">Revoked</span>}
                     </div>
                     <button 
