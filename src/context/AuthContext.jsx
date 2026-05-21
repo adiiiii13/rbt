@@ -35,6 +35,11 @@ async function buildUserFromToken(firebaseUser) {
   let role = tokenResult.claims.role || null
   let profile = {}
 
+  // Infer admin role from email domain if claim is missing
+  if (!role && firebaseUser.email && firebaseUser.email.toLowerCase().endsWith('@rbtmission.com')) {
+    role = 'admin'
+  }
+
   // Always check student profile if role is not admin
   if (role !== 'admin') {
     const snap = await getDoc(doc(db, 'students', firebaseUser.uid))
@@ -52,7 +57,8 @@ async function buildUserFromToken(firebaseUser) {
     email: firebaseUser.email,
     name: firebaseUser.displayName || profile.name || (role === 'admin' ? 'Administrator' : 'Student'),
     photoURL: firebaseUser.photoURL || profile.photoURL || null,
-    batch: profile.batch || false,
+    // Existing students (batch: undefined) will default to true, new basic users will explicitly have batch: false
+    batch: profile.batch !== false,
     ...profile,
     role,
   }
@@ -153,6 +159,7 @@ export function AuthProvider({ children }) {
           email: cred.user.email,
           photoURL: cred.user.photoURL || null,
           role: 'student',
+          batch: false,
           status: 'active',
           studentId: 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
@@ -197,6 +204,7 @@ export function AuthProvider({ children }) {
         email: cred.user.email,
         photoURL: null,
         role: 'student',
+        batch: false,
         status: 'active',
         studentId: 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase(),
         createdAt: new Date().toISOString()
