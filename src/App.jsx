@@ -49,6 +49,9 @@ const StudentMockResults = lazy(() => import('./pages/student/MockResults'))
 
 // Basic Pages (lazy)
 const BasicDashboard = lazy(() => import('./pages/basic/Dashboard'))
+const BasicCourses = lazy(() => import('./pages/basic/Courses'))
+const BasicCourseDetail = lazy(() => import('./pages/basic/CourseDetail'))
+const BasicPayment = lazy(() => import('./pages/basic/Payment'))
 
 // Admin Pages (lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -195,13 +198,14 @@ function AppContent() {
                   {/* Basic Routes (limited access) */}
                   <Route path="/basic" element={<ProtectedRoute role="student"><DashboardLayout type="basic" /></ProtectedRoute>}>
                     <Route index element={<BasicDashboard />} />
-                    <Route path="courses" element={<StudentCourses />} />
+                    <Route path="courses" element={<BasicCourses />} />
+                    <Route path="courses/:id" element={<BasicCourseDetail />} />
                     <Route path="videos" element={<StudentVideos />} />
                     <Route path="test-papers" element={<TestPapers />} />
                     <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
                     <Route path="test-papers/mock" element={<TestPapersMock />} />
                     <Route path="test-papers/mock/:testId" element={<MockTestRunner />} />
-                    <Route path="payment" element={<Payment />} />
+                    <Route path="payment" element={<BasicPayment />} />
                   </Route>
 
                   {/* Admin Routes */}

@@ -5,6 +5,9 @@ import { getMessaging } from 'firebase-admin/messaging'
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { setGlobalOptions } from 'firebase-functions/v2'
+import { defineString } from 'firebase-functions/params'
+import Razorpay from 'razorpay'
+import crypto from 'crypto'
 
 initializeApp()
 setGlobalOptions({ region: 'asia-south1', maxInstances: 10 })
@@ -12,9 +15,17 @@ setGlobalOptions({ region: 'asia-south1', maxInstances: 10 })
 const auth = getAuth()
 const db = getFirestore()
 
+// Razorpay keys — set in functions/.env file
+const razorpayKeyId = defineString('RAZORPAY_KEY_ID')
+const razorpayKeySecret = defineString('RAZORPAY_KEY_SECRET')
+
 function assertAdmin(ctxAuth) {
   if (!ctxAuth) throw new HttpsError('unauthenticated', 'Sign in required')
   if (ctxAuth.token.role !== 'admin') throw new HttpsError('permission-denied', 'Admin only')
+}
+
+function assertAuthenticated(ctxAuth) {
+  if (!ctxAuth) throw new HttpsError('unauthenticated', 'Sign in required')
 }
 
 // Admin bootstrap: one-time elevate the first admin manually via Firebase Console,
@@ -157,9 +168,6 @@ export const initializeStudentAccount = onCall(async (request) => {
   }
   return { ok: true, role: 'student' }
 })
-  }
-  return { ok: true, role: 'student' }
-})
 
 export const onNoticeCreated = onDocumentCreated('notices/{id}', async (event) => {
   const notice = event.data?.data();
@@ -192,6 +200,155 @@ export const onNoticeCreated = onDocumentCreated('notices/{id}', async (event) =
     console.error('Error sending messages:', error);
   }
 });
+
+// ─── Razorpay Payment Gateway ───────────────────────────────────────────────
+
+// Create a Razorpay order (server-side) — called before opening checkout
+export const createRazorpayOrder = onCall(async (request) => {
+    assertAuthenticated(request.auth)
+
+    const { amount, courseId, courseTitle, variantLabel } = request.data || {}
+    if (!amount || !courseId) {
+      throw new HttpsError('invalid-argument', 'amount and courseId required')
+    }
+    if (amount < 1) {
+      throw new HttpsError('invalid-argument', 'Amount must be at least ₹1')
+    }
+
+    const rzp = new Razorpay({
+      key_id: razorpayKeyId.value(),
+      key_secret: razorpayKeySecret.value(),
+    })
+
+    let order
+    try {
+      order = await rzp.orders.create({
+        amount: Math.round(amount * 100), // convert to paise
+        currency: 'INR',
+        receipt: `course_${courseId}_${Date.now()}`,
+        notes: {
+          courseId,
+          courseTitle: courseTitle || '',
+          variantLabel: variantLabel || '',
+          uid: request.auth.uid,
+        },
+      })
+    } catch (err) {
+      console.error('Razorpay order creation failed:', err)
+      throw new HttpsError('internal', 'Failed to create payment order')
+    }
+
+    // Store pending order in Firestore
+    await db.collection('razorpayOrders').doc(order.id).set({
+      orderId: order.id,
+      uid: request.auth.uid,
+      courseId,
+      courseTitle: courseTitle || '',
+      variantLabel: variantLabel || '',
+      amount,
+      amountPaise: order.amount,
+      currency: order.currency,
+      status: 'created',
+      createdAt: FieldValue.serverTimestamp(),
+    })
+
+    return {
+      orderId: order.id,
+      amount: order.amount,
+      currency: order.currency,
+      key: razorpayKeyId.value(),
+    }
+  }
+)
+
+// Verify Razorpay payment signature + create enrollment
+export const verifyRazorpayPayment = onCall(async (request) => {
+    assertAuthenticated(request.auth)
+
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+      courseId,
+      variantMonths,
+      variantPrice,
+      courseTitle,
+    } = request.data || {}
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      throw new HttpsError('invalid-argument', 'Missing payment verification fields')
+    }
+
+    // 1. Verify HMAC signature
+    const body = razorpay_order_id + '|' + razorpay_payment_id
+    const expectedSignature = crypto
+      .createHmac('sha256', razorpayKeySecret.value())
+      .update(body)
+      .digest('hex')
+
+    if (expectedSignature !== razorpay_signature) {
+      // Mark order as failed
+      await db.collection('razorpayOrders').doc(razorpay_order_id).update({
+        status: 'signature_mismatch',
+        failedAt: FieldValue.serverTimestamp(),
+      })
+      throw new HttpsError('permission-denied', 'Payment verification failed — signature mismatch')
+    }
+
+    // 2. Mark order as paid
+    await db.collection('razorpayOrders').doc(razorpay_order_id).update({
+      status: 'paid',
+      paymentId: razorpay_payment_id,
+      signature: razorpay_signature,
+      paidAt: FieldValue.serverTimestamp(),
+    })
+
+    // 3. Create enrollment
+    const uid = request.auth.uid
+    const studentDoc = await db.collection('students').doc(uid).get()
+    const studentData = studentDoc.exists ? studentDoc.data() : {}
+
+    const expiresAt = new Date()
+    expiresAt.setMonth(expiresAt.getMonth() + (variantMonths || 6))
+
+    const enrollmentData = {
+      uid,
+      courseId: courseId || '',
+      courseTitle: courseTitle || '',
+      variant: {
+        months: variantMonths || 6,
+        price: variantPrice || 0,
+      },
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      amount: variantPrice || 0,
+      enrolledAt: FieldValue.serverTimestamp(),
+      expiresAt: expiresAt.toISOString(),
+      studentName: studentData.name || 'Student',
+      studentEmail: studentData.email || '',
+    }
+
+    const enrollRef = await db.collection('enrollments').add(enrollmentData)
+
+    // 4. Also record payment in the payments collection for admin tracking
+    await db.collection('payments').add({
+      type: 'razorpay',
+      studentId: studentData.studentId || uid,
+      studentName: studentData.name || 'Student',
+      studentEmail: studentData.email || '',
+      courseId: courseId || '',
+      courseTitle: courseTitle || '',
+      amount: variantPrice || 0,
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      status: 'paid',
+      paidAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    })
+
+    return { success: true, enrollmentId: enrollRef.id }
+  }
+)
 
 // Architecture Placeholder: Video Transcoder Webhook
 // This listens to raw video uploads in Firebase Storage and would trigger Google Cloud Transcoder.

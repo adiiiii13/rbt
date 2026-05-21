@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { doc, getDoc, addDoc, collection, query, where, getDocs, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { useAuth } from '../context/AuthContext';
 import { openCheckout } from '../lib/razorpay';
@@ -59,29 +59,22 @@ export default function CourseDetail() {
     setBuying(true);
     openCheckout({
       amount: selectedVariant.price,
-      name: course.title,
-      description: `${selectedVariant.months}-Month Plan`,
+      courseId: course.id,
+      courseTitle: course.title,
+      name: 'RBT Mission Learning',
+      description: `${course.title} — ${selectedVariant.months}-Month Plan`,
+      variantMonths: selectedVariant.months,
+      variantPrice: selectedVariant.price,
       user,
-      onSuccess: async (paymentId) => {
-        try {
-          const expiresAt = new Date();
-          expiresAt.setMonth(expiresAt.getMonth() + selectedVariant.months);
-          const enrolDoc = {
-            uid: user.uid,
-            courseId: course.id,
-            courseTitle: course.title,
-            variant: selectedVariant,
-            paymentId,
-            amount: selectedVariant.price,
-            enrolledAt: serverTimestamp(),
-            expiresAt: expiresAt.toISOString(),
-            studentName: user.name || user.email,
-          };
-          const ref = await addDoc(collection(db, 'enrollments'), enrolDoc);
-          setEnrollment({ id: ref.id, ...enrolDoc });
-          toast.success('Enrolled! Start watching now.');
-        } catch (err) { toast.error('Enroll save failed: ' + err.message); }
-        finally { setBuying(false); }
+      onSuccess: (result) => {
+        setEnrollment({
+          id: result.enrollmentId,
+          uid: user.uid,
+          courseId: course.id,
+          paymentId: result.paymentId,
+        });
+        toast.success('Enrolled! Start watching now.');
+        setBuying(false);
       },
       onFailure: (err) => {
         toast.error(err.message);

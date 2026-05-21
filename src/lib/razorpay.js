@@ -1,5 +1,8 @@
-// Razorpay stub — replace with real keys later.
-// Loads Razorpay checkout.js dynamically. Falls back to mock flow if no key.
+// Razorpay integration — server-side order creation + signature verification.
+// Flow: createOrder (Cloud Function) → Razorpay Checkout → verifyPayment (Cloud Function)
+
+import { httpsCallable } from 'firebase/functions'
+import { functions } from './firebase'
 
 let scriptLoaded = false;
 
@@ -15,43 +18,89 @@ function loadScript() {
   });
 }
 
-// Opens Razorpay checkout. If no key set, runs mock flow (auto-success after 1s).
-// opts: { amount, currency='INR', name, description, courseId, variant, user, onSuccess(paymentId), onFailure(err) }
+/**
+ * Opens Razorpay checkout with server-side order + verification.
+ *
+ * @param {object} opts
+ * @param {number} opts.amount - Amount in INR (e.g. 4999)
+ * @param {string} opts.courseId - Firestore course ID
+ * @param {string} opts.courseTitle - Course title for display
+ * @param {string} opts.name - Merchant/display name
+ * @param {string} opts.description - Plan description
+ * @param {number} opts.variantMonths - Plan duration in months
+ * @param {number} opts.variantPrice - Plan price
+ * @param {object} opts.user - Current user (name, email, phone)
+ * @param {function} opts.onSuccess - Called with { paymentId, orderId, enrollmentId }
+ * @param {function} opts.onFailure - Called with Error
+ */
 export async function openCheckout(opts) {
-  const key = import.meta.env.VITE_RAZORPAY_KEY_ID;
-  const { amount, name, description, user, onSuccess, onFailure } = opts;
+  const {
+    amount, courseId, courseTitle, name, description,
+    variantMonths, variantPrice, user,
+    onSuccess, onFailure,
+  } = opts;
 
-  if (!key) {
-    // Mock mode — show confirm + fake success
-    console.warn('[razorpay] VITE_RAZORPAY_KEY_ID not set — running mock flow');
-    const proceed = confirm(`STUB PAYMENT\n\n${name}\n${description}\nAmount: ₹${amount}\n\nProceed (simulate success)?`);
-    if (proceed) {
-      const fakeId = 'mock_pay_' + Date.now();
-      setTimeout(() => onSuccess?.(fakeId), 600);
-    } else {
-      onFailure?.(new Error('Cancelled by user'));
-    }
-    return;
+  try {
+    // 1. Load Razorpay SDK
+    const ok = await loadScript();
+    if (!ok) { onFailure?.(new Error('Razorpay SDK load failed')); return; }
+
+    // 2. Create server-side order
+    const createOrder = httpsCallable(functions, 'createRazorpayOrder');
+    const { data: orderData } = await createOrder({
+      amount,
+      courseId,
+      courseTitle: courseTitle || name || '',
+      variantLabel: description || '',
+    });
+
+    const { orderId, key } = orderData;
+
+    // 3. Open Razorpay Checkout
+    const rzp = new window.Razorpay({
+      key,
+      amount: orderData.amount, // in paise from server
+      currency: orderData.currency || 'INR',
+      order_id: orderId,
+      name: name || 'RBT Mission Learning',
+      description: description || 'Course Purchase',
+      prefill: {
+        name: user?.name || user?.displayName || '',
+        email: user?.email || '',
+        contact: user?.phone || '',
+      },
+      theme: { color: '#10b981' },
+      handler: async (response) => {
+        try {
+          // 4. Verify payment server-side
+          const verifyPayment = httpsCallable(functions, 'verifyRazorpayPayment');
+          const { data: verifyData } = await verifyPayment({
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            courseId,
+            courseTitle: courseTitle || name || '',
+            variantMonths: variantMonths || 6,
+            variantPrice: variantPrice || amount,
+          });
+
+          onSuccess?.({
+            paymentId: response.razorpay_payment_id,
+            orderId: response.razorpay_order_id,
+            enrollmentId: verifyData.enrollmentId,
+          });
+        } catch (verifyErr) {
+          console.error('[razorpay] Verification failed:', verifyErr);
+          onFailure?.(new Error('Payment made but verification failed. Contact support.'));
+        }
+      },
+      modal: {
+        ondismiss: () => onFailure?.(new Error('Payment cancelled')),
+      },
+    });
+    rzp.open();
+  } catch (err) {
+    console.error('[razorpay] Checkout error:', err);
+    onFailure?.(err);
   }
-
-  const ok = await loadScript();
-  if (!ok) { onFailure?.(new Error('Razorpay SDK load failed')); return; }
-
-  // NOTE: in production, create order server-side and pass order_id here.
-  const rzp = new window.Razorpay({
-    key,
-    amount: amount * 100, // paise
-    currency: opts.currency || 'INR',
-    name,
-    description,
-    prefill: {
-      name: user?.name || user?.displayName || '',
-      email: user?.email || '',
-      contact: user?.phone || '',
-    },
-    theme: { color: '#10b981' },
-    handler: (response) => onSuccess?.(response.razorpay_payment_id),
-    modal: { ondismiss: () => onFailure?.(new Error('Dismissed')) },
-  });
-  rzp.open();
 }
