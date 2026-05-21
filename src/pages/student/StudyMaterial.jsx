@@ -46,6 +46,20 @@ export default function StudyMaterial() {
   const folders = children.filter(c => c.type === 'folder');
   const files = children.filter(c => c.type !== 'folder');
 
+  // Auto-thumbnail when admin didn't set one:
+  // - image type → use the image itself
+  // - video YouTube → derive thumbnail from video ID
+  // - everything else → fall back to icon
+  const getThumbnail = (file) => {
+    if (file.thumbnail) return file.thumbnail;
+    if (file.type === 'image' && file.url) return file.url;
+    if (file.type === 'video' && file.url) {
+      const yt = file.url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+      if (yt) return `https://i.ytimg.com/vi/${yt[1]}/hqdefault.jpg`;
+    }
+    return null;
+  };
+
   const openFolder = (folder) => {
     setCurrentFolder(folder.id);
     setCrumbs([...crumbs, { id: folder.id, name: folder.name }]);
@@ -129,13 +143,17 @@ export default function StudyMaterial() {
                 onClick={() => setPreviewItem(file)}
                 className={`text-left rounded-xl border overflow-hidden hover:scale-105 transition-all ${COLORS[file.type] || COLORS.video}`}
               >
-                {file.thumbnail ? (
-                  <img src={file.thumbnail} alt="" className="w-full aspect-video object-cover" />
-                ) : (
-                  <div className="aspect-video flex items-center justify-center">
-                    <Icon type={file.type} />
-                  </div>
-                )}
+                {(() => {
+                  const thumb = getThumbnail(file);
+                  return thumb ? (
+                    <img src={thumb} alt="" className="w-full aspect-video object-cover" loading="lazy"
+                      onError={(e) => { e.target.style.display = 'none'; }} />
+                  ) : (
+                    <div className="aspect-video flex items-center justify-center">
+                      <Icon type={file.type} />
+                    </div>
+                  );
+                })()}
                 <div className="p-3">
                   <div className="font-bold text-sm line-clamp-2">{file.name}</div>
                   {file.subject && <div className="text-xs opacity-70 mt-1">{file.subject}</div>}
