@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase-admin/app'
 import { getAuth } from 'firebase-admin/auth'
 import { getFirestore, FieldValue } from 'firebase-admin/firestore'
 import { getMessaging } from 'firebase-admin/messaging'
-import { onCall, HttpsError } from 'firebase-functions/v2/https'
+import { onCall, onRequest, HttpsError } from 'firebase-functions/v2/https'
 import { onDocumentCreated } from 'firebase-functions/v2/firestore'
 import { setGlobalOptions } from 'firebase-functions/v2'
 import Razorpay from 'razorpay'
@@ -363,3 +363,103 @@ export const verifyRazorpayPayment = onCall(async (request) => {
 //       // })
 //   }
 // });
+
+// Razorpay Webhook to catch async payment events
+export const razorpayWebhook = onRequest(async (req, res) => {
+  try {
+    const signature = req.headers['x-razorpay-signature']
+    if (!signature) {
+      res.status(400).send('Missing signature')
+      return
+    }
+
+    // Verify signature
+    const expectedSignature = crypto
+      .createHmac('sha256', razorpayKeySecret)
+      .update(JSON.stringify(req.body))
+      .digest('hex')
+
+    if (expectedSignature !== signature) {
+      console.error('Invalid signature')
+      res.status(400).send('Invalid signature')
+      return
+    }
+
+    const event = req.body.event
+    if (event === 'payment.captured' || event === 'payment.authorized') {
+      const paymentEntity = req.body.payload.payment.entity
+      const orderId = paymentEntity.order_id
+      const paymentId = paymentEntity.id
+      const notes = paymentEntity.notes || {}
+
+      if (!orderId) {
+        res.status(200).send('No order ID associated')
+        return
+      }
+
+      // Check if order already processed by client app
+      const orderRef = db.collection('razorpayOrders').doc(orderId)
+      const orderDoc = await orderRef.get()
+
+      if (orderDoc.exists && orderDoc.data().status === 'paid') {
+        // Already handled by frontend verification
+        res.status(200).send('Already processed')
+        return
+      }
+
+      // Fulfill the order
+      await orderRef.update({
+        status: 'paid',
+        paymentId: paymentId,
+        signature: 'webhook_verified',
+        paidAt: FieldValue.serverTimestamp(),
+      })
+
+      const uid = notes.uid
+      const courseId = notes.courseId
+      const amount = paymentEntity.amount / 100 // paise to rupees
+
+      if (uid && courseId) {
+        const studentDoc = await db.collection('students').doc(uid).get()
+        const studentData = studentDoc.exists ? studentDoc.data() : {}
+
+        const expiresAt = new Date()
+        expiresAt.setMonth(expiresAt.getMonth() + 6) // default 6 months if not passed in notes
+
+        await db.collection('enrollments').add({
+          uid,
+          courseId,
+          courseTitle: notes.courseTitle || '',
+          variant: { months: 6, price: amount },
+          paymentId,
+          orderId,
+          amount,
+          enrolledAt: FieldValue.serverTimestamp(),
+          expiresAt: expiresAt.toISOString(),
+          studentName: studentData.name || 'Student',
+          studentEmail: studentData.email || '',
+        })
+
+        await db.collection('payments').add({
+          type: 'razorpay_webhook',
+          studentId: studentData.studentId || uid,
+          studentName: studentData.name || 'Student',
+          studentEmail: studentData.email || '',
+          courseId: courseId,
+          courseTitle: notes.courseTitle || '',
+          amount: amount,
+          paymentId: paymentId,
+          orderId: orderId,
+          status: 'paid',
+          paidAt: FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
+        })
+      }
+    }
+
+    res.status(200).send('OK')
+  } catch (error) {
+    console.error('Webhook error:', error)
+    res.status(500).send('Internal Error')
+  }
+})
