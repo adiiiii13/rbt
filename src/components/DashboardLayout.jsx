@@ -42,7 +42,6 @@ export default function DashboardLayout({ type }) {
   
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
   
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -58,7 +57,6 @@ export default function DashboardLayout({ type }) {
     setIsCollapsed(prev => {
       const next = !prev
       localStorage.setItem('sidebarCollapsed', JSON.stringify(next))
-      if (next) setIsHovered(false)
       return next
     })
   }
@@ -152,7 +150,7 @@ export default function DashboardLayout({ type }) {
     setupFCM()
   }, [user])
 
-  const isSidebarExpanded = !isCollapsed || isHovered
+  const isSidebarExpanded = !isCollapsed
 
   return (
     <div className="flex h-screen bg-[#f1f5f9] overflow-hidden">
@@ -162,22 +160,20 @@ export default function DashboardLayout({ type }) {
       
       {/* Fixed Desktop Sidebar */}
       <aside 
-        onMouseEnter={() => isCollapsed && setIsHovered(true)}
-        onMouseLeave={() => isCollapsed && setIsHovered(false)}
         className={`hidden lg:flex flex-col fixed top-0 bottom-0 left-0 bg-navy text-white z-50 transition-[width] duration-300 ease-in-out overflow-hidden border-r border-white/10 ${
         isSidebarExpanded ? 'w-[260px]' : 'w-[80px]'
       }`}>
-        <div className="p-5 border-b border-white/10 flex items-center justify-between min-w-[260px]">
+        <div className={`p-5 border-b border-white/10 flex ${isSidebarExpanded ? 'flex-row items-center justify-between min-w-[260px]' : 'flex-col items-center gap-4 min-w-[80px]'} transition-all duration-300`}>
           <div className="flex items-center gap-3">
             <img src="/Images/RBT Logo.jpeg" alt="RBT Mission Learning" className="w-9 h-9 rounded-lg object-cover shrink-0" />
-            <div className={`transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0' : 'opacity-100'}`}>
+            <div className={`transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
               <h3 className="text-sm font-bold truncate">RBT MISSION</h3>
               <p className="text-[9px] tracking-widest text-green-light truncate">LEARNING</p>
             </div>
           </div>
           <button 
             onClick={toggleCollapse} 
-            className={`w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center shrink-0 text-slate-400 hover:text-white transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+            className="w-8 h-8 rounded-lg hover:bg-white/10 flex items-center justify-center shrink-0 text-slate-400 hover:text-white transition-all duration-300"
           >
             {isCollapsed ? <IC.chevronRight size={16} /> : <IC.chevronLeft size={16} />}
           </button>
@@ -190,19 +186,19 @@ export default function DashboardLayout({ type }) {
               to={link.to}
               end={link.end}
               className={({ isActive }) =>
-                `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0 min-w-[228px]`
+                `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0 ${isSidebarExpanded ? 'min-w-[228px]' : 'w-12 h-12 flex items-center justify-center p-0 mx-auto'}`
               }
             >
-              <span className="sidebar-icon-wrap shrink-0">{link.icon}</span>
-              <span className={`transition-opacity duration-300 truncate ${!isSidebarExpanded ? 'opacity-0' : 'opacity-100'}`}>
+              <span className={`sidebar-icon-wrap shrink-0 ${!isSidebarExpanded ? 'mr-0' : ''}`}>{link.icon}</span>
+              <span className={`transition-opacity duration-300 truncate ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
                 {link.label}
               </span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="p-4 border-t border-white/10 min-w-[260px]">
-          <div className={`flex items-center gap-3 mb-4 px-2 transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0' : 'opacity-100'}`}>
+        <div className={`p-4 border-t border-white/10 ${isSidebarExpanded ? 'min-w-[260px]' : 'min-w-[80px]'}`}>
+          <div className={`flex items-center ${isSidebarExpanded ? 'gap-3 mb-4 px-2' : 'justify-center mb-4'} transition-all duration-300`}>
             <div className="w-9 h-9 rounded-full bg-green-brand/20 flex items-center justify-center text-green-light font-bold text-sm overflow-hidden shrink-0">
               {user?.photoURL ? (
                 <img src={user.photoURL} alt={user.name} className="w-full h-full object-cover" />
@@ -210,7 +206,7 @@ export default function DashboardLayout({ type }) {
                 user?.name?.charAt(0) || 'U'
               )}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className={`flex-1 min-w-0 transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
               <p className="text-sm font-medium truncate">{user?.name || 'User'}</p>
               <p className="text-xs text-slate-400 truncate">
                 {type === 'admin' ? 'Administrator' : user?.course || 'Student'}
@@ -220,19 +216,21 @@ export default function DashboardLayout({ type }) {
           <div className="flex flex-col gap-2">
             <NavLink
               to="/"
-              className={`w-full py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-sm font-medium transition-all flex items-center justify-center gap-2 no-underline`}
+              className={`w-full py-2.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white text-sm font-medium transition-all flex items-center justify-center ${isSidebarExpanded ? 'gap-2' : 'px-0'} no-underline`}
+              title="Back to Home"
             >
               <IC.home size={16} className="shrink-0" />
-              <span className={`transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 w-0' : 'opacity-100'}`}>
+              <span className={`transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
                 Back to Home
               </span>
             </NavLink>
             <button
               onClick={handleLogout}
-              className={`w-full py-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400 text-sm font-medium transition-all flex items-center justify-center gap-2 cursor-pointer`}
+              className={`w-full py-2.5 rounded-lg bg-white/5 hover:bg-red-500/20 text-slate-300 hover:text-red-400 text-sm font-medium transition-all flex items-center justify-center ${isSidebarExpanded ? 'gap-2' : 'px-0'} cursor-pointer`}
+              title="Logout"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-              <span className={`transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 w-0' : 'opacity-100'}`}>
+              <span className={`transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
                 Logout
               </span>
             </button>
