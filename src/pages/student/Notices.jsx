@@ -3,21 +3,27 @@ import { defaultNotices } from '../../data/notices'
 import { CalendarIcon, BellIcon } from '../../components/Icons'
 import { useAuth } from '../../context/AuthContext'
 import { useMemo } from 'react'
+import { GridSkeleton } from '../../components/ui/Skeleton'
 
 export default function StudentNotices() {
   const { user } = useAuth()
-  const { data: noticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices })
+  const { data: noticesRaw, loading } = useRealtimeCollection('notices')
   const notices = useMemo(() => {
+    // Show all notices with no audience filter (old notices)
+    // Plus filtered new ones
+    if (!noticesRaw?.length && defaultNotices?.length) return defaultNotices
     if (!noticesRaw?.length) return []
     const uid = user?.uid || user?.id || ''
     const userClass = user?.className || user?.class || ''
     const userBatch = user?.batch === true ? 'Batch Student' : (user?.batch || '')
 
     return noticesRaw.filter(n => {
-      if (!n.audience || n.audience === 'all') return true
+      // Old notices without audience field — show to everyone
+      if (!n.audience || n.audience === 'all' || n.audience === undefined) return true
       if (n.audience === 'class') return n.targetClass === userClass
       if (n.audience === 'batch') return n.targetBatch === userBatch
       if (n.audience === 'specific') return (n.targetStudentIds || []).includes(uid)
+      // Unknown audience — show by default
       return true
     })
   }, [noticesRaw, user])
@@ -37,6 +43,14 @@ export default function StudentNotices() {
           </p>
         </div>
       </div>
+      {loading && <GridSkeleton count={3} />}
+      {!loading && notices.length === 0 && (
+        <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
+          <BellIcon size={32} className="text-slate-600 mx-auto mb-3" />
+          <p className="text-slate-400 mb-2">No notices yet</p>
+          <p className="text-sm text-slate-500">Admin hasn't published any notices</p>
+        </div>
+      )}
       <div className="space-y-4">
         {notices.map(n => (
           <div key={n.id} className="bg-[#111111] rounded-2xl p-6 border border-slate-800">
@@ -54,13 +68,6 @@ export default function StudentNotices() {
             </div>
           </div>
         ))}
-        {notices.length === 0 && (
-          <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
-            <BellIcon size={32} className="text-slate-600 mx-auto mb-3" />
-            <p className="text-slate-400 mb-2">No notices for you yet</p>
-            <p className="text-sm text-slate-500">Complete your profile to receive targeted notices</p>
-          </div>
-        )}
       </div>
     </div>
   );
