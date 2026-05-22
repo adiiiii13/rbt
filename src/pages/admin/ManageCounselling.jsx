@@ -1,9 +1,23 @@
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
-import { updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
+import { updateDocument, deleteDocument, addDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+
+async function notifyStudent({ studentId, studentEmail, title, message, link = '' }) {
+  if (!studentId && !studentEmail) return;
+  try {
+    await addDocument('notifications', {
+      targetType: 'specific',
+      targetStudentId: studentId || null,
+      targetStudentEmail: studentEmail || null,
+      title, message, link,
+      read: false,
+      createdAt: new Date(),
+    });
+  } catch (err) { console.error('[notify]', err); }
+}
 
 export default function ManageCounselling() {
   const { data: bookings, loading } = useRealtimeCollection('counsellingBookings')
@@ -11,20 +25,53 @@ export default function ManageCounselling() {
   const [editModal, setEditModal] = useState(false)
   const [selected, setSelected] = useState(null)
   const [meetLink, setMeetLink] = useState('')
+  const [rejectModal, setRejectModal] = useState(false)
+  const [rejectReason, setRejectReason] = useState('')
   const [editForm, setEditForm] = useState({ topic: '', studentName: '', phone: '', preferredDate: '', preferredTime: '', status: 'pending', meetingLink: '' })
 
   const approve = async () => {
     if (!meetLink || !selected) { toast.error('Add meet link'); return }
     try {
-      await updateDocument('counsellingBookings', selected.id, { status: 'approved', meetingLink: meetLink })
-      toast.success('Approved + Meet link sent')
+      await updateDocument('counsellingBookings', selected.id, {
+        status: 'approved',
+        meetingLink: meetLink,
+        rejectionReason: '', // clear if previously rejected
+      })
+      await notifyStudent({
+        studentId: selected.studentId,
+        studentEmail: selected.email,
+        title: 'Counselling Session Approved',
+        message: `Your session "${selected.topic}" on ${selected.preferredDate} ${selected.preferredTime || ''} is confirmed.`,
+        link: meetLink,
+      })
+      toast.success('Approved + student notified')
       setMeetModal(false); setMeetLink(''); setSelected(null)
     } catch (err) { toast.error(err.message) }
   }
 
-  const reject = async (id) => {
-    if (!confirm('Reject this booking?')) return
-    try { await updateDocument('counsellingBookings', id, { status: 'rejected' }); toast.success('Rejected') }
+  const openReject = (b) => { setSelected(b); setRejectReason(''); setRejectModal(true) }
+  const reject = async () => {
+    if (!selected) return
+    try {
+      await updateDocument('counsellingBookings', selected.id, {
+        status: 'rejected',
+        rejectionReason: rejectReason || 'No reason given',
+        meetingLink: '', // clear any prior link
+      })
+      await notifyStudent({
+        studentId: selected.studentId,
+        studentEmail: selected.email,
+        title: 'Counselling Session Update',
+        message: `Your session "${selected.topic}" could not be confirmed. Reason: ${rejectReason || 'Schedule conflict'}. Book another slot.`,
+      })
+      toast.success('Rejected + student notified')
+      setRejectModal(false); setRejectReason(''); setSelected(null)
+    } catch (err) { toast.error(err.message) }
+  }
+
+  const reopen = async (id) => {
+    if (!confirm('Re-open this rejected booking to pending?')) return
+    try { await updateDocument('counsellingBookings', id, { status: 'pending', rejectionReason: '' }); toast.success('Re-opened') }
     catch (err) { toast.error(err.message) }
   }
 
@@ -93,9 +140,10 @@ export default function ManageCounselling() {
                     <div className="flex gap-2">
                       {b.status === 'pending' && <>
                         <button onClick={() => { setSelected(b); setMeetLink(''); setMeetModal(true) }} className="text-xs text-green-brand font-bold cursor-pointer">Approve</button>
-                        <button onClick={() => reject(b.id)} className="text-xs text-red-400 cursor-pointer">Reject</button>
+                        <button onClick={() => openReject(b)} className="text-xs text-red-400 cursor-pointer">Reject</button>
                       </>}
                       {b.status === 'approved' && <button onClick={() => complete(b.id)} className="text-xs text-green-brand font-bold cursor-pointer">Complete</button>}
+                      {b.status === 'rejected' && <button onClick={() => reopen(b.id)} className="text-xs text-blue-400 cursor-pointer">Re-open</button>}
                       <button onClick={() => openEdit(b)} className="text-xs text-blue-400 cursor-pointer">Edit</button>
                       <button onClick={() => remove(b.id)} className="text-xs text-red-400 cursor-pointer">Delete</button>
                     </div>
@@ -113,6 +161,22 @@ export default function ManageCounselling() {
           <p className="text-sm text-slate-300">Meet link for <span className="text-white font-semibold">{selected?.studentName}</span>'s session on {selected?.preferredDate}.</p>
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Google Meet Link</label><input className="input-field" placeholder="https://meet.google.com/xxx-xxxx-xxx" value={meetLink} onChange={e => setMeetLink(e.target.value)} /><p className="text-xs text-slate-500 mt-1">Create at <a href="https://meet.new" target="_blank" className="text-green-brand">meet.new</a></p></div>
           <button onClick={approve} className="btn-primary w-full">Approve & Send Link</button>
+        </div>
+      </Modal>
+
+      {/* Reject Modal */}
+      <Modal isOpen={rejectModal} onClose={() => setRejectModal(false)} title="Reject Booking — Send Reason">
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">Rejecting <span className="text-white font-semibold">{selected?.studentName}</span>'s session.</p>
+          <div>
+            <label className="text-sm font-medium text-slate-300 mb-1 block">Reason (sent to student)</label>
+            <textarea rows={3} className="input-field resize-none" placeholder="e.g. Schedule conflict — please pick a different slot"
+              value={rejectReason} onChange={e => setRejectReason(e.target.value)} />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setRejectModal(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-lg">Cancel</button>
+            <button onClick={reject} className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-300 font-bold py-2 rounded-lg">Reject & Notify</button>
+          </div>
         </div>
       </Modal>
 

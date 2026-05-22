@@ -1,7 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
-import { deleteDocument } from '../../lib/firebaseHelpers';
+import { deleteDocument, updateDocument } from '../../lib/firebaseHelpers';
 import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
 
@@ -44,6 +44,23 @@ export default function MockResults() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [detail, setDetail] = useState(null);
+  const [remarks, setRemarks] = useState({}); // qid -> string, local edit buffer
+  const [savingRemarks, setSavingRemarks] = useState(false);
+
+  useEffect(() => {
+    if (detail) setRemarks(detail.adminRemarks || {});
+    else setRemarks({});
+  }, [detail]);
+
+  const saveRemarks = async () => {
+    if (!detail) return;
+    setSavingRemarks(true);
+    try {
+      await updateDocument('mockAttempts', detail.id, { adminRemarks: remarks });
+      toast.success('Remarks saved — student will see them');
+    } catch (err) { toast.error(err.message); }
+    finally { setSavingRemarks(false); }
+  };
 
   const filtered = useMemo(() => {
     return attempts.filter(a => {
@@ -405,11 +422,25 @@ export default function MockResults() {
                                 <p className="text-xs text-slate-300">{q.explanation}</p>
                               </div>
                             )}
+                            <div className="mt-2">
+                              <label className="text-[10px] font-bold text-amber-400 uppercase mb-1 block">Admin remark (visible to student)</label>
+                              <textarea
+                                value={remarks[q.id] || ''}
+                                onChange={e => setRemarks(r => ({ ...r, [q.id]: e.target.value }))}
+                                rows={2}
+                                placeholder="Personal feedback for this student on this question..."
+                                className="w-full bg-amber-500/5 border border-amber-500/30 rounded px-2 py-1.5 text-amber-100 text-xs"
+                              />
+                            </div>
                           </div>
                         </div>
                       );
                     })}
                   </div>
+                  <button onClick={saveRemarks} disabled={savingRemarks}
+                    className="mt-3 w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-sm font-bold py-2 rounded-lg disabled:opacity-50">
+                    {savingRemarks ? 'Saving...' : '💬 Save All Remarks → Student'}
+                  </button>
                 </div>
               );
             })()}

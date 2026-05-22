@@ -30,6 +30,12 @@ const emptyLesson = () => ({
   isFree: false,
 });
 
+const ytId = (url) => {
+  const m = (url || '').match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/);
+  return m ? m[1] : '';
+};
+const ytThumb = (url) => { const id = ytId(url); return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : ''; };
+
 export default function ManageCourses() {
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
   const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
@@ -59,8 +65,10 @@ export default function ManageCourses() {
     const subjectsArr = typeof form.subjects === 'string'
       ? form.subjects.split(',').map(s => s.trim()).filter(Boolean)
       : form.subjects;
+    const autoThumb = !form.thumbnail ? ytThumb(form.lessons?.[0]?.videoUrl) : '';
     const payload = {
       ...form,
+      thumbnail: form.thumbnail || autoThumb || '',
       subjects: subjectsArr,
       students: Number(form.students) || 0,
       variants: form.variants.map(v => ({
@@ -186,8 +194,13 @@ export default function ManageCourses() {
               </div>
               <div><label className="text-xs text-slate-400 block mb-1">Subjects (comma separated)</label>
                 <input className="input-field" value={form.subjects} onChange={e => setForm({ ...form, subjects: e.target.value })} /></div>
-              <div><label className="text-xs text-slate-400 block mb-1">Thumbnail URL (optional)</label>
-                <input className="input-field" value={form.thumbnail} onChange={e => setForm({ ...form, thumbnail: e.target.value })} /></div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Thumbnail URL (optional — auto-derived from first lesson's YouTube if blank)</label>
+                <input className="input-field" value={form.thumbnail} onChange={e => setForm({ ...form, thumbnail: e.target.value })} placeholder="https://... or leave blank" />
+                {(form.thumbnail || ytThumb(form.lessons?.[0]?.videoUrl)) && (
+                  <img src={form.thumbnail || ytThumb(form.lessons?.[0]?.videoUrl)} alt="" className="mt-2 w-40 aspect-video object-cover rounded border border-white/10" onError={e => { e.target.style.display = 'none'; }} />
+                )}
+              </div>
             </>
           )}
 
@@ -226,37 +239,64 @@ export default function ManageCourses() {
 
           {tab === 'lessons' && (
             <>
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-xs text-blue-200">
+                <div className="font-bold mb-1">💡 Zero storage cost — use YouTube</div>
+                <div>Upload videos to YouTube as <b>Unlisted</b> (private link, not searchable). Paste link below — works for any visibility. No Firebase storage bill.</div>
+              </div>
               <div className="flex justify-between items-center">
                 <p className="text-xs text-slate-400">Sequential lessons. Students watch in order after enrolling.</p>
                 <button onClick={addLesson} className="text-xs bg-green-brand/20 text-green-brand px-3 py-1.5 rounded">+ Add Lesson</button>
               </div>
-              {form.lessons.map((l, idx) => (
-                <div key={l.id} className="bg-black/30 border border-white/10 rounded-lg p-3">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="text-xs text-green-brand font-bold">Lesson {idx + 1}</span>
-                    <div className="flex gap-1">
-                      <button onClick={() => moveLesson(idx, -1)} disabled={idx === 0} className="text-xs text-slate-400 disabled:opacity-30 px-1">↑</button>
-                      <button onClick={() => moveLesson(idx, 1)} disabled={idx === form.lessons.length - 1} className="text-xs text-slate-400 disabled:opacity-30 px-1">↓</button>
-                      <button onClick={() => removeLesson(idx)} className="text-red-400 text-xs ml-2">Remove</button>
+              {form.lessons.map((l, idx) => {
+                const thumb = ytThumb(l.videoUrl);
+                const hasYt = !!ytId(l.videoUrl);
+                return (
+                  <div key={l.id} className="bg-black/30 border border-white/10 rounded-lg p-3">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-xs text-green-brand font-bold">Lesson {idx + 1}</span>
+                      <div className="flex gap-1 items-center">
+                        <button type="button" onClick={() => moveLesson(idx, -1)} disabled={idx === 0} className="text-sm text-slate-400 disabled:opacity-30 px-2 py-0.5 hover:bg-white/10 rounded">↑</button>
+                        <button type="button" onClick={() => moveLesson(idx, 1)} disabled={idx === form.lessons.length - 1} className="text-sm text-slate-400 disabled:opacity-30 px-2 py-0.5 hover:bg-white/10 rounded">↓</button>
+                        <button type="button" onClick={() => removeLesson(idx)} className="text-red-400 text-xs ml-2 px-2 py-0.5 hover:bg-red-500/10 rounded">Remove</button>
+                      </div>
                     </div>
+                    <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-3">
+                      <div className="aspect-video rounded bg-black/50 border border-white/10 overflow-hidden flex items-center justify-center">
+                        {thumb ? (
+                          <img src={thumb} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
+                        ) : (
+                          <span className="text-[10px] text-slate-600 text-center px-2">Preview appears when YT URL added</span>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <input value={l.title} onChange={e => updateLesson(idx, { title: e.target.value })}
+                          placeholder="Lesson title" className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-sm" />
+                        <div className="relative">
+                          <input value={l.videoUrl} onChange={e => updateLesson(idx, { videoUrl: e.target.value })}
+                            placeholder="YouTube URL (Unlisted recommended) — or HLS/MP4" className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 pr-16 text-white text-sm font-mono text-xs" />
+                          {hasYt && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded">YT ✓</span>}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input value={l.duration} onChange={e => updateLesson(idx, { duration: e.target.value })}
+                            placeholder="Duration (25:30)" className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-sm" />
+                          <label className="flex items-center gap-2 text-xs text-slate-300 bg-white/5 border border-white/10 rounded px-2 py-1.5">
+                            <input type="checkbox" checked={l.isFree} onChange={e => updateLesson(idx, { isFree: e.target.checked })} className="accent-green-brand" />
+                            Free Preview
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <input value={l.description} onChange={e => updateLesson(idx, { description: e.target.value })}
+                      placeholder="Short description (optional)" className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-xs mt-2" />
                   </div>
-                  <input value={l.title} onChange={e => updateLesson(idx, { title: e.target.value })}
-                    placeholder="Lesson title" className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-sm mb-2" />
-                  <input value={l.videoUrl} onChange={e => updateLesson(idx, { videoUrl: e.target.value })}
-                    placeholder="Video URL (YouTube/HLS/MP4)" className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-sm mb-2" />
-                  <div className="grid grid-cols-2 gap-2 mb-2">
-                    <input value={l.duration} onChange={e => updateLesson(idx, { duration: e.target.value })}
-                      placeholder="Duration (e.g. 25:30)" className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-sm" />
-                    <label className="flex items-center gap-2 text-xs text-slate-300">
-                      <input type="checkbox" checked={l.isFree} onChange={e => updateLesson(idx, { isFree: e.target.checked })} className="accent-green-brand" />
-                      Free Preview
-                    </label>
-                  </div>
-                  <input value={l.description} onChange={e => updateLesson(idx, { description: e.target.value })}
-                    placeholder="Short description (optional)" className="w-full bg-white/5 border border-white/10 rounded px-2 py-1.5 text-white text-xs" />
+                );
+              })}
+              {form.lessons.length === 0 && (
+                <div className="bg-white/5 border border-dashed border-white/10 rounded-lg p-8 text-center">
+                  <p className="text-slate-500 text-sm mb-2">No lessons yet.</p>
+                  <button onClick={addLesson} className="text-xs bg-green-brand/20 text-green-brand px-4 py-2 rounded">+ Add First Lesson</button>
                 </div>
-              ))}
-              {form.lessons.length === 0 && <p className="text-slate-500 text-sm text-center py-4">No lessons yet.</p>}
+              )}
             </>
           )}
         </div>

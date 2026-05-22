@@ -128,14 +128,14 @@ export default function ManageMockTests() {
     });
   };
   const moveQ = (idx, dir) => {
+    const tgt = idx + dir;
+    if (tgt < 0 || tgt >= form.questions.length) return;
     setForm(f => {
       const next = [...f.questions];
-      const tgt = idx + dir;
-      if (tgt < 0 || tgt >= next.length) return f;
       [next[idx], next[tgt]] = [next[tgt], next[idx]];
       return { ...f, questions: next };
     });
-    setActiveQIdx(idx + dir);
+    setActiveQIdx(cur => cur === idx ? tgt : cur === tgt ? idx : cur);
   };
   const updateQ = (idx, patch) => setForm(f => ({
     ...f,
@@ -319,24 +319,28 @@ export default function ManageMockTests() {
                 {form.questions.map((q, i) => {
                   const complete = isQComplete(q);
                   const active = i === activeQIdx;
+                  const stop = (fn) => (e) => { e.stopPropagation(); e.preventDefault(); fn(); };
                   return (
                     <div key={q.id}
+                      role="button"
                       onClick={() => setActiveQIdx(i)}
-                      className={`group p-2 rounded cursor-pointer border ${active ? 'bg-green-brand/20 border-green-brand' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
-                      <div className="flex justify-between items-center gap-2">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${complete ? 'bg-green-500' : 'bg-amber-500'}`} />
-                          <span className="text-xs text-white font-bold flex-shrink-0">Q{i + 1}</span>
-                          <span className="text-[10px] text-slate-400 truncate">{q.question || '(empty)'}</span>
-                        </div>
+                      className={`p-2 rounded cursor-pointer border ${active ? 'bg-green-brand/20 border-green-brand' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
+                      <div className="flex items-center gap-2 min-w-0 mb-1.5">
+                        <span className={`w-2 h-2 rounded-full flex-shrink-0 ${complete ? 'bg-green-500' : 'bg-amber-500'}`} />
+                        <span className="text-xs text-white font-bold flex-shrink-0">Q{i + 1}</span>
+                        <span className="text-[10px] text-slate-400 truncate flex-1">{q.question || '(empty)'}</span>
                       </div>
-                      <div className="flex justify-between items-center mt-1">
-                        <span className="text-[10px] text-slate-500">{q.section}</span>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100">
-                          <button onClick={(e) => { e.stopPropagation(); moveQ(i, -1); }} className="text-[10px] text-slate-400 hover:text-white px-1">↑</button>
-                          <button onClick={(e) => { e.stopPropagation(); moveQ(i, 1); }} className="text-[10px] text-slate-400 hover:text-white px-1">↓</button>
-                          <button onClick={(e) => { e.stopPropagation(); dupQuestion(i); }} className="text-[10px] text-slate-400 hover:text-white px-1">⎘</button>
-                          <button onClick={(e) => { e.stopPropagation(); removeQuestion(i); }} className="text-[10px] text-red-400 hover:text-red-300 px-1">×</button>
+                      <div className="flex justify-between items-center">
+                        <span className="text-[10px] text-slate-500 truncate">{q.section}</span>
+                        <div className="flex gap-0.5 flex-shrink-0">
+                          <button type="button" onClick={stop(() => moveQ(i, -1))} disabled={i === 0} title="Move up"
+                            className="text-xs text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-20 disabled:hover:bg-transparent w-6 h-6 rounded flex items-center justify-center">↑</button>
+                          <button type="button" onClick={stop(() => moveQ(i, 1))} disabled={i === form.questions.length - 1} title="Move down"
+                            className="text-xs text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-20 disabled:hover:bg-transparent w-6 h-6 rounded flex items-center justify-center">↓</button>
+                          <button type="button" onClick={stop(() => dupQuestion(i))} title="Duplicate"
+                            className="text-xs text-slate-300 hover:text-white hover:bg-white/10 w-6 h-6 rounded flex items-center justify-center">⎘</button>
+                          <button type="button" onClick={stop(() => { if (confirm(`Delete Q${i + 1}?`)) removeQuestion(i); })} title="Delete"
+                            className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 w-6 h-6 rounded flex items-center justify-center">×</button>
                         </div>
                       </div>
                     </div>
@@ -486,7 +490,7 @@ export default function ManageMockTests() {
                         <button onClick={() => dupQuestion(activeQIdx)} className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-2 rounded">
                           ⎘ Duplicate
                         </button>
-                        <button onClick={() => removeQuestion(activeQIdx)} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-3 py-2 rounded">
+                        <button onClick={() => { if (confirm(`Delete Q${activeQIdx + 1}?`)) removeQuestion(activeQIdx); }} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-3 py-2 rounded">
                           × Delete this Q
                         </button>
                       </div>

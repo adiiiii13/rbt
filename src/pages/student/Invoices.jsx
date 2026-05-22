@@ -10,21 +10,82 @@ import { EyeIcon, ReceiptIcon } from '../../components/Icons'
 export default function Invoices() {
   const { user } = useAuth()
   const [payments, setPayments] = useState([])
+  const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
-  const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [selected, setSelected] = useState(null)
+  const [tab, setTab] = useState('all') // 'all' | 'pending' | 'paid'
 
-  useEffect(() => { if (user) loadPayments() }, [user])
+  useEffect(() => { if (user) load() }, [user])
 
-  const loadPayments = async () => {
+  const load = async () => {
     setLoading(true)
     try {
-      const data = await getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || '')
-      setPayments(data)
+      const sid = user.studentId || user.id || ''
+      const uid = user.id || user.uid || ''
+      const [pays, invsByUid, invsByEmail] = await Promise.all([
+        getCollectionWhere('payments', 'studentId', '==', sid),
+        getCollectionWhere('invoices', 'studentUid', '==', uid),
+        user.email ? getCollectionWhere('invoices', 'studentEmail', '==', user.email) : Promise.resolve([]),
+      ])
+      // Dedupe invoices by id
+      const invMap = new Map()
+      ;[...invsByUid, ...invsByEmail].forEach(i => invMap.set(i.id, i))
+      setPayments(pays)
+      setInvoices(Array.from(invMap.values()))
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
 
-  const statusColors = { pending: 'badge-gold', verified: 'badge-green', rejected: 'badge-red' }
+  // Unified rows: invoices (manual) + payments (video purchases)
+  const rows = [
+    ...invoices.map(i => ({
+      id: i.id,
+      kind: 'invoice',
+      invoiceNumber: i.invoiceNumber,
+      title: i.courseName,
+      subtitle: i.description || '',
+      amount: i.amount,
+      date: i.issuedDate || i.paidAt || i.dueDate || '—',
+      status: i.status,
+      raw: i,
+    })),
+    ...payments.map(p => ({
+      id: p.id,
+      kind: 'payment',
+      invoiceNumber: p.invoiceNumber,
+      title: p.videoTitle,
+      subtitle: p.method === 'razorpay' ? 'Razorpay' : 'UPI',
+      amount: p.amount,
+      date: p.paidAt,
+      status: p.status,
+      raw: p,
+    })),
+  ].sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+
+  const filtered = tab === 'all' ? rows
+    : tab === 'pending' ? rows.filter(r => r.status === 'pending')
+    : rows.filter(r => r.status === 'paid' || r.status === 'verified')
+
+  const openView = (r) => {
+    if (r.kind === 'invoice') {
+      const i = r.raw
+      setSelected({
+        invoiceNumber: i.invoiceNumber, date: i.issuedDate || i.paidAt || '—',
+        studentName: i.studentName, studentEmail: i.studentEmail,
+        courseTitle: i.courseName, description: i.description,
+        amount: i.amount, transactionId: i.id,
+        paymentMethod: 'Invoice', status: i.status === 'paid' ? 'Paid' : 'Pending',
+      })
+    } else {
+      const p = r.raw
+      setSelected({ ...p, upiId: p.method === 'razorpay' ? 'razorpay' : (import.meta.env.VITE_UPI_ID || 'rbtmission@upi') })
+    }
+  }
+
+  const totalPaid = rows.filter(r => r.status === 'paid' || r.status === 'verified').reduce((s, r) => s + (r.amount || 0), 0)
+  const totalPending = rows.filter(r => r.status === 'pending').reduce((s, r) => s + (r.amount || 0), 0)
+
+  const statusColors = { pending: 'badge-gold', verified: 'badge-green', paid: 'badge-green', rejected: 'badge-red' }
 
   return (
     <div>
@@ -34,17 +95,43 @@ export default function Invoices() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-white mb-1">My Invoices</h1>
-          <p className="text-slate-400 text-sm">View your payment history and invoices</p>
+          <p className="text-slate-400 text-sm">Payment history + admin-issued invoices</p>
         </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800">
+          <p className="text-xs text-slate-400 mb-1">Total Paid</p>
+          <p className="text-lg font-bold text-green-brand">{formatCurrency(totalPaid)}</p>
+        </div>
+        <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800">
+          <p className="text-xs text-slate-400 mb-1">Due</p>
+          <p className="text-lg font-bold text-amber-500">{formatCurrency(totalPending)}</p>
+        </div>
+        <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800">
+          <p className="text-xs text-slate-400 mb-1">Records</p>
+          <p className="text-lg font-bold text-white">{rows.length}</p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-2 mb-4 bg-black/30 p-1 rounded-lg w-fit">
+        {['all', 'pending', 'paid'].map(t => (
+          <button key={t} onClick={() => setTab(t)}
+            className={`px-4 py-1.5 rounded text-sm font-medium capitalize ${tab === t ? 'bg-green-brand text-white' : 'text-slate-400 hover:text-white'}`}>
+            {t}
+          </button>
+        ))}
       </div>
 
       {loading ? (
         <div className="py-8"><ListSkeleton count={4} /></div>
-      ) : payments.length === 0 ? (
+      ) : filtered.length === 0 ? (
         <div className="bg-[#111111] rounded-2xl p-8 border border-slate-800 text-center">
           <ReceiptIcon size={32} className="text-slate-600 mx-auto mb-3" />
-          <p className="text-slate-400 mb-2">No payments yet</p>
-          <p className="text-sm text-slate-500">Purchase a video to see invoices here</p>
+          <p className="text-slate-400 mb-2">No {tab !== 'all' ? tab : ''} invoices</p>
+          <p className="text-sm text-slate-500">Purchases and admin invoices appear here</p>
         </div>
       ) : (
         <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
@@ -52,8 +139,8 @@ export default function Invoices() {
             <table>
               <thead>
                 <tr>
-                  <th className="text-white">Invoice</th>
-                  <th className="text-white">Video</th>
+                  <th className="text-white">Invoice #</th>
+                  <th className="text-white">Item</th>
                   <th className="text-white">Amount</th>
                   <th className="text-white">Date</th>
                   <th className="text-white">Status</th>
@@ -61,15 +148,18 @@ export default function Invoices() {
                 </tr>
               </thead>
               <tbody>
-                {payments.map(p => (
-                  <tr key={p.id}>
-                    <td className="font-mono text-xs text-white">{p.invoiceNumber}</td>
-                    <td className="text-white text-sm">{p.videoTitle}</td>
-                    <td className="text-green-brand font-semibold">{formatCurrency(p.amount)}</td>
-                    <td className="text-slate-400 text-sm">{p.paidAt}</td>
-                    <td><span className={`badge ${statusColors[p.status] || 'badge-navy'}`}>{p.status}</span></td>
+                {filtered.map(r => (
+                  <tr key={`${r.kind}-${r.id}`}>
+                    <td className="font-mono text-xs text-white">{r.invoiceNumber}</td>
+                    <td className="text-white text-sm">
+                      <div>{r.title}</div>
+                      {r.subtitle && <div className="text-xs text-slate-500">{r.subtitle}</div>}
+                    </td>
+                    <td className="text-green-brand font-semibold">{formatCurrency(r.amount)}</td>
+                    <td className="text-slate-400 text-sm">{r.date}</td>
+                    <td><span className={`badge ${statusColors[r.status] || 'badge-navy'}`}>{r.status}</span></td>
                     <td>
-                      <button onClick={() => setSelectedInvoice(p)} className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium inline-flex items-center gap-1.5">
+                      <button onClick={() => openView(r)} className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium inline-flex items-center gap-1.5">
                         <EyeIcon size={14} /> View
                       </button>
                     </td>
@@ -81,10 +171,8 @@ export default function Invoices() {
         </div>
       )}
 
-      <Modal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} title="Invoice">
-        {selectedInvoice && (
-          <InvoiceView invoice={{ ...selectedInvoice, upiId: import.meta.env.VITE_UPI_ID || 'rbtmission@upi' }} onClose={() => setSelectedInvoice(null)} />
-        )}
+      <Modal isOpen={!!selected} onClose={() => setSelected(null)} title="Invoice" size="lg">
+        {selected && <InvoiceView invoice={selected} onClose={() => setSelected(null)} />}
       </Modal>
     </div>
   )

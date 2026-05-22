@@ -174,6 +174,12 @@ export default function StudentMockResults() {
                         <p className="text-xs text-slate-300">{q.explanation}</p>
                       </div>
                     )}
+                    {selected.adminRemarks?.[q.id] && (
+                      <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                        <p className="text-xs font-bold text-amber-400 uppercase mb-1 flex items-center gap-1">💬 Teacher's Remark</p>
+                        <p className="text-xs text-amber-100">{selected.adminRemarks[q.id]}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )

@@ -7,7 +7,17 @@ import { defaultPdfs } from '../../data/pdfs';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 
-const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '' };
+const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '', fileSize: 0, description: '' };
+
+// Convert Google Drive share URL to direct download URL
+const normalizeUrl = (url) => {
+  if (!url) return url;
+  const m = url.match(/drive\.google\.com\/file\/d\/([\w-]+)/);
+  if (m) return `https://drive.google.com/uc?export=view&id=${m[1]}`;
+  return url;
+};
+
+const fmtSize = (b) => !b ? '' : b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : (b / 1024).toFixed(1) + ' KB';
 
 export default function ManagePdfs() {
   const { data: pdfsRaw, loading } = useRealtimeCollection('pdfs', { fallback: defaultPdfs });
@@ -24,17 +34,17 @@ export default function ManagePdfs() {
     if (file.size > 50 * 1024 * 1024) { toast.error('Max 50MB'); return; }
     setUploading(true);
     try {
-      const path = `pdfs/${Date.now()}_${file.name}`;
+      const path = `pdfs/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
       const url = await uploadFile(path, file);
-      setForm({ ...form, url, fileName: file.name });
-      toast.success('Uploaded');
-    } catch (err) { toast.error(err.message); }
-    finally { setUploading(false); }
+      setForm({ ...form, url, fileName: file.name, fileSize: file.size });
+      toast.success('Uploaded ' + fmtSize(file.size));
+    } catch (err) { toast.error('Upload failed: ' + err.message); console.error(err); }
+    finally { setUploading(false); e.target.value = ''; }
   };
 
   const save = async () => {
     if (!form.url) { toast.error('Upload a PDF or paste a URL'); return; }
-    const payload = { ...form, downloads: form.downloads || 0 };
+    const payload = { ...form, url: normalizeUrl(form.url), downloads: form.downloads || 0 };
     try {
       if (editing) {
         await updateDocument('pdfs', editing.id, payload);
@@ -53,7 +63,7 @@ export default function ManagePdfs() {
     catch (err) { toast.error(err.message); }
   };
 
-  const openEdit = (p) => { setEditing(p); setForm({ title: p.title, class: p.class, subject: p.subject, examType: p.examType, date: p.date || '', url: p.url || '', fileName: p.fileName || '' }); setModal(true); };
+  const openEdit = (p) => { setEditing(p); setForm({ title: p.title, class: p.class, subject: p.subject, examType: p.examType, date: p.date || '', url: p.url || '', fileName: p.fileName || '', fileSize: p.fileSize || 0, description: p.description || '' }); setModal(true); };
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
 
   return (
@@ -98,23 +108,50 @@ export default function ManagePdfs() {
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Date</label><input type="date" className="input-field" value={form.date} onChange={e => setForm({...form, date: e.target.value})} /></div>
           </div>
 
+          <div>
+            <label className="text-sm font-medium text-slate-300 mb-1 block">Description (optional)</label>
+            <textarea rows="2" className="input-field resize-none" value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Short description shown to students" />
+          </div>
+
           {/* Upload PDF file */}
           <div>
-            <label className="text-sm font-medium text-slate-300 mb-1 block">Upload PDF (max 50MB)</label>
-            <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
-              {form.fileName ? <p className="text-sm text-green-brand inline-flex items-center gap-1">{form.fileName}</p> : <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to select PDF file'}</p>}
-              <input type="file" accept=".pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
-            </label>
+            <label className="text-sm font-medium text-slate-300 mb-2 block">PDF File (max 50MB)</label>
+            {form.url && form.fileName ? (
+              <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 flex items-center gap-3">
+                <div className="w-12 h-14 rounded bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-300 font-bold text-xs">PDF</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-white font-medium truncate">{form.fileName}</div>
+                  <div className="text-xs text-slate-400">{fmtSize(form.fileSize) || 'Uploaded'}</div>
+                </div>
+                <button type="button" onClick={() => setForm({...form, url: '', fileName: '', fileSize: 0})} className="text-xs text-red-400 hover:text-red-300 px-2">Remove</button>
+              </div>
+            ) : (
+              <label className="border-2 border-dashed border-slate-600 rounded-xl p-6 text-center cursor-pointer hover:border-green-brand hover:bg-green-brand/5 transition-all block">
+                {uploading ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-8 h-8 border-2 border-green-brand border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-slate-400">Uploading...</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-3xl mb-1">📄</div>
+                    <p className="text-sm text-slate-300 font-medium">Click to select PDF</p>
+                    <p className="text-xs text-slate-500 mt-1">Max 50MB · PDF only</p>
+                  </>
+                )}
+                <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+              </label>
+            )}
           </div>
 
           {/* Or paste URL */}
           <div className="relative flex items-center py-1">
             <div className="flex-grow border-t border-slate-700"></div>
-            <span className="flex-shrink-0 mx-3 text-slate-500 text-xs">or paste URL (for large files)</span>
+            <span className="flex-shrink-0 mx-3 text-slate-500 text-xs">or paste URL (no storage cost)</span>
             <div className="flex-grow border-t border-slate-700"></div>
           </div>
-          <input className="input-field" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://drive.google.com/..." />
-          <p className="text-xs text-slate-500">Google Drive / Dropbox / any PDF link. For large files use URL.</p>
+          <input className="input-field" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://drive.google.com/file/d/..." />
+          <p className="text-xs text-slate-500">Drive share links auto-converted. Use URL for large files to skip storage cost.</p>
 
           <button onClick={save} disabled={uploading} className="btn-primary w-full disabled:opacity-50">{editing ? 'Update' : 'Add'} PDF</button>
         </div>

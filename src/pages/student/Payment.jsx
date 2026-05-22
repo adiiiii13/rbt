@@ -3,9 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { addDocument, getCollection } from '../../lib/firebaseHelpers'
 import { generateInvoiceNumber } from '../../lib/invoice'
+import { openRazorpayClient } from '../../lib/razorpayClient'
 import UPIPayment from '../../components/UPIPayment'
 import InvoiceView from '../../components/InvoiceView'
 import Modal from '../../components/Modal'
+import toast from 'react-hot-toast'
 
 export default function Payment() {
   const { user } = useAuth()
@@ -14,6 +16,8 @@ export default function Payment() {
   const video = location.state?.video
   const [invoice, setInvoice] = useState(null)
   const [showInvoice, setShowInvoice] = useState(false)
+  const [method, setMethod] = useState('razorpay') // 'razorpay' | 'upi'
+  const [processing, setProcessing] = useState(false)
 
   if (!video) {
     return (
@@ -25,6 +29,54 @@ export default function Payment() {
       </div>
     )
   }
+
+  const payViaRazorpay = () => {
+    if (processing) return;
+    setProcessing(true);
+    openRazorpayClient({
+      amount: video.price,
+      name: video.title,
+      description: `${video.subject} · ${video.class}`,
+      user,
+      onSuccess: async ({ paymentId, orderId }) => {
+        try {
+          const existing = await getCollection('payments');
+          const invoiceNum = generateInvoiceNumber(existing.length);
+          const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+          await addDocument('payments', {
+            videoId: video.id,
+            videoTitle: video.title,
+            amount: Number(video.price),
+            studentId: user?.studentId || user?.id || '',
+            studentName: user?.name || 'Student',
+            studentEmail: user?.email || '',
+            invoiceNumber: invoiceNum,
+            paidAt,
+            method: 'razorpay',
+            razorpayPaymentId: paymentId,
+            razorpayOrderId: orderId || null,
+            status: 'verified', // Razorpay confirmed at gateway; admin can audit
+          });
+          setInvoice({
+            invoiceNumber: invoiceNum, date: paidAt,
+            studentName: user?.name || 'Student', studentEmail: user?.email || '',
+            videoTitle: video.title, videoSubject: video.subject || '',
+            amount: video.price, transactionId: paymentId,
+            upiId: 'razorpay', status: 'Paid',
+          });
+          setShowInvoice(true);
+          toast.success('Payment successful!');
+        } catch (err) {
+          toast.error('Payment received but record failed. Contact support with ID ' + paymentId);
+          console.error(err);
+        } finally { setProcessing(false); }
+      },
+      onFailure: (err) => {
+        if (err?.message !== 'Payment cancelled') toast.error(err?.message || 'Payment failed');
+        setProcessing(false);
+      },
+    });
+  };
 
   const handlePaymentSubmit = async (paymentData) => {
     try {
@@ -94,15 +146,42 @@ export default function Payment() {
 
         {/* Payment */}
         <div className="bg-[#111111] rounded-2xl p-6 border border-slate-800">
-          <h3 className="font-bold text-white mb-4">Pay with UPI</h3>
-          <UPIPayment
-            amount={video.price}
-            videoTitle={video.title}
-            videoId={video.id}
-            studentId={user?.studentId || user?.id}
-            studentName={user?.name || 'Student'}
-            onPaymentSubmit={handlePaymentSubmit}
-          />
+          <div className="flex gap-2 mb-4 bg-black/30 p-1 rounded-lg">
+            <button onClick={() => setMethod('razorpay')} className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-all ${method === 'razorpay' ? 'bg-green-brand text-white' : 'text-slate-400'}`}>
+              💳 Cards / UPI / Wallets
+            </button>
+            <button onClick={() => setMethod('upi')} className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-all ${method === 'upi' ? 'bg-green-brand text-white' : 'text-slate-400'}`}>
+              📱 Manual UPI
+            </button>
+          </div>
+
+          {method === 'razorpay' ? (
+            <div>
+              <h3 className="font-bold text-white mb-2">Instant Payment via Razorpay</h3>
+              <p className="text-xs text-slate-400 mb-4">Pay instantly with Card, UPI, NetBanking or Wallet. Access unlocks immediately.</p>
+              <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4 text-center">
+                <div className="text-3xl font-bold text-white mb-1">₹{video.price}</div>
+                <div className="text-xs text-slate-400">Total Amount</div>
+              </div>
+              <button onClick={payViaRazorpay} disabled={processing}
+                className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 rounded-xl disabled:opacity-50">
+                {processing ? 'Opening...' : `Pay ₹${video.price} Securely`}
+              </button>
+              <p className="text-[10px] text-slate-500 mt-2 text-center">Secured by Razorpay · 256-bit SSL</p>
+            </div>
+          ) : (
+            <div>
+              <h3 className="font-bold text-white mb-4">Pay with UPI (Manual)</h3>
+              <UPIPayment
+                amount={video.price}
+                videoTitle={video.title}
+                videoId={video.id}
+                studentId={user?.studentId || user?.id}
+                studentName={user?.name || 'Student'}
+                onPaymentSubmit={handlePaymentSubmit}
+              />
+            </div>
+          )}
         </div>
       </div>
 
