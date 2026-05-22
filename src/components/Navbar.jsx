@@ -39,7 +39,6 @@ export default function Navbar({ onOpenLogin, onOpenSignup }) {
     { to: '/', label: 'Home' },
     { to: '/about', label: 'About' },
     { to: '/courses', label: 'Courses' },
-    { to: '/videos', label: 'Demo Videos' },
     { to: '/gallery', label: 'Gallery' },
   ];
 

@@ -163,7 +163,7 @@ function AppContent() {
                   <Route path="/about" element={<><About /><Footer /></>} />
                   <Route path="/courses" element={<><Courses /><Footer /></>} />
                   <Route path="/courses/:id" element={<><CourseDetail /><Footer /></>} />
-                  <Route path="/videos" element={<><Videos /><Footer /></>} />
+                  <Route path="/videos" element={<Navigate to="/student-login" replace state={{ from: '/student/videos' }} />} />
                   <Route path="/video/:id" element={<><WatchVideo /><Footer /></>} />
                   <Route path="/gallery" element={<><Gallery /><Footer /></>} />
                   <Route path="/achievements" element={<><Achievements /><Footer /></>} />
