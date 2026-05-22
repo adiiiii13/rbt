@@ -73,17 +73,28 @@ export default function DoubtForm({ onSuccess }) {
         <textarea className="input-field resize-none" rows={4} value={form.text} onChange={e => setForm({ ...form, text: e.target.value })} placeholder="Type your doubt here..." />
       </div>
 
-      {/* Photo upload */}
+      {/* Photo: upload OR paste URL */}
       <div>
         <label className="text-sm font-medium text-slate-300 mb-1 block">Photo (optional)</label>
         <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
           {imageUrl ? (
             <img src={imageUrl} alt="Doubt" className="w-full max-h-40 object-contain mx-auto rounded-lg" />
           ) : (
-            <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to add photo of question (max 5MB)'}</p>
+            <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to upload (max 5MB)'}</p>
           )}
           <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={uploading} />
         </label>
+        <div className="relative flex items-center py-2">
+          <div className="flex-grow border-t border-slate-700"></div>
+          <span className="flex-shrink-0 mx-3 text-slate-500 text-xs">or paste image URL</span>
+          <div className="flex-grow border-t border-slate-700"></div>
+        </div>
+        <input className="input-field" value={imageUrl} onChange={e => setImageUrl(e.target.value)}
+          placeholder="https://imgur.com/... (saves storage)" />
+        {imageUrl && (
+          <button type="button" onClick={() => setImageUrl('')}
+            className="text-xs text-red-400 mt-1 cursor-pointer">Remove image</button>
+        )}
       </div>
 
       <button type="submit" disabled={submitting || uploading} className="btn-primary w-full disabled:opacity-50">

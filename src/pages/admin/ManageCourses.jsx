@@ -2,7 +2,7 @@ import { TableSkeleton } from '../../components/ui/Skeleton'
 import { useState } from 'react'
 import { deleteItemSmart } from '../../lib/contentApi'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
-import { addDocument, updateDocument } from '../../lib/firebaseHelpers'
+import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpers'
 import { defaultCourses } from '../../data/courses'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
@@ -34,6 +34,23 @@ export default function ManageCourses() {
 
   // Step 3: Lessons
   const [lessons, setLessons] = useState([])
+
+  const [thumbUploading, setThumbUploading] = useState(false)
+
+  const handleThumbUpload = async (e) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) { toast.error('Images only'); return }
+    if (file.size > 10 * 1024 * 1024) { toast.error('Max 10MB'); return }
+    setThumbUploading(true)
+    try {
+      const path = `public/courses/${Date.now()}_${file.name}`
+      const url = await uploadFile(path, file)
+      setBasic(b => ({ ...b, thumbnail: url }))
+      toast.success('Thumbnail uploaded')
+    } catch (err) { toast.error(err.message) }
+    finally { setThumbUploading(false) }
+  }
 
   const reset = () => {
     setStep(1)
@@ -191,9 +208,26 @@ export default function ManageCourses() {
               <input className="input-field" value={basic.subjects} onChange={e => setBasic({ ...basic, subjects: e.target.value })} placeholder="Physics, Chemistry, Maths" />
             </div>
             <div>
-              <label className="text-sm text-slate-300 font-medium mb-1 block">Thumbnail URL (optional)</label>
-              <input className="input-field" value={basic.thumbnail} onChange={e => setBasic({ ...basic, thumbnail: e.target.value })} placeholder="https://... or leave blank for auto" />
-              <p className="text-xs text-slate-500 mt-1">Leave blank — auto from first lesson thumbnail</p>
+              <label className="text-sm text-slate-300 font-medium mb-1 block">Thumbnail (optional)</label>
+              <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
+                {basic.thumbnail ? (
+                  <img src={basic.thumbnail} alt="Thumbnail" className="w-full max-h-40 object-contain mx-auto rounded-lg" />
+                ) : (
+                  <p className="text-sm text-slate-400">{thumbUploading ? 'Uploading...' : 'Click to upload (max 10MB)'}</p>
+                )}
+                <input type="file" accept="image/*" className="hidden" onChange={handleThumbUpload} disabled={thumbUploading} />
+              </label>
+              <div className="relative flex items-center py-2">
+                <div className="flex-grow border-t border-slate-700"></div>
+                <span className="flex-shrink-0 mx-3 text-slate-500 text-xs">or paste image URL (saves storage)</span>
+                <div className="flex-grow border-t border-slate-700"></div>
+              </div>
+              <input className="input-field" value={basic.thumbnail} onChange={e => setBasic({ ...basic, thumbnail: e.target.value })} placeholder="https://imgur.com/... or leave blank for auto" />
+              {basic.thumbnail && (
+                <button type="button" onClick={() => setBasic({ ...basic, thumbnail: '' })}
+                  className="text-xs text-red-400 mt-1 cursor-pointer">Remove image</button>
+              )}
+              <p className="text-xs text-slate-500 mt-1">Tip: Paste an image URL (imgur, postimages) to save Firebase storage. Leave blank — auto from first lesson thumbnail.</p>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>

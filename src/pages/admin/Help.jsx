@@ -13,7 +13,7 @@ const categories = [
         what: 'Full course system with pricing variants, video lessons (YouTube), thumbnails, free/paid lessons.',
         workflow: [
           '+ Add Course → fill Basic Info (title, description, subjects comma-separated, level, duration)',
-          'Optional: upload thumbnail OR leave blank — auto-derived from first YouTube lesson',
+          'Thumbnail: upload image OR paste URL (imgur, postimages) — saves storage. Leave blank to auto-derive from first YouTube lesson.',
           'Pricing tab: add multiple variants (3-month, 6-month) with price, original price, discount, note',
           'Lessons tab: paste YouTube URL (auto-detects ID + thumbnail preview), set title/duration/free toggle',
           'Reorder lessons with up/down arrows',
@@ -342,6 +342,22 @@ export default function HelpPage() {
         {search && (
           <p className="text-xs text-slate-500 mt-2">{totalMatches} match{totalMatches !== 1 ? 'es' : ''} for "{search}"</p>
         )}
+      </div>
+
+      {/* Storage savings tip — top banner */}
+      <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-4 mb-6 flex items-start gap-3">
+        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl shrink-0">💾</div>
+        <div className="flex-1">
+          <h3 className="font-bold text-amber-300 text-sm mb-1">Save Firebase Storage — Paste URLs Instead of Uploading</h3>
+          <p className="text-xs text-slate-300 leading-relaxed">
+            Every upload form (Doubts, Gallery, Offers, Videos, PDFs, Course thumbnails, Study Material) has <b>two options</b>: click to upload <b>OR</b> paste an image / video URL. URLs cost <b>zero storage</b>.
+          </p>
+          <ul className="text-xs text-slate-400 mt-2 space-y-1 list-disc list-inside">
+            <li><b>Images</b> → upload to <a href="https://imgur.com" target="_blank" rel="noopener noreferrer" className="text-amber-300 underline hover:text-amber-200">imgur.com</a> or <a href="https://postimages.org" target="_blank" rel="noopener noreferrer" className="text-amber-300 underline hover:text-amber-200">postimages.org</a> → copy direct link → paste</li>
+            <li><b>Videos</b> → upload to YouTube as <b>Unlisted</b> → paste link (best — also playable in app)</li>
+            <li><b>PDFs</b> → upload to Google Drive → set Anyone-with-link → paste (auto-converted to direct link)</li>
+          </ul>
+        </div>
       </div>
 
       {/* Category chips */}
