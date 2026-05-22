@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument, deleteDocument, uploadFile } from '../../lib/firebaseHelpers';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
+import ExportButton from '../../components/ExportButton';
 
 const CATEGORIES = [
   { id: 'jee-main', label: 'JEE Main' },
@@ -210,9 +211,22 @@ export default function ManageMockTests() {
           <h1 className="text-2xl font-bold text-white">Mock Tests</h1>
           <p className="text-sm text-slate-400">NTA-style proctored MCQ tests</p>
         </div>
-        <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">
-          + New Test
-        </button>
+        <div className="flex gap-2">
+          <ExportButton data={tests} filename="mock_tests" columns={[
+            { key: 'title', label: 'Title' },
+            { key: 'category', label: 'Category' },
+            { key: 'difficulty', label: 'Difficulty' },
+            { key: 'duration', label: 'Duration (min)' },
+            { key: 'totalQuestions', label: 'Questions' },
+            { key: 'maxMarks', label: 'Max Marks' },
+            { key: 'marksPerQuestion', label: 'Marks per Q' },
+            { key: 'negativeMarks', label: 'Negative Marks' },
+            { key: 'description', label: 'Description' },
+          ]} />
+          <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">
+            + New Test
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6">

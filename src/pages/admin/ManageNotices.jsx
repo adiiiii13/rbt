@@ -6,6 +6,7 @@ import { addDocument, updateDocument } from '../../lib/firebaseHelpers'
 import { defaultNotices } from '../../data/notices'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 const AUDIENCES = [
   { id: 'all', label: '📢 All Students', desc: 'Every student sees this' },
@@ -94,7 +95,19 @@ export default function ManageNotices() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Manage Notices</h1><p className="text-sm text-slate-400">{notices.length} notices</p></div>
-        <button onClick={() => setModal(true)} className="btn-primary">+ Add Notice</button>
+        <div className="flex gap-2">
+          <ExportButton data={notices} filename="notices" columns={[
+            { key: 'title', label: 'Title' },
+            { key: 'content', label: 'Content' },
+            { key: 'priority', label: 'Priority' },
+            { key: 'category', label: 'Category' },
+            { key: 'audience', label: 'Audience' },
+            { key: 'targetClass', label: 'Target Class' },
+            { key: 'targetBatch', label: 'Target Batch' },
+            { key: 'date', label: 'Date' },
+          ]} />
+          <button onClick={() => setModal(true)} className="btn-primary">+ Add Notice</button>
+        </div>
       </div>
       {loading && <TableSkeleton />}
 

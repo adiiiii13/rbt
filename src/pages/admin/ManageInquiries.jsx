@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/contentApi'
 import { updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 export default function ManageInquiries() {
   const { data: inquiries, loading } = useRealtimeCollection('inquiries', 'createdAt', [])
@@ -26,6 +27,15 @@ export default function ManageInquiries() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Contact Inquiries</h1><p className="text-sm text-slate-400">{inquiries.length} total, {unreadCount} unread</p></div>
+        <ExportButton data={inquiries} filename="inquiries" columns={[
+          { key: 'name', label: 'Name' },
+          { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Phone' },
+          { key: 'message', label: 'Message' },
+          { key: 'date', label: 'Date' },
+          { key: 'read', label: 'Read' },
+          { key: 'createdAt', label: 'Created At' },
+        ]} />
       </div>
       <div className="grid grid-cols-2 gap-4 mb-6">
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Unread</p><p className="text-xl font-bold text-amber-500">{unreadCount}</p></div>

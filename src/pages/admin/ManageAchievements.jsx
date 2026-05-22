@@ -6,6 +6,7 @@ import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
 import { defaultAchievements } from '../../data/achievements';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
+import ExportButton from '../../components/ExportButton';
 
 const emptyForm = { studentName: '', course: '', result: '', year: '2025', description: '', marks: '' };
 
@@ -42,7 +43,17 @@ export default function ManageAchievements() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Manage Achievements</h1><p className="text-sm text-slate-400">{items.length} achievements</p></div>
-        <button onClick={() => setModal(true)} className="btn-primary">+ Add</button>
+        <div className="flex gap-2">
+          <ExportButton data={items} filename="achievements" columns={[
+            { key: 'studentName', label: 'Student' },
+            { key: 'course', label: 'Course' },
+            { key: 'result', label: 'Result' },
+            { key: 'marks', label: 'Marks' },
+            { key: 'year', label: 'Year' },
+            { key: 'description', label: 'Description' },
+          ]} />
+          <button onClick={() => setModal(true)} className="btn-primary">+ Add</button>
+        </div>
       </div>
       {loading && <TableSkeleton />}
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">

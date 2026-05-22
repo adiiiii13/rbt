@@ -6,6 +6,7 @@ import { formatCurrency, generateInvoiceNumber } from '../../lib/invoice'
 import InvoiceView from '../../components/InvoiceView'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 const emptyForm = { studentUid: '', studentName: '', studentEmail: '', courseName: '', description: '', amount: '', dueDate: '' }
 
@@ -176,7 +177,21 @@ export default function ManageInvoices() {
           <h1 className="text-2xl font-bold text-white">Manage Invoices</h1>
           <p className="text-sm text-slate-400">{invoices.length} invoices · {groups.length} student{groups.length !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={() => setModal(true)} className="btn-primary">+ Create Invoice</button>
+        <div className="flex gap-2">
+          <ExportButton data={invoices} filename="invoices" columns={[
+            { key: 'invoiceNumber', label: 'Invoice #' },
+            { key: 'studentName', label: 'Student' },
+            { key: 'studentEmail', label: 'Email' },
+            { key: 'courseName', label: 'Course' },
+            { key: 'description', label: 'Description' },
+            { key: 'amount', label: 'Amount (₹)' },
+            { key: 'status', label: 'Status' },
+            { key: 'issuedDate', label: 'Issued' },
+            { key: 'dueDate', label: 'Due Date' },
+            { key: 'paidAt', label: 'Paid At' },
+          ]} />
+          <button onClick={() => setModal(true)} className="btn-primary">+ Create Invoice</button>
+        </div>
       </div>
       {loading && <TableSkeleton />}
 

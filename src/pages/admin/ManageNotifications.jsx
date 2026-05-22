@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, deleteDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 export default function ManageNotifications() {
   const { data: notifications, loading } = useRealtimeCollection('notifications', { fallback: [] })
@@ -110,7 +111,18 @@ export default function ManageNotifications() {
           <h1 className="text-2xl font-bold text-white">Send Notifications</h1>
           <p className="text-sm text-slate-400">{notifications.length} delivered · {grouped.length} broadcasts</p>
         </div>
-        <button onClick={() => setModal(true)} className="btn-primary">+ Send Notification</button>
+        <div className="flex gap-2">
+          <ExportButton data={notifications} filename="notifications" columns={[
+            { key: 'subject', label: 'Subject' },
+            { key: 'message', label: 'Message' },
+            { key: 'studentName', label: 'Student' },
+            { key: 'studentEmail', label: 'Email' },
+            { key: 'audience', label: 'Audience' },
+            { key: 'read', label: 'Read' },
+            { key: 'createdAt', label: 'Sent At' },
+          ]} />
+          <button onClick={() => setModal(true)} className="btn-primary">+ Send Notification</button>
+        </div>
       </div>
       {loading && <TableSkeleton />}
 

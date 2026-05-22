@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { deleteDocument, updateDocument } from '../../lib/firebaseHelpers';
 import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
+import ExportButton from '../../components/ExportButton';
 
 function fmtDuration(sec) {
   if (!sec || sec < 0) return '—';
@@ -120,9 +121,26 @@ export default function MockResults() {
 
   return (
     <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Mock Test Results</h1>
-        <p className="text-sm text-slate-400">All student attempts with proctoring violations log</p>
+      <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Mock Test Results</h1>
+          <p className="text-sm text-slate-400">All student attempts with proctoring violations log</p>
+        </div>
+        <ExportButton data={attempts} filename="mock_attempts" columns={[
+          { key: 'studentName', label: 'Student' },
+          { key: 'studentEmail', label: 'Email' },
+          { key: 'testTitle', label: 'Test' },
+          { key: 'score', label: 'Score' },
+          { key: 'maxMarks', label: 'Max Marks' },
+          { key: 'percentage', label: '%' },
+          { key: 'correct', label: 'Correct' },
+          { key: 'wrong', label: 'Wrong' },
+          { key: 'skipped', label: 'Skipped' },
+          { key: 'status', label: 'Status' },
+          { key: 'tabSwitches', label: 'Tab Switches' },
+          { key: 'duration', label: 'Time Taken (sec)' },
+          { key: 'submittedAt', label: 'Submitted At' },
+        ]} />
       </div>
 
       {/* Stats */}

@@ -6,6 +6,7 @@ import { formatCurrency } from '../../lib/invoice'
 import { useState } from 'react'
 import Modal from '../../components/Modal'
 import InvoiceView from '../../components/InvoiceView'
+import ExportButton from '../../components/ExportButton'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 
@@ -87,6 +88,19 @@ export default function ManagePayments() {
           <h1 className="text-2xl font-bold text-white">Manage Payments</h1>
           <p className="text-sm text-slate-400">{payments.length} transactions</p>
         </div>
+        <ExportButton data={payments} filename="payments" columns={[
+          { key: 'invoiceNumber', label: 'Invoice #' },
+          { key: 'paymentId', label: 'Payment ID' },
+          { key: 'studentName', label: 'Student' },
+          { key: 'studentEmail', label: 'Email' },
+          { key: 'videoTitle', label: 'Video' },
+          { key: 'courseTitle', label: 'Course' },
+          { key: 'amount', label: 'Amount (₹)' },
+          { key: 'gpayTransactionId', label: 'UPI Txn ID' },
+          { key: 'status', label: 'Status' },
+          { key: 'verifiedAt', label: 'Verified At' },
+          { key: 'rejectedAt', label: 'Rejected At' },
+        ]} />
       </div>
 
       {/* Stats */}

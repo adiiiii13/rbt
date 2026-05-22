@@ -10,6 +10,7 @@ import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import InvoiceView from '../../components/InvoiceView';
 import { formatCurrency } from '../../lib/invoice';
+import ExportButton from '../../components/ExportButton';
 
 const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', class: 'Class 10', password: '' };
 
@@ -188,7 +189,24 @@ export default function ManageStudents() {
           <h1 className="text-2xl font-bold text-white">Manage Students</h1>
           <p className="text-sm text-slate-400">{students.length} students enrolled</p>
         </div>
-        <button onClick={() => setModal(true)} className="btn-primary shadow-lg">+ Add Student</button>
+        <div className="flex gap-2">
+          <ExportButton
+            data={students}
+            filename="students"
+            columns={[
+              { key: 'studentId', label: 'Student ID' },
+              { key: 'name', label: 'Name' },
+              { key: 'email', label: 'Email' },
+              { key: 'phone', label: 'Phone' },
+              { key: 'class', label: 'Class' },
+              { key: 'course', label: 'Course' },
+              { key: 'batch', label: 'Batch' },
+              { key: 'status', label: 'Status' },
+              { key: 'createdAt', label: 'Created At' },
+            ]}
+          />
+          <button onClick={() => setModal(true)} className="btn-primary shadow-lg">+ Add Student</button>
+        </div>
       </div>
 
       <div className="bg-[#111111] rounded-2xl border border-slate-800 shadow-sm overflow-hidden">

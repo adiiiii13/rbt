@@ -6,6 +6,7 @@ import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpe
 import { defaultVideos } from '../../data/videos'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 const emptyForm = { title: '', subject: '', class: 'Class 11', duration: '', teacher: '', videoUrl: '', thumbnailUrl: '', isFree: true, price: 0 }
 
@@ -91,6 +92,18 @@ export default function ManageVideos() {
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Demo Videos</h1><p className="text-sm text-slate-400">{videos.length} videos</p></div>
         <div className="flex gap-3">
+          <ExportButton data={videos} filename="videos" columns={[
+            { key: 'title', label: 'Title' },
+            { key: 'subject', label: 'Subject' },
+            { key: 'class', label: 'Class' },
+            { key: 'teacher', label: 'Teacher' },
+            { key: 'duration', label: 'Duration' },
+            { key: 'isFree', label: 'Free' },
+            { key: 'price', label: 'Price (₹)' },
+            { key: 'views', label: 'Views' },
+            { key: 'videoUrl', label: 'Video URL' },
+            { key: 'thumbnailUrl', label: 'Thumbnail URL' },
+          ]} />
           {videos.length > 0 && <button onClick={deleteAll} className="btn-danger text-sm">Delete All</button>}
           <button onClick={() => setModal(true)} className="btn-primary">+ Add Video</button>
         </div>

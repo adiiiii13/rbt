@@ -5,6 +5,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 const DEFAULT_CATEGORIES = ['Campus', 'Labs', 'Events', 'Facilities', 'Students']
 
@@ -169,6 +170,13 @@ export default function ManageGallery() {
           <p className="text-sm text-slate-400">{images.length} images · {events.length} events</p>
         </div>
         <div className="flex gap-2">
+          <ExportButton data={images} filename="gallery" columns={[
+            { key: 'title', label: 'Title' },
+            { key: 'category', label: 'Category' },
+            { key: 'event', label: 'Event' },
+            { key: 'imageUrl', label: 'Image URL' },
+            { key: 'order', label: 'Order' },
+          ]} />
           <button onClick={openBulk} className="bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 text-sm font-bold px-4 py-2 rounded-lg">📦 Bulk Upload</button>
           <button onClick={openCreate} className="btn-primary">+ Add Image</button>
         </div>

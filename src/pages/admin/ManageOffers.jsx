@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 const emptyForm = {
   title: '', badge: 'LIMITED TIME', message: '', imageUrl: '',
@@ -66,7 +67,19 @@ export default function ManageOffers() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Manage Offers</h1><p className="text-sm text-slate-400">{offers.length} offers</p></div>
-        <button onClick={() => setModal(true)} className="btn-primary">+ Add Offer</button>
+        <div className="flex gap-2">
+          <ExportButton data={offers} filename="offers" columns={[
+            { key: 'title', label: 'Title' },
+            { key: 'badge', label: 'Badge' },
+            { key: 'message', label: 'Message' },
+            { key: 'ctaText', label: 'CTA' },
+            { key: 'whatsappPhone', label: 'WhatsApp' },
+            { key: 'template', label: 'Template' },
+            { key: 'active', label: 'Active' },
+            { key: 'createdAt', label: 'Created' },
+          ]} />
+          <button onClick={() => setModal(true)} className="btn-primary">+ Add Offer</button>
+        </div>
       </div>
       {loading && <TableSkeleton />}
 

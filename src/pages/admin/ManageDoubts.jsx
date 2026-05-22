@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { updateDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 export default function ManageDoubts() {
   const { data: doubts, loading } = useRealtimeCollection('doubts', { fallback: [] })
@@ -28,6 +29,16 @@ export default function ManageDoubts() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Doubts</h1><p className="text-sm text-slate-400">{doubts.length} total, {pendingCount} pending</p></div>
+        <ExportButton data={doubts} filename="doubts" columns={[
+          { key: 'studentName', label: 'Student' },
+          { key: 'studentEmail', label: 'Email' },
+          { key: 'studentType', label: 'Type' },
+          { key: 'subject', label: 'Subject' },
+          { key: 'text', label: 'Question' },
+          { key: 'status', label: 'Status' },
+          { key: 'adminReply', label: 'Admin Reply' },
+          { key: 'imageUrl', label: 'Image URL' },
+        ]} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Pending</p><p className="text-xl font-bold text-amber-500">{pendingCount}</p></div>

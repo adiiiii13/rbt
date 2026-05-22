@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, deleteDocument, uploadFile } from '../../lib/firebaseHelpers';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
+import ExportButton from '../../components/ExportButton';
 
 const TYPES = [
   { value: 'folder', label: '📁 Folder', accept: null },
@@ -81,9 +82,19 @@ export default function ManageStudyMaterial() {
           <h1 className="text-2xl font-bold text-white">Study Material</h1>
           <p className="text-sm text-slate-400">Folders, videos, images, PDFs — nested unlimited depth</p>
         </div>
-        <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">
-          + Add Item
-        </button>
+        <div className="flex gap-2">
+          <ExportButton data={items} filename="study_material" columns={[
+            { key: 'name', label: 'Name' },
+            { key: 'type', label: 'Type' },
+            { key: 'subject', label: 'Subject' },
+            { key: 'url', label: 'URL' },
+            { key: 'thumbnail', label: 'Thumbnail' },
+            { key: 'parentId', label: 'Parent Folder' },
+          ]} />
+          <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">
+            + Add Item
+          </button>
+        </div>
       </div>
 
       {/* Breadcrumb */}

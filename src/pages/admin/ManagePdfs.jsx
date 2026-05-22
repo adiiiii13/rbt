@@ -6,6 +6,7 @@ import { addDocument, updateDocument, uploadFile } from '../../lib/firebaseHelpe
 import { defaultPdfs } from '../../data/pdfs';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
+import ExportButton from '../../components/ExportButton';
 
 const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '', fileSize: 0, description: '' };
 
@@ -70,7 +71,21 @@ export default function ManagePdfs() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Manage PDFs</h1><p className="text-sm text-slate-400">{pdfs.length} test papers</p></div>
-        <button onClick={() => setModal(true)} className="btn-primary">+ Add PDF</button>
+        <div className="flex gap-2">
+          <ExportButton data={pdfs} filename="pdfs" columns={[
+            { key: 'title', label: 'Title' },
+            { key: 'class', label: 'Class' },
+            { key: 'subject', label: 'Subject' },
+            { key: 'examType', label: 'Exam Type' },
+            { key: 'date', label: 'Date' },
+            { key: 'url', label: 'URL' },
+            { key: 'fileName', label: 'File Name' },
+            { key: 'fileSize', label: 'Size' },
+            { key: 'downloads', label: 'Downloads' },
+            { key: 'description', label: 'Description' },
+          ]} />
+          <button onClick={() => setModal(true)} className="btn-primary">+ Add PDF</button>
+        </div>
       </div>
       {loading && <TableSkeleton />}
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">

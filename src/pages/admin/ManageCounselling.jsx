@@ -4,6 +4,7 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { updateDocument, deleteDocument, addDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
+import ExportButton from '../../components/ExportButton'
 
 // Writes notification doc with keys matching student-side query
 // (studentUid + subject + message + link). Older fields kept for back-compat.
@@ -129,6 +130,19 @@ export default function ManageCounselling() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Counselling Bookings</h1><p className="text-sm text-slate-400">{bookings.length} total</p></div>
+        <ExportButton data={bookings} filename="counselling_bookings" columns={[
+          { key: 'studentName', label: 'Student' },
+          { key: 'parentName', label: 'Guardian' },
+          { key: 'phone', label: 'Phone' },
+          { key: 'email', label: 'Email' },
+          { key: 'topic', label: 'Topic' },
+          { key: 'preferredDate', label: 'Date' },
+          { key: 'preferredTime', label: 'Time' },
+          { key: 'studentType', label: 'Type' },
+          { key: 'status', label: 'Status' },
+          { key: 'meetingLink', label: 'Meet Link' },
+          { key: 'rejectionReason', label: 'Rejection Reason' },
+        ]} />
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800"><p className="text-xs text-slate-400 mb-1">Pending</p><p className="text-xl font-bold text-amber-500">{pendingCount}</p></div>

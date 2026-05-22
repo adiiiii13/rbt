@@ -7,6 +7,7 @@ import { defaultCourses } from '../../data/courses'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 import { BookOpenIcon, FlaskIcon, GraduationCapIcon, RocketIcon, HeartPulseIcon } from '../../components/Icons'
+import ExportButton from '../../components/ExportButton'
 
 const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: GraduationCapIcon, Rocket: RocketIcon, HeartPulse: HeartPulseIcon }
 
@@ -126,7 +127,19 @@ export default function ManageCourses() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div><h1 className="text-2xl font-bold text-white">Manage Courses</h1><p className="text-sm text-slate-400">{courses.length} courses</p></div>
-        <button onClick={openCreate} className="btn-primary">+ Add Course</button>
+        <div className="flex gap-2">
+          <ExportButton data={courses} filename="courses" columns={[
+            { key: 'title', label: 'Title' },
+            { key: 'level', label: 'Level' },
+            { key: 'duration', label: 'Duration' },
+            { key: 'subjects', label: 'Subjects' },
+            { key: 'isFree', label: 'Free' },
+            { key: 'variants', label: 'Pricing Plans', format: (v) => Array.isArray(v) ? v.map(x => `${x.months}mo:₹${x.price}`).join(' | ') : '' },
+            { key: 'lessons', label: 'Lesson Count', format: (v) => Array.isArray(v) ? v.length : 0 },
+            { key: 'description', label: 'Description' },
+          ]} />
+          <button onClick={openCreate} className="btn-primary">+ Add Course</button>
+        </div>
       </div>
       {loading && <TableSkeleton />}
 
