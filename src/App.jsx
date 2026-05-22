@@ -9,6 +9,7 @@ import DashboardLayout from './components/DashboardLayout'
 import LoadingScreen from './components/LoadingScreen'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfferPopup from './components/OfferPopup'
+import ProfilePopup from './components/ProfilePopup'
 import { GridSkeleton } from './components/ui/Skeleton'
 
 // Public Pages (lazy)
@@ -274,6 +275,10 @@ function AppContent() {
             {/* Offer popup - shows on public pages only */}
             {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !location.pathname.includes('login') && (
               <OfferPopup />
+            )}
+            {/* Profile popup for batch students who haven't filled profile */}
+            {!initialLoading && user && user.role === 'student' && user.batch && !user.className && (
+              <ProfilePopup />
             )}
           </motion.div>
         )}
