@@ -151,10 +151,10 @@ function AppContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {!location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && (
-              <Navbar 
-                onOpenLogin={() => setShowAutoLogin(true)} 
-                onOpenSignup={() => setShowSignupModal(true)} 
+            {!location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !/^\/(?:student\/|basic\/)?test-papers\/mock\/[^/]+/.test(location.pathname) && (
+              <Navbar
+                onOpenLogin={() => setShowAutoLogin(true)}
+                onOpenSignup={() => setShowSignupModal(true)}
               />
             )}
             <Suspense fallback={<RouteFallback />}>

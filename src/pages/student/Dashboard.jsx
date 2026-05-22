@@ -271,8 +271,14 @@ export default function StudentDashboard() {
               <div className="space-y-2">
                 {myNotifications.map((n) => (
                   <div key={n.id} className="p-3 rounded-xl bg-amber-500/5 border border-amber-500/10">
-                    <p className="text-sm text-white font-medium">{n.subject}</p>
+                    <p className="text-sm text-white font-medium">{n.subject || n.title}</p>
                     <p className="text-xs text-slate-400 mt-1">{n.message}</p>
+                    {n.link && (
+                      <a href={n.link} target="_blank" rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-green-brand hover:text-green-light bg-green-brand/10 hover:bg-green-brand/20 px-3 py-1.5 rounded-lg transition-colors">
+                        🔗 Open Link
+                      </a>
+                    )}
                   </div>
                 ))}
               </div>

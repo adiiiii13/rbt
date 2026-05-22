@@ -271,7 +271,7 @@ export default function MockTestRunner() {
     return (
       <div className="min-h-screen bg-[#050B14] py-8 px-4">
         <div className="max-w-4xl mx-auto">
-          <Link to="/student/test-papers/mock" className="text-slate-400 hover:text-white text-sm no-underline mb-6 inline-block">← Back</Link>
+          <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-white text-sm bg-transparent border-0 cursor-pointer mb-6 inline-block">← Back</button>
           <div className="bg-white/5 border border-white/10 rounded-3xl p-8">
             <h1 className="text-3xl font-bold text-white mb-2">{test.title}</h1>
             <p className="text-slate-400 mb-6">{test.description}</p>
@@ -530,7 +530,7 @@ export default function MockTestRunner() {
               <button
                 onClick={() => {
                   if (selected !== undefined) handleToggleMark(q.id);
-                  if (currentQ < totalQ - 1) setCurrentQ(c => c + 1);
+                  setCurrentQ(c => (c + 1) % totalQ);
                 }}
                 className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold"
               >
@@ -553,12 +553,12 @@ export default function MockTestRunner() {
               </button>
               <button
                 onClick={() => {
-                  if (currentQ < totalQ - 1) setCurrentQ(c => c + 1);
+                  // Wraps to Q1 from last question — student requested
+                  setCurrentQ(c => (c + 1) % totalQ);
                 }}
-                disabled={currentQ === totalQ - 1}
-                className="px-5 py-2 rounded bg-green-600 hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-bold"
+                className="px-5 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-sm font-bold"
               >
-                Save & Next →
+                {currentQ === totalQ - 1 ? 'Save & Go to Q1 ↻' : 'Save & Next →'}
               </button>
             </div>
           </div>

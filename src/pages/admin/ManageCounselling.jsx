@@ -5,16 +5,26 @@ import { updateDocument, deleteDocument, addDocument } from '../../lib/firebaseH
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 
-async function notifyStudent({ studentId, studentEmail, title, message, link = '' }) {
+// Writes notification doc with keys matching student-side query
+// (studentUid + subject + message + link). Older fields kept for back-compat.
+async function notifyStudent({ studentId, studentEmail, studentName, title, message, link = '' }) {
   if (!studentId && !studentEmail) return;
   try {
     await addDocument('notifications', {
+      studentUid: studentId || '',
+      studentName: studentName || '',
+      studentEmail: studentEmail || '',
+      subject: title,
+      message,
+      link,
+      audience: 'counselling',
+      read: false,
+      createdAt: new Date(),
+      // Back-compat fields (old schema)
       targetType: 'specific',
       targetStudentId: studentId || null,
       targetStudentEmail: studentEmail || null,
-      title, message, link,
-      read: false,
-      createdAt: new Date(),
+      title,
     });
   } catch (err) { console.error('[notify]', err); }
 }
@@ -27,7 +37,7 @@ export default function ManageCounselling() {
   const [meetLink, setMeetLink] = useState('')
   const [rejectModal, setRejectModal] = useState(false)
   const [rejectReason, setRejectReason] = useState('')
-  const [editForm, setEditForm] = useState({ topic: '', studentName: '', phone: '', preferredDate: '', preferredTime: '', status: 'pending', meetingLink: '' })
+  const [editForm, setEditForm] = useState({ topic: '', studentName: '', parentName: '', phone: '', preferredDate: '', preferredTime: '', status: 'pending', meetingLink: '' })
 
   const approve = async () => {
     if (!meetLink || !selected) { toast.error('Add meet link'); return }
@@ -38,10 +48,11 @@ export default function ManageCounselling() {
         rejectionReason: '', // clear if previously rejected
       })
       await notifyStudent({
-        studentId: selected.studentId,
+        studentId: selected.studentUid || selected.studentId,
         studentEmail: selected.email,
+        studentName: selected.studentName,
         title: 'Counselling Session Approved',
-        message: `Your session "${selected.topic}" on ${selected.preferredDate} ${selected.preferredTime || ''} is confirmed.`,
+        message: `Your session "${selected.topic}" on ${selected.preferredDate} ${selected.preferredTime || ''} is confirmed. Join: ${meetLink}`,
         link: meetLink,
       })
       toast.success('Approved + student notified')
@@ -59,8 +70,9 @@ export default function ManageCounselling() {
         meetingLink: '', // clear any prior link
       })
       await notifyStudent({
-        studentId: selected.studentId,
+        studentId: selected.studentUid || selected.studentId,
         studentEmail: selected.email,
+        studentName: selected.studentName,
         title: 'Counselling Session Update',
         message: `Your session "${selected.topic}" could not be confirmed. Reason: ${rejectReason || 'Schedule conflict'}. Book another slot.`,
       })
@@ -91,6 +103,7 @@ export default function ManageCounselling() {
     setEditForm({
       topic: b.topic || '',
       studentName: b.studentName || '',
+      parentName: b.parentName || '',
       phone: b.phone || '',
       preferredDate: b.preferredDate || '',
       preferredTime: b.preferredTime || '',
@@ -126,11 +139,12 @@ export default function ManageCounselling() {
         <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
           <div className="table-container">
             <table>
-              <thead><tr><th className="text-white">Topic</th><th className="text-white">Student</th><th className="text-white">Type</th><th className="text-white">Date / Time</th><th className="text-white">Contact</th><th className="text-white">Status</th><th className="text-white">Meet</th><th className="text-white">Actions</th></tr></thead>
+              <thead><tr><th className="text-white">Topic</th><th className="text-white">Student</th><th className="text-white">Guardian</th><th className="text-white">Type</th><th className="text-white">Date / Time</th><th className="text-white">Contact</th><th className="text-white">Status</th><th className="text-white">Meet</th><th className="text-white">Actions</th></tr></thead>
               <tbody>{bookings.map(b => (
                 <tr key={b.id}>
                   <td className="text-white font-medium text-sm">{b.topic}</td>
-                  <td className="text-slate-300 text-sm">{b.studentName}{b.parentName ? ` & ${b.parentName}` : ''}</td>
+                  <td className="text-slate-300 text-sm">{b.studentName}</td>
+                  <td className="text-slate-300 text-sm">{b.parentName || <span className="text-slate-600 italic text-xs">—</span>}</td>
                   <td><span className={`badge text-xs ${b.studentType === 'Batch Student' ? 'badge-green' : 'badge-navy'}`}>{b.studentType || 'Unknown'}</span></td>
                   <td className="text-slate-400 text-sm">{b.preferredDate}<br/>{b.preferredTime}</td>
                   <td className="text-slate-400 text-sm">{b.phone}{b.email ? <><br/>{b.email}</> : ''}</td>
@@ -184,7 +198,10 @@ export default function ManageCounselling() {
       <Modal isOpen={editModal} onClose={() => setEditModal(false)} title="Edit Booking">
         <div className="space-y-4">
           <div><label className="text-sm font-medium text-slate-300 mb-1 block">Topic</label><input className="input-field" value={editForm.topic} onChange={e => setEditForm({...editForm, topic: e.target.value})} /></div>
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Student Name</label><input className="input-field" value={editForm.studentName} onChange={e => setEditForm({...editForm, studentName: e.target.value})} /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Student Name</label><input className="input-field" value={editForm.studentName} onChange={e => setEditForm({...editForm, studentName: e.target.value})} /></div>
+            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Guardian Name</label><input className="input-field" value={editForm.parentName} onChange={e => setEditForm({...editForm, parentName: e.target.value})} placeholder="Parent / guardian" /></div>
+          </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Phone</label><input className="input-field" value={editForm.phone} onChange={e => setEditForm({...editForm, phone: e.target.value})} /></div>
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Status</label><select className="input-field" value={editForm.status} onChange={e => setEditForm({...editForm, status: e.target.value})}><option value="pending">Pending</option><option value="approved">Approved</option><option value="completed">Completed</option><option value="rejected">Rejected</option></select></div>
