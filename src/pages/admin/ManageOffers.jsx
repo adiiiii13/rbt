@@ -110,15 +110,46 @@ export default function ManageOffers() {
           <div><label className="text-xs text-slate-400 block mb-1">Title *</label><input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
           <div><label className="text-xs text-slate-400 block mb-1">Message *</label><textarea rows={2} className="input-field resize-none" value={form.message} onChange={e => setForm({...form, message: e.target.value})} /></div>
           <div>
-            <label className="text-xs text-slate-400 block mb-1">Offer Image URL</label>
-            <div className="flex gap-3 items-center">
-              {form.imageUrl ? (
-                <img src={form.imageUrl} alt="" className="w-24 h-16 rounded-lg object-cover border border-slate-700" />
-              ) : null}
-              <input className="input-field flex-1" value={form.imageUrl} onChange={e => setForm({...form, imageUrl: e.target.value})} placeholder="https://... or paste Google Photos / Imgur link" />
-              {form.imageUrl && <button onClick={() => setForm({...form, imageUrl: ''})} className="text-red-400 text-xs cursor-pointer shrink-0">Remove</button>}
-            </div>
-            <p className="text-[10px] text-slate-500 mt-1">Shows in popup banner. Use Google Photos / Imgur / any image URL.</p>
+            <label className="text-xs text-slate-400 block mb-2">Offer Banner Image</label>
+            {form.imageUrl ? (
+              <div className="flex gap-3 items-center">
+                <img src={form.imageUrl} alt="" className="w-32 h-20 rounded-lg object-cover border border-slate-700" />
+                <button onClick={() => setForm({...form, imageUrl: ''})} className="text-red-400 text-sm cursor-pointer">Remove</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Upload */}
+                <label className="border-2 border-dashed border-slate-600 rounded-xl p-3 text-center cursor-pointer hover:border-green-brand transition-all block">
+                  <p className="text-sm text-slate-300">Upload Photo</p>
+                  <p className="text-[10px] text-slate-500">Auto-compressed</p>
+                  <input type="file" accept="image/*" hidden onChange={e => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    if (!file.type.startsWith('image/')) { toast.error('Images only'); return }
+                    const reader = new FileReader()
+                    reader.onload = (ev) => {
+                      const img = new Image()
+                      img.onload = () => {
+                        const canvas = document.createElement('canvas')
+                        let w = img.width, h = img.height
+                        if (w > 800) { h = Math.round(h * 800 / w); w = 800 }
+                        canvas.width = w; canvas.height = h
+                        canvas.getContext('2d').drawImage(img, 0, 0, w, h)
+                        const dataUrl = canvas.toDataURL('image/jpeg', 0.6)
+                        setForm({...form, imageUrl: dataUrl})
+                        toast.success('Photo ready')
+                      }
+                      img.src = ev.target.result
+                    }
+                    reader.readAsDataURL(file)
+                    e.target.value = ''
+                  }} />
+                </label>
+                {/* Or URL */}
+                <input className="input-field" value={''} onChange={e => setForm({...form, imageUrl: e.target.value})} placeholder="or paste image URL" />
+              </div>
+            )}
+            <p className="text-[10px] text-slate-500 mt-1">Upload photo or paste URL. Shows in popup banner.</p>
           </div>
 
           {/* Template picker — visual cards */}
