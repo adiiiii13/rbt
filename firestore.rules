@@ -125,6 +125,30 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Course-specific doubts: student create own; admin read all; student read own; admin update for answer
+    match /courseDoubts/{doc} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow update: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
+    // Course-specific inquiries
+    match /courseInquiries/{doc} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Course-specific issue reports
+    match /courseReports/{doc} {
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
     // Guest access codes: admin only
     match /guestCodes/{doc} {
       allow read, write: if isAdmin();
