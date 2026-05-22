@@ -89,7 +89,7 @@ export default function ManageVideos() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <div><h1 className="text-2xl font-bold text-white">Manage Videos</h1><p className="text-sm text-slate-400">{videos.length} videos</p></div>
+        <div><h1 className="text-2xl font-bold text-white">Demo Videos</h1><p className="text-sm text-slate-400">{videos.length} videos</p></div>
         <div className="flex gap-3">
           {videos.length > 0 && <button onClick={deleteAll} className="btn-danger text-sm">Delete All</button>}
           <button onClick={() => setModal(true)} className="btn-primary">+ Add Video</button>

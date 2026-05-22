@@ -105,7 +105,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/mock-tests', label: 'Manage Mock Tests', icon: <IC.file size={18} /> },
     { to: '/admin/mock-results', label: 'Mock Results', icon: <IC.trophy size={18} /> },
     { to: '/admin/study-material', label: 'Study Material', icon: <IC.file size={18} /> },
-    { to: '/admin/videos', label: 'Manage Videos', icon: <IC.play size={18} /> },
+    { to: '/admin/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
     { to: '/admin/gallery', label: 'Manage Gallery', icon: <IC.users size={18} /> },
     { to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
     { to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
