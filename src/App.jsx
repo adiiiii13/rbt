@@ -47,6 +47,7 @@ const Payment = lazy(() => import('./pages/student/Payment'))
 const Invoices = lazy(() => import('./pages/student/Invoices'))
 const StudentDoubts = lazy(() => import('./pages/student/Doubts'))
 const StudentMockResults = lazy(() => import('./pages/student/MockResults'))
+const StudentProfile = lazy(() => import('./pages/student/Profile'))
 
 // Basic Pages (lazy)
 const BasicDashboard = lazy(() => import('./pages/basic/Dashboard'))
@@ -200,6 +201,7 @@ function AppContent() {
                     <Route path="invoices" element={<Invoices />} />
                     <Route path="doubts" element={<StudentDoubts />} />
                     <Route path="mock-results" element={<StudentMockResults />} />
+                    <Route path="profile" element={<StudentProfile />} />
                   </Route>
 
                   {/* Basic Routes (limited access) */}

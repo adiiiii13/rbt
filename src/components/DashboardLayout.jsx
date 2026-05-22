@@ -88,6 +88,7 @@ export default function DashboardLayout({ type }) {
     { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
     { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
     { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
+    { to: '/student/profile', label: 'Profile', icon: <IC.users size={18} /> },
   ]
 
   const basicLinks = [
