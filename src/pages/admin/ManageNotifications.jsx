@@ -17,7 +17,7 @@ export default function ManageNotifications() {
   const [search, setSearch] = useState('')
 
   const classes = useMemo(() => {
-    const set = new Set(students.map(s => s.class).filter(Boolean));
+    const set = new Set(students.map(s => s.className || s.class).filter(Boolean));
     return Array.from(set).sort();
   }, [students])
 
@@ -33,7 +33,7 @@ export default function ManageNotifications() {
 
   const recipients = useMemo(() => {
     if (audience === 'all') return students
-    if (audience === 'class') return students.filter(s => s.class === classFilter)
+    if (audience === 'class') return students.filter(s => (s.className || s.class) === classFilter)
     return students.filter(s => selectedIds.has(s.id || s.uid))
   }, [audience, students, selectedIds, classFilter])
 
