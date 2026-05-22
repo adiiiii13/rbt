@@ -1,30 +1,24 @@
-import { TableSkeleton } from '../../components/ui/Skeleton';
-import { useState } from 'react';
-import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
-import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
-import toast from 'react-hot-toast';
-import Modal from '../../components/Modal';
+import { TableSkeleton } from '../../components/ui/Skeleton'
+import { useState } from 'react'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
+import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
+import toast from 'react-hot-toast'
+import Modal from '../../components/Modal'
 
 const emptyForm = {
-  title: '',
-  badge: 'LIMITED TIME',
-  message: '',
-  whatsappMessage: '',
-  whatsappPhone: '918888888888',
-  ctaText: 'Enquire on WhatsApp',
-  active: true,
-  template: 'classic',
-  bgColor: '#16a34a',
-  bgColor2: '#0ea5e9',
-};
+  title: '', badge: 'LIMITED TIME', message: '',
+  whatsappMessage: '', whatsappPhone: '918888888888',
+  ctaText: 'Enquire on WhatsApp', active: true,
+  template: 'classic', bgColor: '#16a34a', bgColor2: '#0ea5e9',
+}
 
 const TEMPLATES = [
-  { id: 'classic', name: 'Classic', desc: 'Centered popup with gradient', icon: '🎯', color: 'from-green-500 to-emerald-600' },
-  { id: 'fullscreen', name: 'Fullscreen', desc: 'Big dramatic overlay', icon: '🌟', color: 'from-blue-500 to-indigo-600' },
-  { id: 'bottombar', name: 'Bottom Bar', desc: 'Slides up from bottom', icon: '📢', color: 'from-orange-500 to-red-500' },
-  { id: 'side', name: 'Side Panel', desc: 'Slides in from right side', icon: '⚡', color: 'from-purple-500 to-pink-500' },
-  { id: 'card', name: 'Dark Card', desc: 'Dark card with color accent strip', icon: '💎', color: 'from-teal-500 to-cyan-500' },
-];
+  { id: 'classic', name: 'Classic Popup', desc: 'Centered gradient popup — smooth slide-up', icon: '🎯', preview: 'from-green-500 to-emerald-600' },
+  { id: 'fullscreen', name: 'Fullscreen Takeover', desc: 'Full-screen dramatic overlay — big impact', icon: '🌟', preview: 'from-blue-500 to-indigo-600' },
+  { id: 'bottombar', name: 'Bottom Bar', desc: 'Fixed bar at bottom — non-intrusive like mobile notifications', icon: '📢', preview: 'from-orange-500 to-red-500' },
+  { id: 'side', name: 'Side Panel', desc: 'Slides in from right side — like a drawer', icon: '⚡', preview: 'from-purple-500 to-pink-500' },
+  { id: 'split', name: 'Split Banner', desc: 'Left visual + right text — modern split layout', icon: '🧩', preview: 'from-teal-500 to-cyan-500' },
+]
 
 const COLOR_PRESETS = [
   { name: 'Green', bg: '#16a34a', bg2: '#10b981' },
@@ -32,43 +26,41 @@ const COLOR_PRESETS = [
   { name: 'Ocean', bg: '#0ea5e9', bg2: '#6366f1' },
   { name: 'Royal', bg: '#7c3aed', bg2: '#db2777' },
   { name: 'Gold', bg: '#facc15', bg2: '#f59e0b' },
-];
+]
 
 export default function ManageOffers() {
-  const { data: offers, loading } = useRealtimeCollection('offers');
-  const [modal, setModal] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyForm);
+  const { data: offers, loading } = useRealtimeCollection('offers')
+  const [modal, setModal] = useState(false)
+  const [editing, setEditing] = useState(null)
+  const [form, setForm] = useState(emptyForm)
 
   const save = async () => {
-    if (!form.title || !form.message) { toast.error('Title and message required'); return; }
+    if (!form.title || !form.message) { toast.error('Title and message required'); return }
     try {
       if (editing) {
-        await updateDocument('offers', editing.id, form);
-        toast.success('Offer updated');
+        await updateDocument('offers', editing.id, form)
+        toast.success('Offer updated')
       } else {
-        await addDocument('offers', { ...form, createdAt: new Date() });
-        toast.success('Offer created');
+        await addDocument('offers', { ...form, createdAt: new Date() })
+        toast.success('Offer created')
       }
-      closeModal();
-    } catch (err) { toast.error(err.message); }
-  };
+      closeModal()
+    } catch (err) { toast.error(err.message) }
+  }
 
-  const toggleActive = async (offer) => {
-    try { await updateDocument('offers', offer.id, { active: !offer.active }); toast.success(offer.active ? 'Deactivated' : 'Activated'); }
-    catch (err) { toast.error(err.message); }
-  };
+  const toggleActive = async (o) => {
+    try { await updateDocument('offers', o.id, { active: !o.active }); toast.success(o.active ? 'Deactivated' : 'Activated') }
+    catch (err) { toast.error(err.message) }
+  }
 
   const remove = async (id) => {
-    if (!confirm('Delete this offer?')) return;
-    try { await deleteDocument('offers', id); toast.success('Deleted'); }
-    catch (err) { toast.error(err.message); }
-  };
+    if (!confirm('Delete?')) return
+    try { await deleteDocument('offers', id); toast.success('Deleted') }
+    catch (err) { toast.error(err.message) }
+  }
 
-  const openEdit = (o) => { setEditing(o); setForm({ ...emptyForm, ...o }); setModal(true); };
-  const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
-
-  const gradientStyle = (bg, bg2) => ({ background: `linear-gradient(135deg, ${bg}, ${bg2})` });
+  const openEdit = (o) => { setEditing(o); setForm({ ...emptyForm, ...o }); setModal(true) }
+  const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm) }
 
   return (
     <div>
@@ -78,136 +70,103 @@ export default function ManageOffers() {
       </div>
       {loading && <TableSkeleton />}
 
-      {/* Template gallery */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6">
-        {TEMPLATES.map(t => (
-          <div key={t.id} className={`bg-gradient-to-br ${t.color} rounded-xl p-3 text-center`}>
-            <span className="text-2xl block mb-1">{t.icon}</span>
-            <p className="text-white text-xs font-bold">{t.name}</p>
-          </div>
-        ))}
-      </div>
-
+      {/* Active offers */}
       <div className="space-y-4">
-        {offers.map(o => (
-          <div key={o.id} className="rounded-2xl overflow-hidden border border-slate-800">
-            <div className="p-6 relative text-white" style={gradientStyle(o.bgColor || '#16a34a', o.bgColor2 || '#0ea5e9')}>
-              <div className="absolute top-3 right-3 flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${o.active ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-slate-500'}`} />
-                <span className="text-[10px] bg-black/30 px-2 py-1 rounded font-bold">{TEMPLATES.find(t => t.id === o.template)?.name || 'Classic'}</span>
+        {offers.map(o => {
+          const tmpl = TEMPLATES.find(t => t.id === o.template) || TEMPLATES[0]
+          return (
+            <div key={o.id} className="rounded-2xl overflow-hidden border border-slate-800">
+              <div className="p-6 relative text-white"
+                style={{ background: `linear-gradient(135deg, ${o.bgColor || '#16a34a'}, ${o.bgColor2 || '#0ea5e9'})` }}>
+                <div className="absolute top-3 right-3 flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${o.active ? 'bg-green-400 shadow-lg shadow-green-400/50' : 'bg-slate-500'}`} />
+                  <span className="text-[10px] bg-black/30 px-2 py-1 rounded font-bold">{tmpl.icon} {tmpl.name}</span>
+                </div>
+                {o.badge && <span className="inline-block text-[10px] font-bold tracking-widest bg-black/30 px-2 py-1 rounded mb-2">{o.badge}</span>}
+                <h3 className="font-bold text-2xl mb-1">{o.title}</h3>
+                <p className="text-sm opacity-90 max-w-xl">{o.message}</p>
               </div>
-              {o.badge && <span className="inline-block text-[10px] font-bold tracking-widest bg-black/30 px-2 py-1 rounded mb-2">{o.badge}</span>}
-              <h3 className="font-bold text-2xl mb-1">{o.title}</h3>
-              <p className="text-sm opacity-90 max-w-xl">{o.message}</p>
-              <div className="mt-3 inline-flex items-center gap-2 bg-black/30 px-4 py-2 rounded-lg text-sm font-bold">
-                {o.ctaText} →
+              <div className="bg-[#111111] p-3 flex items-center justify-between text-xs">
+                <span className="text-slate-500">WhatsApp: {o.whatsappPhone}</span>
+                <div className="flex gap-2">
+                  <button onClick={() => toggleActive(o)} className={`cursor-pointer ${o.active ? 'text-amber-400' : 'text-green-400'}`}>{o.active ? 'Deactivate' : 'Activate'}</button>
+                  <button onClick={() => openEdit(o)} className="text-blue-400 cursor-pointer">Edit</button>
+                  <button onClick={() => remove(o.id)} className="text-red-400 cursor-pointer">Delete</button>
+                </div>
               </div>
             </div>
-            <div className="bg-[#111111] p-3 flex items-center justify-between text-xs">
-              <div className="flex gap-3 text-slate-500">
-                <span>WhatsApp: {o.whatsappPhone}</span>
-              </div>
-              <div className="flex gap-2 shrink-0 ml-4">
-                <button onClick={() => toggleActive(o)} className={`text-sm cursor-pointer ${o.active ? 'text-amber-400' : 'text-green-400'}`}>{o.active ? 'Deactivate' : 'Activate'}</button>
-                <button onClick={() => openEdit(o)} className="text-sm text-blue-400 cursor-pointer">Edit</button>
-                <button onClick={() => remove(o.id)} className="text-sm text-red-400 cursor-pointer">Delete</button>
-              </div>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Create/Edit Modal */}
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Offer' : 'Add Offer'} size="lg">
-        <div className="grid lg:grid-cols-2 gap-4">
-          {/* Form */}
-          <div className="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Badge text</label>
-              <input className="input-field" value={form.badge} onChange={e => setForm({ ...form, badge: e.target.value })} placeholder="LIMITED TIME" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Title *</label>
-              <input className="input-field" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Summer Special 40% OFF" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">Message *</label>
-              <textarea rows={3} className="input-field resize-none" value={form.message} onChange={e => setForm({ ...form, message: e.target.value })} placeholder="Enroll now and unlock all courses..." />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 block mb-1">CTA Button Text</label>
-              <input className="input-field" value={form.ctaText} onChange={e => setForm({ ...form, ctaText: e.target.value })} />
-            </div>
-
-            {/* Template picker */}
-            <div>
-              <label className="text-xs text-slate-400 block mb-2">Template (popup design)</label>
-              <div className="space-y-2">
-                {TEMPLATES.map(t => (
-                  <button key={t.id} onClick={() => setForm({ ...form, template: t.id })}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all cursor-pointer ${
-                      form.template === t.id ? 'bg-green-brand/15 border-2 border-green-brand' : 'bg-white/5 border-2 border-transparent hover:border-white/10'
-                    }`}>
-                    <span className="text-2xl shrink-0">{t.icon}</span>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-bold">{t.name}</p>
-                      <p className="text-slate-400 text-xs">{t.desc}</p>
-                    </div>
-                    {form.template === t.id && (
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="text-green-brand shrink-0"><polyline points="20 6 9 17 4 12" /></svg>
-                    )}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Colors */}
-            <div>
-              <label className="text-xs text-slate-400 block mb-2">Colors</label>
-              <div className="flex flex-wrap gap-2 mb-2">
-                {COLOR_PRESETS.map(p => (
-                  <button key={p.name} type="button" onClick={() => setForm({ ...form, bgColor: p.bg, bgColor2: p.bg2 })}
-                    className="h-8 w-16 rounded-lg border-2 border-transparent hover:border-white/30 cursor-pointer"
-                    style={{ background: `linear-gradient(135deg, ${p.bg}, ${p.bg2})` }} title={p.name} />
-                ))}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div><label className="text-[10px] text-slate-500">Primary</label><input type="color" className="input-field h-8 w-full" value={form.bgColor} onChange={e => setForm({ ...form, bgColor: e.target.value })} /></div>
-                <div><label className="text-[10px] text-slate-500">Secondary</label><input type="color" className="input-field h-8 w-full" value={form.bgColor2} onChange={e => setForm({ ...form, bgColor2: e.target.value })} /></div>
-              </div>
-            </div>
-
-            {/* WhatsApp */}
-            <div><label className="text-xs text-slate-400 block mb-1">WhatsApp phone</label>
-              <input className="input-field" value={form.whatsappPhone} onChange={e => setForm({ ...form, whatsappPhone: e.target.value })} placeholder="918888888888" /></div>
-            <div><label className="text-xs text-slate-400 block mb-1">WhatsApp pre-filled msg</label>
-              <input className="input-field" value={form.whatsappMessage} onChange={e => setForm({ ...form, whatsappMessage: e.target.value })} placeholder="Hi! I want the summer offer" /></div>
-
-            <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-              <input type="checkbox" checked={form.active} onChange={e => setForm({ ...form, active: e.target.checked })} className="accent-green-brand" />
-              Active (show to visitors)
-            </label>
+        <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Text fields */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label className="text-xs text-slate-400 block mb-1">Badge</label><input className="input-field" value={form.badge} onChange={e => setForm({...form, badge: e.target.value})} /></div>
+            <div><label className="text-xs text-slate-400 block mb-1">CTA Button Text</label><input className="input-field" value={form.ctaText} onChange={e => setForm({...form, ctaText: e.target.value})} /></div>
           </div>
+          <div><label className="text-xs text-slate-400 block mb-1">Title *</label><input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
+          <div><label className="text-xs text-slate-400 block mb-1">Message *</label><textarea rows={2} className="input-field resize-none" value={form.message} onChange={e => setForm({...form, message: e.target.value})} /></div>
 
-          {/* Preview */}
+          {/* Template picker — visual cards */}
           <div>
-            <div className="text-xs text-slate-400 mb-2 uppercase font-bold">Preview</div>
-            <div className="rounded-2xl overflow-hidden p-8 min-h-[200px] text-white flex flex-col items-center justify-center text-center"
-              style={gradientStyle(form.bgColor, form.bgColor2)}>
-              {form.badge && <span className="inline-block text-[10px] font-bold tracking-widest bg-black/30 px-2 py-1 rounded mb-3">{form.badge}</span>}
-              <h3 className="font-bold text-2xl mb-2">{form.title || 'Offer Title'}</h3>
-              <p className="text-sm opacity-90 mb-4">{form.message || 'Offer message goes here.'}</p>
-              <span className="inline-block bg-black/30 px-4 py-2 rounded-lg text-sm font-bold">{form.ctaText || 'Enquire'} →</span>
+            <label className="text-xs text-slate-400 block mb-2 uppercase font-bold">Choose Template</label>
+            <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+              {TEMPLATES.map(t => (
+                <button key={t.id} onClick={() => setForm({...form, template: t.id})}
+                  className={`rounded-2xl p-4 text-left transition-all cursor-pointer border-2 ${
+                    form.template === t.id ? 'border-green-brand bg-green-brand/10' : 'border-transparent bg-white/5 hover:bg-white/10'
+                  }`}>
+                  <div className={`w-full aspect-video rounded-xl bg-gradient-to-br ${t.preview} flex items-center justify-center mb-3`}>
+                    <span className="text-3xl">{t.icon}</span>
+                  </div>
+                  <p className="text-white text-sm font-bold">{t.name}</p>
+                  <p className="text-slate-400 text-[10px] mt-1 leading-tight">{t.desc}</p>
+                  {form.template === t.id && (
+                    <div className="mt-2 flex items-center gap-1 text-green-brand text-xs font-bold">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12" /></svg>
+                      Selected
+                    </div>
+                  )}
+                </button>
+              ))}
             </div>
-            <div className="mt-4 text-xs text-slate-500 text-center">
-              Template: {TEMPLATES.find(t => t.id === form.template)?.name || 'Classic'}
-            </div>
-            <button onClick={save} className="btn-primary w-full mt-4">
-              {editing ? 'Update Offer' : 'Create Offer'}
-            </button>
           </div>
+
+          {/* Colors */}
+          <div>
+            <label className="text-xs text-slate-400 block mb-2 uppercase font-bold">Colors</label>
+            <div className="flex flex-wrap gap-2 mb-3">
+              {COLOR_PRESETS.map(p => (
+                <button key={p.name} onClick={() => setForm({...form, bgColor: p.bg, bgColor2: p.bg2})}
+                  className="h-10 w-20 rounded-lg border-2 border-transparent hover:border-white/30 cursor-pointer flex items-center justify-center"
+                  style={{ background: `linear-gradient(135deg, ${p.bg}, ${p.bg2})` }}>
+                  <span className="text-white text-[10px] font-bold">{p.name}</span>
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-[10px] text-slate-500">Primary</label><input type="color" className="input-field h-10 w-full" value={form.bgColor} onChange={e => setForm({...form, bgColor: e.target.value})} /></div>
+              <div><label className="text-[10px] text-slate-500">Secondary</label><input type="color" className="input-field h-10 w-full" value={form.bgColor2} onChange={e => setForm({...form, bgColor2: e.target.value})} /></div>
+            </div>
+          </div>
+
+          {/* WhatsApp */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div><label className="text-xs text-slate-400 block mb-1">WhatsApp Phone</label><input className="input-field" value={form.whatsappPhone} onChange={e => setForm({...form, whatsappPhone: e.target.value})} /></div>
+            <div><label className="text-xs text-slate-400 block mb-1">WhatsApp Message</label><input className="input-field" value={form.whatsappMessage} onChange={e => setForm({...form, whatsappMessage: e.target.value})} /></div>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+            <input type="checkbox" checked={form.active} onChange={e => setForm({...form, active: e.target.checked})} className="accent-green-brand" />
+            Active (show on website)
+          </label>
+
+          <button onClick={save} className="btn-primary w-full">{editing ? 'Update Offer' : 'Create Offer'}</button>
         </div>
       </Modal>
     </div>
-  );
+  )
 }
