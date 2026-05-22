@@ -54,9 +54,10 @@ export default function ManageInvoices() {
   const createInvoice = async () => {
     if (!form.studentUid || !form.courseName || !form.amount) { toast.error('Student, course and amount required'); return }
     setSending(true)
+    const num = generateInvoiceNumber(invoices.length)
+    const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    let invoiceOk = false
     try {
-      const num = generateInvoiceNumber(invoices.length)
-      const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
       await addDocument('invoices', {
         invoiceNumber: num,
         studentUid: form.studentUid,
@@ -68,10 +69,17 @@ export default function ManageInvoices() {
         dueDate: form.dueDate,
         status: 'pending',
         paidAt: '',
-        createdAt: new Date(),
         issuedDate: paidAt,
       })
-      // Notify student
+      invoiceOk = true
+    } catch (err) {
+      console.error('[invoice create]', err)
+      toast.error('Invoice failed: ' + (err.message || err.code || 'unknown'))
+      setSending(false)
+      return
+    }
+    // Notify student — non-fatal; invoice already saved
+    try {
       await addDocument('notifications', {
         studentUid: form.studentUid,
         studentName: form.studentName,
@@ -80,18 +88,26 @@ export default function ManageInvoices() {
         message: `${form.courseName} — ${formatCurrency(Number(form.amount))}${form.dueDate ? ` · due ${form.dueDate}` : ''}. View in My Invoices.`,
         audience: 'invoice',
         read: false,
-        createdAt: new Date(),
       })
       toast.success(`Invoice ${num} created + student notified`)
-      closeModal()
-    } catch (err) { toast.error(err.message) }
-    finally { setSending(false) }
+    } catch (err) {
+      console.error('[invoice notify]', err)
+      toast.success(`Invoice ${num} created (notification failed — student can still see invoice)`)
+    }
+    if (invoiceOk) closeModal()
+    setSending(false)
   }
 
   const markPaid = async (inv) => {
+    const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
     try {
-      const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
       await updateDocument('invoices', inv.id, { status: 'paid', paidAt })
+    } catch (err) {
+      console.error('[markPaid]', err)
+      toast.error('Mark paid failed: ' + (err.message || err.code))
+      return
+    }
+    try {
       await addDocument('notifications', {
         studentUid: inv.studentUid,
         studentName: inv.studentName,
@@ -100,10 +116,12 @@ export default function ManageInvoices() {
         message: `Payment received for ${inv.courseName} — ${formatCurrency(inv.amount)}.`,
         audience: 'invoice',
         read: false,
-        createdAt: new Date(),
       })
       toast.success('Marked paid + student notified')
-    } catch (err) { toast.error(err.message) }
+    } catch (err) {
+      console.error('[markPaid notify]', err)
+      toast.success('Marked paid (notification failed)')
+    }
   }
 
   const resend = async (inv) => {
@@ -116,10 +134,12 @@ export default function ManageInvoices() {
         message: `${inv.courseName} — ${formatCurrency(inv.amount)}${inv.dueDate ? ` · due ${inv.dueDate}` : ''}. Please complete payment.`,
         audience: 'invoice',
         read: false,
-        createdAt: new Date(),
       })
       toast.success('Reminder sent')
-    } catch (err) { toast.error(err.message) }
+    } catch (err) {
+      console.error('[resend]', err)
+      toast.error('Reminder failed: ' + (err.message || err.code))
+    }
   }
 
   const remove = async (id) => {

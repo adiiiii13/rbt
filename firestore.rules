@@ -5,8 +5,14 @@ service cloud.firestore {
     function isSignedIn() {
       return request.auth != null;
     }
+    // Admin domain fallback — Google sign-in does not get custom claim
+    // without Cloud Function. Match by verified @rbtmission.com email.
+    function isAdminEmail() {
+      return isSignedIn() && request.auth.token.email != null
+        && request.auth.token.email.matches('.*@rbtmission[.]com');
+    }
     function isAdmin() {
-      return isSignedIn() && request.auth.token.role == 'admin';
+      return isSignedIn() && (request.auth.token.role == 'admin' || isAdminEmail());
     }
     function isStudent() {
       return isSignedIn() && request.auth.token.role == 'student';
