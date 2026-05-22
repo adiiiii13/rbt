@@ -6,7 +6,7 @@ import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 
 const emptyForm = {
-  title: '', badge: 'LIMITED TIME', message: '',
+  title: '', badge: 'LIMITED TIME', message: '', imageUrl: '',
   whatsappMessage: '', whatsappPhone: '918888888888',
   ctaText: 'Enquire on WhatsApp', active: true,
   template: 'classic', bgColor: '#16a34a', bgColor2: '#0ea5e9',
@@ -109,6 +109,17 @@ export default function ManageOffers() {
           </div>
           <div><label className="text-xs text-slate-400 block mb-1">Title *</label><input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
           <div><label className="text-xs text-slate-400 block mb-1">Message *</label><textarea rows={2} className="input-field resize-none" value={form.message} onChange={e => setForm({...form, message: e.target.value})} /></div>
+          <div>
+            <label className="text-xs text-slate-400 block mb-1">Offer Image URL</label>
+            <div className="flex gap-3 items-center">
+              {form.imageUrl ? (
+                <img src={form.imageUrl} alt="" className="w-24 h-16 rounded-lg object-cover border border-slate-700" />
+              ) : null}
+              <input className="input-field flex-1" value={form.imageUrl} onChange={e => setForm({...form, imageUrl: e.target.value})} placeholder="https://... or paste Google Photos / Imgur link" />
+              {form.imageUrl && <button onClick={() => setForm({...form, imageUrl: ''})} className="text-red-400 text-xs cursor-pointer shrink-0">Remove</button>}
+            </div>
+            <p className="text-[10px] text-slate-500 mt-1">Shows in popup banner. Use Google Photos / Imgur / any image URL.</p>
+          </div>
 
           {/* Template picker — visual cards */}
           <div>

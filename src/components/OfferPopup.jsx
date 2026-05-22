@@ -37,6 +37,10 @@ export default function OfferPopup() {
   const bg = offer.bgColor || '#16a34a'
   const bg2 = offer.bgColor2 || '#0ea5e9'
 
+  const Img = () => offer.imageUrl ? (
+    <img src={offer.imageUrl} alt="" className="w-full max-h-40 object-cover rounded-xl mb-4 shadow-lg" loading="lazy" />
+  ) : null
+
   const Close = () => (
     <button onClick={dismiss} className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-black/30 text-white/70 hover:text-white flex items-center justify-center cursor-pointer">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
@@ -63,6 +67,7 @@ export default function OfferPopup() {
             <Close />
             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
             <div className="relative p-8 text-center">
+              <Img />
               {offer.badge && <div className="inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm rounded-full px-4 py-2 mb-5">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-yellow-300"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
                 <span className="text-xs font-bold text-white uppercase tracking-wider">{offer.badge}</span>
@@ -94,6 +99,7 @@ export default function OfferPopup() {
               <span className="text-4xl">🎓</span>
             </motion.div>
             {offer.badge && <span className="inline-block bg-black/30 text-white text-xs font-bold px-4 py-2 rounded-full uppercase tracking-wider mb-4">{offer.badge}</span>}
+            <Img />
             <h3 className="text-5xl font-black text-white mb-4 leading-tight">{offer.title}</h3>
             <p className="text-white/90 text-lg mb-8">{offer.message}</p>
             <CTA className="bg-white text-green-700 py-4 px-10 rounded-2xl text-lg shadow-xl" />
@@ -143,7 +149,7 @@ export default function OfferPopup() {
           <Close />
           <div className="p-8 pt-20 h-full flex flex-col justify-center">
             <motion.div initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }}>
-              <div className="text-5xl mb-4">🎯</div>
+              <Img />
               {offer.badge && <span className="inline-block bg-white/15 text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider mb-3">{offer.badge}</span>}
               <h3 className="text-3xl font-black text-white mb-3">{offer.title}</h3>
               <p className="text-white/80 text-base mb-8 leading-relaxed">{offer.message}</p>
@@ -166,11 +172,15 @@ export default function OfferPopup() {
             transition={{ type: 'spring', damping: 25 }}
             onClick={e => e.stopPropagation()}
             className="w-full max-w-2xl bg-[#111111] rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col sm:flex-row">
-            {/* Left: colored visual */}
-            <div className="sm:w-2/5 p-8 flex flex-col items-center justify-center text-center text-white"
-              style={{ background: `linear-gradient(180deg, ${bg}, ${bg2})` }}>
-              <div className="text-6xl mb-3">🎉</div>
-              {offer.badge && <span className="inline-block bg-black/20 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">{offer.badge}</span>}
+            {/* Left: image or gradient */}
+            <div className="sm:w-2/5 p-8 flex flex-col items-center justify-center text-center text-white relative overflow-hidden"
+              style={{ background: offer.imageUrl ? '#000' : `linear-gradient(180deg, ${bg}, ${bg2})` }}>
+              {offer.imageUrl ? (
+                <img src={offer.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" loading="lazy" />
+              ) : (
+                <div className="text-6xl mb-3">🎉</div>
+              )}
+              {offer.badge && <span className="absolute bottom-4 left-1/2 -translate-x-1/2 inline-block bg-black/40 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider">{offer.badge}</span>}
             </div>
             {/* Right: content */}
             <div className="sm:w-3/5 p-6 sm:p-8 flex flex-col justify-center">
