@@ -58,19 +58,8 @@ export default function WatchVideo() {
 
   return (
     <div className="min-h-screen bg-[#050B14]">
-      {/* Header */}
-      <div className="bg-[#0a1628] border-b border-slate-800 px-4 py-3 flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="text-slate-400 hover:text-white transition-colors">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-        </button>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-white font-bold text-lg truncate">{video?.title}</h1>
-          <p className="text-slate-400 text-xs">{video?.subject} • {video?.class} • {video?.duration}</p>
-        </div>
-      </div>
-
       {/* Player */}
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-5xl mx-auto px-4 pt-24 pb-6">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <HlsPlayer url={video?.videoUrl} watermark={video?.title || 'RBT SECURE STREAM'} />
         </motion.div>
