@@ -5,15 +5,26 @@ import { db } from '../lib/firebase'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 
+const DEFAULT_FIELDS = [
+  { id: 'batchId', label: 'Batch / Class', type: 'batchSelect', required: true },
+  { id: 'board', label: 'Board', type: 'boardSelect', required: false },
+  { id: 'school', label: 'School / College', type: 'text', required: false },
+  { id: 'phone', label: 'Your Phone', type: 'tel', required: true },
+  { id: 'parentName', label: 'Parent Name', type: 'text', required: false },
+  { id: 'parentPhone', label: 'Parent Phone', type: 'tel', required: false }
+];
+
 export default function ProfilePopup() {
   const { user } = useAuth()
   const [show, setShow] = useState(false)
-  const [form, setForm] = useState({ batchId: '', board: 'CBSE', phone: '', school: '', parentName: '', parentPhone: '' })
+  const [form, setForm] = useState({})
   const [saving, setSaving] = useState(false)
+  const [fields, setFields] = useState([])
   const [options, setOptions] = useState({
     boards: ['CBSE', 'ICSE', 'State Board', 'IGCSE', 'IB', 'Other']
   })
   const [batches, setBatches] = useState([])
+  const [loadingSettings, setLoadingSettings] = useState(true)
 
   // Fetch dynamic settings and batches
   useEffect(() => {
@@ -21,15 +32,22 @@ export default function ProfilePopup() {
       try {
         const docRef = doc(db, 'settings', 'profileForm')
         const docSnap = await getDoc(docRef)
-        if (docSnap.exists() && docSnap.data().boards) {
-          setOptions({ boards: docSnap.data().boards })
+        let loadedFields = DEFAULT_FIELDS
+        if (docSnap.exists()) {
+          const data = docSnap.data()
+          if (data.boards) setOptions({ boards: data.boards })
+          if (data.fields) loadedFields = data.fields
         }
+        setFields(loadedFields)
         
         const batchesSnap = await getDocs(collection(db, 'batches'))
         const batchesList = batchesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
         setBatches(batchesList)
       } catch (err) {
         console.error("Failed to load profile form settings", err)
+        setFields(DEFAULT_FIELDS)
+      } finally {
+        setLoadingSettings(false)
       }
     }
     fetchData()
@@ -41,38 +59,48 @@ export default function ProfilePopup() {
     const hasProfile = user.profileCompleted
     if (!hasProfile) setShow(true)
     
-    // Auto-fill existing details
-    setForm({
-      batchId: user.batchId || '',
-      board: user.board || 'CBSE',
-      phone: user.phone || '',
-      school: user.school || '',
-      parentName: user.parentName || '',
-      parentPhone: user.parentPhone || '',
-    })
-
     const handleOpen = () => setShow(true)
     window.addEventListener('openProfilePopup', handleOpen)
     return () => window.removeEventListener('openProfilePopup', handleOpen)
   }, [user])
 
+  // Initialize form when fields or user changes
+  useEffect(() => {
+    if (fields.length > 0 && user) {
+      const initialForm = {}
+      fields.forEach(f => {
+        initialForm[f.id] = user[f.id] || ''
+      })
+      // Set defaults for selects if empty
+      if (initialForm.board === '' && options.boards.length > 0) {
+        initialForm.board = options.boards[0]
+      }
+      setForm(initialForm)
+    }
+  }, [fields, user, options.boards])
+
   const save = async () => {
     setSaving(true)
-    const isComplete = !!(form.batchId && form.phone)
+    
+    // Validation
+    const missingFields = fields.filter(f => f.required && !form[f.id])
+    const isComplete = missingFields.length === 0
+    
     const selectedBatch = batches.find(b => b.id === form.batchId)
     
     try {
-      await updateDoc(doc(db, 'students', user.uid), {
-        batchId: form.batchId,
-        batchName: selectedBatch ? selectedBatch.name : '',
-        board: form.board,
-        phone: form.phone,
-        school: form.school,
-        parentName: form.parentName,
-        parentPhone: form.parentPhone,
+      const updateData = {
+        ...form,
         profileCompleted: isComplete,
         ...(isComplete ? { profileCompletedAt: new Date().toISOString() } : {})
-      })
+      }
+      // Map legacy fields that might still be relied upon
+      if (selectedBatch) {
+         updateData.batchName = selectedBatch.name
+      }
+
+      await updateDoc(doc(db, 'students', user.uid), updateData)
+      
       if (isComplete) {
         toast.success('Profile completed! All sections unlocked.')
         setTimeout(() => window.location.reload(), 1000)
@@ -85,6 +113,9 @@ export default function ProfilePopup() {
   }
 
   if (!show || !user) return null
+
+  // Check if all required fields are filled to show dynamic save button text
+  const isAllRequiredFilled = fields.every(f => !f.required || !!form[f.id])
 
   return (
     <AnimatePresence>
@@ -107,53 +138,48 @@ export default function ProfilePopup() {
               </button>
             </div>
 
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-300 mb-1 block">Batch / Class *</label>
-                  <select className="input-field" value={form.batchId} onChange={e => setForm({ ...form, batchId: e.target.value })}>
-                    <option value="">Select Batch / Class</option>
-                    {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-slate-300 mb-1 block">Board</label>
-                  <select className="input-field" value={form.board} onChange={e => setForm({ ...form, board: e.target.value })}>
-                    {options.boards.map(b => <option key={b}>{b}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">School / College</label>
-                <input className="input-field" value={form.school} onChange={e => setForm({ ...form, school: e.target.value })} placeholder="Name of your school" />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Your Phone *</label>
-                <input className="input-field" type="tel" value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} placeholder="+91 9876543210" />
-              </div>
-
-              <div className="border-t border-slate-800 pt-4">
-                <p className="text-xs text-slate-400 uppercase font-bold mb-3">Parent Details (optional)</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium text-slate-300 mb-1 block">Parent Name</label>
-                    <input className="input-field" value={form.parentName} onChange={e => setForm({ ...form, parentName: e.target.value })} />
+            {loadingSettings ? (
+               <div className="py-12 flex justify-center"><div className="w-6 h-6 border-2 border-green-brand border-t-transparent rounded-full animate-spin"></div></div>
+            ) : (
+              <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
+                {fields.map(f => (
+                  <div key={f.id}>
+                    <label className="text-sm font-medium text-slate-300 mb-1 block">
+                      {f.label} {f.required && '*'}
+                    </label>
+                    {f.type === 'batchSelect' ? (
+                      <select className="input-field w-full" value={form[f.id] || ''} onChange={e => setForm({ ...form, [f.id]: e.target.value })}>
+                        <option value="">Select Batch / Class</option>
+                        {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                      </select>
+                    ) : f.type === 'boardSelect' ? (
+                      <select className="input-field w-full" value={form[f.id] || ''} onChange={e => setForm({ ...form, [f.id]: e.target.value })}>
+                        <option value="">Select Board</option>
+                        {options.boards.map(b => <option key={b} value={b}>{b}</option>)}
+                      </select>
+                    ) : (
+                      <input 
+                        className="input-field w-full" 
+                        type={f.type} 
+                        value={form[f.id] || ''} 
+                        onChange={e => setForm({ ...form, [f.id]: e.target.value })} 
+                        placeholder={`Enter ${f.label}`} 
+                      />
+                    )}
                   </div>
-                  <div>
-                    <label className="text-sm font-medium text-slate-300 mb-1 block">Parent Phone</label>
-                    <input className="input-field" type="tel" value={form.parentPhone} onChange={e => setForm({ ...form, parentPhone: e.target.value })} />
-                  </div>
-                </div>
+                ))}
               </div>
-            </div>
+            )}
 
-            <button onClick={save} disabled={saving}
-              className="w-full mt-5 bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all">
-              {saving ? 'Saving...' : (form.batchId && form.phone) ? 'Save & Unlock Access' : 'Save Progress'}
-            </button>
-            <p className="text-xs text-slate-500 text-center mt-3">All required (*) fields must be filled to unlock full access</p>
+            {!loadingSettings && (
+              <>
+                <button onClick={save} disabled={saving}
+                  className="w-full mt-5 bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all">
+                  {saving ? 'Saving...' : isAllRequiredFilled ? 'Save & Unlock Access' : 'Save Progress'}
+                </button>
+                <p className="text-xs text-slate-500 text-center mt-3">All required (*) fields must be filled to unlock full access</p>
+              </>
+            )}
           </div>
         </motion.div>
       </motion.div>

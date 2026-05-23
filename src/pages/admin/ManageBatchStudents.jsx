@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { updateDocument } from '../../lib/firebaseHelpers';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import Modal from '../../components/Modal';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 
@@ -15,6 +17,30 @@ export default function ManageBatchStudents() {
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [enteredBatchCode, setEnteredBatchCode] = useState('');
   const [selectedTab, setSelectedTab] = useState('all');
+  const [fields, setFields] = useState([]);
+
+  useEffect(() => {
+    const fetchFields = async () => {
+      try {
+        const snap = await getDoc(doc(db, 'settings', 'profileForm'));
+        if (snap.exists() && snap.data().fields) {
+          setFields(snap.data().fields);
+        } else {
+          setFields([
+            { id: 'batchId', label: 'Batch / Class', type: 'batchSelect', required: true },
+            { id: 'board', label: 'Board', type: 'boardSelect', required: false },
+            { id: 'school', label: 'School / College', type: 'text', required: false },
+            { id: 'phone', label: 'Your Phone', type: 'tel', required: true },
+            { id: 'parentName', label: 'Parent Name', type: 'text', required: false },
+            { id: 'parentPhone', label: 'Parent Phone', type: 'tel', required: false }
+          ]);
+        }
+      } catch (err) {
+        console.error("Failed to load fields", err);
+      }
+    };
+    fetchFields();
+  }, []);
 
   const getBatchName = (batchId) => {
     const b = batches.find(x => x.id === batchId);
@@ -247,33 +273,14 @@ export default function ManageBatchStudents() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-4">
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Batch / Class</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.batchName || '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Board</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.board || '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-1">School/College</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.school || '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Student Phone</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.phone || '-'}</p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Parent Name</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.parentName || '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Parent Phone</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.parentPhone || '-'}</p>
-              </div>
+              {fields.map(f => (
+                <div key={f.id}>
+                  <p className="text-xs text-slate-500 mb-1">{f.label}</p>
+                  <p className="text-sm font-semibold text-white">
+                    {f.type === 'batchSelect' ? (selectedStudent.batchName || '-') : (selectedStudent[f.id] || '-')}
+                  </p>
+                </div>
+              ))}
             </div>
 
             <div className="pt-4 mt-4">
