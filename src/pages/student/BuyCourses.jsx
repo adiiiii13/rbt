@@ -6,21 +6,12 @@ import { useAuth } from '../../context/AuthContext';
 
 const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: GraduationCapIcon, Rocket: RocketIcon, HeartPulse: HeartPulseIcon };
 
-export default function StudentCourses() {
+export default function StudentBuyCourses() {
   const { user } = useAuth();
-  
-  const { data: enrollments } = useRealtimeCollection('enrollments', {
-    where: [['uid', '==', user.uid]]
-  });
-
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
-  
-  const enrolledCourseIds = new Set((enrollments || []).map(e => e.courseId));
-
   const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => 
-    c.courseType === 'batch' && enrolledCourseIds.has(c.id)
+    c.courseType === 'batch' && c.batchId === user?.batchId
   );
-
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
@@ -28,17 +19,16 @@ export default function StudentCourses() {
           <BookOpenIcon size={20} />
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-white mb-1">My Courses</h1>
-          <p className="text-slate-400 text-sm">Access your enrolled courses</p>
+          <h1 className="text-2xl font-bold text-white mb-1">Buy Courses</h1>
+          <p className="text-slate-400 text-sm">Browse and enroll in courses for your batch</p>
         </div>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {courses.length === 0 ? (
-          <div className="col-span-full py-12 text-center text-slate-400 bg-white/5 rounded-2xl border border-white/10">
-            You haven't enrolled in any courses yet. Go to Buy Courses to browse available courses.
-          </div>
-        ) : courses.map(c => {
+        {courses.map(c => {
           const IconComponent = iconMap[c.image] || BookOpenIcon;
+          const startingPrice = c.variants?.length
+            ? Math.min(...c.variants.map(v => Number(v.price) || 0))
+            : null;
           return (
             <Link
               key={c.id}
@@ -60,8 +50,12 @@ export default function StudentCourses() {
                 <span className="inline-flex items-center gap-1 text-slate-400"><UsersIcon size={14} /> {c.students || 0}</span>
               </div>
               <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
-                <span className="text-green-brand font-bold text-sm">Enrolled</span>
-                <span className="text-xs text-white">Access Course →</span>
+                {startingPrice !== null ? (
+                  <span className="text-green-brand font-bold text-sm">From ₹{startingPrice}</span>
+                ) : (
+                  <span className="text-slate-500 text-xs">Details</span>
+                )}
+                <span className="text-xs text-white">View →</span>
               </div>
             </Link>
           );

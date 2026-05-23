@@ -37,6 +37,7 @@ const WatchVideo = lazy(() => import('./pages/WatchVideo'))
 // Student Pages (lazy)
 const StudentDashboard = lazy(() => import('./pages/student/Dashboard'))
 const StudentCourses = lazy(() => import('./pages/student/Courses'))
+const StudentBuyCourses = lazy(() => import('./pages/student/BuyCourses'))
 const StudentPdfs = lazy(() => import('./pages/student/Pdfs'))
 const StudyMaterial = lazy(() => import('./pages/student/StudyMaterial'))
 const StudentVideos = lazy(() => import('./pages/student/Videos'))
@@ -206,6 +207,7 @@ function AppContent() {
                   {/* Student Routes (Batch — full access) */}
                   <Route path="/student" element={<ProtectedRoute role="student" batch><DashboardLayout type="student" /></ProtectedRoute>}>
                     <Route index element={<StudentDashboard />} />
+                    <Route path="buy-courses" element={<StudentBuyCourses />} />
                     <Route path="courses" element={<StudentCourses />} />
                     <Route path="courses/:id" element={<CourseDetail />} />
                     <Route path="test-papers" element={<TestPapers />} />
