@@ -7,39 +7,26 @@ import { db } from '../lib/firebase';
 
 export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const [mode, setMode] = useState(null); // null = choose, 'batch', 'basic'
-  const [batches, setBatches] = useState([]);
-  const [selectedBatchId, setSelectedBatchId] = useState('');
-  const [batchCode, setBatchCode] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [upgradeConfirm, setUpgradeConfirm] = useState(false); // New state for confirmation
-  const { loginWithGoogle, loginWithBatchCode, loginStudent } = useAuth();
+  const { loginWithGoogle, loginStudent } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    if (mode === 'batch') {
-      getDocs(collection(db, 'batches')).then(snap => {
-        const b = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setBatches(b);
-        if (b.length > 0) setSelectedBatchId(b[0].id);
-      }).catch(err => console.error("Failed to load batches", err));
-    }
-  }, [mode]);
-
   // For email/password login
-  const handleEmailLogin = async (e) => {
+  const handleEmailLogin = async (e, isBatch = false) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     try {
-      const result = await loginStudent(email, password);
+      const result = await loginStudent(email, password, isBatch);
       if (result.success) {
         if (onClose) onClose();
-        const dest = result.user?.batch ? '/student' : '/basic';
+        const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
         navigate(dest, { replace: true });
       } else {
         setError(result.message);
@@ -51,49 +38,17 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
     }
   };
 
-  // Google login for batch students (needs code)
-  const handleBatchGoogleLogin = async (confirmUpgrade = false) => {
-    setError('');
-    const targetBatch = batches.find(b => b.id === selectedBatchId);
-    if (!targetBatch) {
-      setError('Please select a valid batch.');
-      return;
-    }
-    if (batchCode !== targetBatch.batchCode) {
-      setError('Invalid batch code. Contact admin for correct code.');
-      return;
-    }
-    setIsLoading(true);
-    try {
-      const result = await loginWithBatchCode(selectedBatchId, confirmUpgrade);
-      
-      if (result.requireConfirmation) {
-        setUpgradeConfirm(true);
-        return;
-      }
-      
-      if (result.success) {
-        if (onClose) onClose();
-        navigate('/student', { replace: true });
-      } else {
-        setError(result.message);
-      }
-    } catch (err) {
-      setError('Login failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Google login for basic students (no code)
-  const handleBasicGoogleLogin = async () => {
+  // Google login
+  const handleGoogleLogin = async (isBatch = false) => {
     setError('');
     setIsLoading(true);
     try {
-      const result = await loginWithGoogle();
+      const result = await loginWithGoogle(isBatch);
+      
       if (result.success) {
         if (onClose) onClose();
-        navigate('/basic', { replace: true });
+        const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
+        navigate(dest, { replace: true });
       } else {
         setError(result.message);
       }
@@ -176,85 +131,45 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
                 </div>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-400 group-hover:text-white transition-colors"><path d="m9 18 6-6-6-6"/></svg>
               </button>
-
-              {/* Email/Password login for batch students */}
-              <div className="relative flex items-center py-2">
-                <div className="grow border-t border-white/10"></div>
-                <span className="shrink-0 mx-4 text-slate-500 text-sm">or login with email</span>
-                <div className="grow border-t border-white/10"></div>
-              </div>
-              <form onSubmit={handleEmailLogin} className="space-y-3">
-                <input required type="email" autoComplete="email" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-                <div className="relative">
-                  <input required type={showPassword ? "text" : "password"} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" tabIndex="-1">{showPassword ? 'HIDE' : 'SHOW'}</button>
-                </div>
-                <button type="submit" disabled={isLoading} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm cursor-pointer disabled:opacity-50">
-                  {isLoading ? 'Logging in...' : 'Login'}
-                </button>
-              </form>
             </motion.div>
           )}
 
           {/* BATCH LOGIN */}
           {mode === 'batch' && (
             <motion.div key="batch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4 relative z-10">
+              <button onClick={() => setMode(null)} className="text-slate-400 text-sm hover:text-white transition-colors mb-2 flex items-center gap-1 cursor-pointer">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                Back
+              </button>
+              <h3 className="text-white font-bold text-lg">Batch Student Login</h3>
+              <p className="text-slate-400 text-sm mb-4">Log in to access your batch dashboard.</p>
+
+              <button onClick={() => handleGoogleLogin(true)} disabled={isLoading} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                ) : (
+                  <GoogleIcon />
+                )}
+                Sign in with Google
+              </button>
               
-              {!upgradeConfirm ? (
-                <>
-                  <button onClick={() => setMode(null)} className="text-slate-400 text-sm hover:text-white transition-colors mb-2 flex items-center gap-1 cursor-pointer">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                    Back
-                  </button>
-                  <h3 className="text-white font-bold text-lg">Batch Student Login</h3>
-                  <p className="text-slate-400 text-sm">Select your batch and enter your batch code.</p>
-
-                  <div>
-                    <label className="text-sm font-medium text-slate-300 mb-2 block">Select Batch</label>
-                    <select className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm mb-4" value={selectedBatchId} onChange={(e) => setSelectedBatchId(e.target.value)}>
-                      {batches.map(b => (
-                        <option key={b.id} value={b.id} className="bg-[#111111]">{b.name}</option>
-                      ))}
-                    </select>
-
-                    <label className="text-sm font-medium text-slate-300 mb-2 block">Batch Code</label>
-                    <input className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all tracking-widest font-mono text-center text-lg" placeholder="XXXX" value={batchCode} onChange={(e) => setBatchCode(e.target.value)} maxLength={10} />
-                  </div>
-
-                  <button onClick={() => handleBatchGoogleLogin(false)} disabled={isLoading || !batchCode || !selectedBatchId} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
-                    {isLoading ? (
-                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                    ) : (
-                      <GoogleIcon />
-                    )}
-                    Sign in with Google
-                  </button>
-                  <p className="text-xs text-slate-500 text-center">Full dashboard: courses, videos, PDFs, notices, counselling, invoices</p>
-                </>
-              ) : (
-                <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-center space-y-4">
-                  <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                  </div>
-                  <h3 className="text-white font-bold text-xl">Account Upgrade</h3>
-                  <p className="text-slate-300 text-sm leading-relaxed">
-                    You are currently a <strong className="text-white">Basic User</strong>. 
-                    By continuing with this batch login, you are upgrading your account to the 
-                    <strong className="text-green-brand"> Batch Level</strong>.
-                  </p>
-                  <p className="text-xs text-slate-500 pb-2">
-                    Note: You can still log in as a basic user anytime if you want, no issues.
-                  </p>
-                  <div className="flex gap-3">
-                    <button onClick={() => setUpgradeConfirm(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 px-4 rounded-xl transition-colors text-sm">
-                      Cancel
-                    </button>
-                    <button onClick={() => handleBatchGoogleLogin(true)} disabled={isLoading} className="flex-1 bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-colors text-sm disabled:opacity-50 flex items-center justify-center">
-                      {isLoading ? 'Upgrading...' : 'Confirm Upgrade'}
-                    </button>
-                  </div>
+              <div className="relative flex items-center py-2">
+                <div className="grow border-t border-white/10"></div>
+                <span className="shrink-0 mx-4 text-slate-500 text-sm">or login with email</span>
+                <div className="grow border-t border-white/10"></div>
+              </div>
+              
+              <form onSubmit={(e) => handleEmailLogin(e, true)} className="space-y-3">
+                <input required type="email" autoComplete="email" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <div className="relative">
+                  <input required type={showPassword ? "text" : "password"} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" tabIndex="-1">{showPassword ? 'HIDE' : 'SHOW'}</button>
                 </div>
-              )}
+                <button type="submit" disabled={isLoading} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm cursor-pointer disabled:opacity-50">
+                  {isLoading ? 'Logging in...' : 'Login as Batch Student'}
+                </button>
+              </form>
+
             </motion.div>
           )}
 
@@ -266,9 +181,9 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
                 Back
               </button>
               <h3 className="text-white font-bold text-lg">Basic Login</h3>
-              <p className="text-slate-400 text-sm">Sign in with Google to access free content.</p>
+              <p className="text-slate-400 text-sm">Sign in with Google or Email to access free content.</p>
 
-              <button onClick={handleBasicGoogleLogin} disabled={isLoading} className="w-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
+              <button onClick={() => handleGoogleLogin(false)} disabled={isLoading} className="w-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
                 {isLoading ? (
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 ) : (
@@ -276,7 +191,23 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
                 )}
                 Sign in with Google
               </button>
-              <p className="text-xs text-slate-500 text-center">Access: demo videos, courses, free test series</p>
+
+              <div className="relative flex items-center py-2">
+                <div className="grow border-t border-white/10"></div>
+                <span className="shrink-0 mx-4 text-slate-500 text-sm">or login with email</span>
+                <div className="grow border-t border-white/10"></div>
+              </div>
+              
+              <form onSubmit={(e) => handleEmailLogin(e, false)} className="space-y-3">
+                <input required type="email" autoComplete="email" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+                <div className="relative">
+                  <input required type={showPassword ? "text" : "password"} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" tabIndex="-1">{showPassword ? 'HIDE' : 'SHOW'}</button>
+                </div>
+                <button type="submit" disabled={isLoading} className="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm cursor-pointer disabled:opacity-50">
+                  {isLoading ? 'Logging in...' : 'Login as Basic Student'}
+                </button>
+              </form>
             </motion.div>
           )}
         </AnimatePresence>

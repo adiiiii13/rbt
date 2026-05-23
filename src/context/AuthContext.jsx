@@ -109,7 +109,7 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const loginStudent = async (idOrEmail, password) => {
+  const loginStudent = async (idOrEmail, password, isBatch = false) => {
     isAuthActionInProgress.current = true;
     try {
       const email = idOrEmail.includes('@')
@@ -122,12 +122,23 @@ export function AuthProvider({ children }) {
         return { success: false, message: 'Not a student account' }
       }
 
+      const updates = {};
       // Migrate old-format studentId for email logins
       if (!userData.studentId || !userData.studentId.match(/^RBT\d{2}[GEB]-/)) {
-        const studentRef = doc(db, 'students', cred.user.uid);
         const newStudentId = 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase();
-        await updateDoc(studentRef, { studentId: newStudentId });
+        updates.studentId = newStudentId;
         userData.studentId = newStudentId;
+      }
+
+      // Upgrade to batch if requested
+      if (isBatch && !userData.batchStatus && !userData.batch) {
+        updates.batchStatus = 'pending';
+        userData.batchStatus = 'pending';
+      }
+
+      if (Object.keys(updates).length > 0) {
+        const studentRef = doc(db, 'students', cred.user.uid);
+        await updateDoc(studentRef, updates);
       }
 
       setUser(userData)
@@ -162,7 +173,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (isBatch = false) => {
     isAuthActionInProgress.current = true;
     try {
       const provider = new GoogleAuthProvider()
@@ -177,6 +188,7 @@ export function AuthProvider({ children }) {
           photoURL: cred.user.photoURL || null,
           role: 'student',
           batch: false,
+          batchStatus: isBatch ? 'pending' : 'none',
           status: 'active',
           studentId: 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
@@ -191,6 +203,12 @@ export function AuthProvider({ children }) {
         if (!data.studentId || !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
           updates.studentId = 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase();
         }
+        
+        // Upgrade to batch if requested
+        if (isBatch && !data.batchStatus && !data.batch) {
+          updates.batchStatus = 'pending';
+        }
+
         if (Object.keys(updates).length > 0) await updateDoc(studentRef, updates);
       }
       
@@ -199,6 +217,12 @@ export function AuthProvider({ children }) {
         await signOut(auth)
         return { success: false, message: 'Not a student account' }
       }
+      
+      // Manually set batch status locally if we just upgraded it
+      if (isBatch && !userData.batchStatus && !userData.batch) {
+         userData.batchStatus = 'pending';
+      }
+
       setUser(userData)
       return { success: true, user: userData }
     } catch (err) {
@@ -210,7 +234,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const signupStudent = async (email, password, name) => {
+  const signupStudent = async (email, password, name, isBatch = false) => {
     isAuthActionInProgress.current = true;
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password)
@@ -222,6 +246,7 @@ export function AuthProvider({ children }) {
         photoURL: null,
         role: 'student',
         batch: false,
+        batchStatus: isBatch ? 'pending' : 'none',
         status: 'active',
         studentId: 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase(),
         createdAt: new Date().toISOString()
@@ -248,81 +273,9 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const loginWithBatchCode = async (batchId, confirmUpgrade = false) => {
-    isAuthActionInProgress.current = true;
-    try {
-      let credUser = auth.currentUser;
-      if (!credUser) {
-        const provider = new GoogleAuthProvider()
-        const cred = await signInWithPopup(auth, provider)
-        credUser = cred.user;
-      }
-
-      const studentRef = doc(db, 'students', credUser.uid)
-      const snap = await getDoc(studentRef)
-
-      if (snap.exists() && !snap.data().batchId && batchId && !confirmUpgrade) {
-        // Stop here and ask for confirmation
-        return { 
-          success: false, 
-          requireConfirmation: true, 
-          message: 'You are a basic user/student. By batch login, you are upgrading your email or account to the batch level.' 
-        }
-      }
-
-      if (!snap.exists()) {
-        await setDoc(studentRef, {
-          name: credUser.displayName || 'Student',
-          email: credUser.email,
-          photoURL: credUser.photoURL || null,
-          role: 'student',
-          batchId: batchId || null,
-          batchStatus: 'pending',
-          batch: false,  // false until admin approves
-          status: 'active',
-          studentId: 'RBT26B-' + credUser.uid.substring(0, 6).toUpperCase(),
-          createdAt: new Date().toISOString()
-        })
-      } else {
-        const data = snap.data();
-        const updates = {
-          name: credUser.displayName || data.name,
-          photoURL: credUser.photoURL || data.photoURL || null,
-        };
-        if (!data.batchId && batchId) {
-            updates.batchId = batchId;
-            updates.batchStatus = 'pending';
-            updates.batch = false;
-        }
-        if (!data.studentId || !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
-          updates.studentId = 'RBT26B-' + credUser.uid.substring(0, 6).toUpperCase();
-        }
-        await updateDoc(studentRef, updates);
-      }
-
-      const userData = await buildUserFromToken(credUser)
-      if (!snap.exists() || (snap.exists() && !snap.data().batchId && batchId)) {
-        userData.batch = false;
-        userData.batchStatus = 'pending';
-      }
-      setUser(userData)
-      return { success: true, user: userData }
-    } catch (err) {
-      return { success: false, message: mapAuthError(err.code || 'Login failed') }
-    } finally {
-      isAuthActionInProgress.current = false;
-      setLoading(false);
-    }
-  }
-
-  const logout = async () => {
-    await signOut(auth)
-    setUser(null)
-  }
-
   return (
     <AuthContext.Provider
-      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, loginWithBatchCode, signupStudent, resetPassword, logout }}
+      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, signupStudent, resetPassword, logout }}
     >
       {children}
     </AuthContext.Provider>

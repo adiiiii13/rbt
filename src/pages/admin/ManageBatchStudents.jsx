@@ -12,6 +12,7 @@ export default function ManageBatchStudents() {
   const [approvalModal, setApprovalModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedBatchId, setSelectedBatchId] = useState('');
+  const [enteredBatchCode, setEnteredBatchCode] = useState('');
 
   const getBatchName = (batchId) => {
     const b = batches.find(x => x.id === batchId);
@@ -26,6 +27,7 @@ export default function ManageBatchStudents() {
     setSelectedStudent(student);
     // Auto-select the requested batch if it exists
     setSelectedBatchId(student.batchId || '');
+    setEnteredBatchCode('');
     setApprovalModal(true);
   };
 
@@ -34,6 +36,10 @@ export default function ManageBatchStudents() {
     
     const batch = batches.find(b => b.id === selectedBatchId);
     if (!batch) return toast.error('Selected batch not found');
+
+    if (enteredBatchCode !== batch.batchCode) {
+      return toast.error('Incorrect Batch Code! Please enter the exact batch code for this batch.');
+    }
 
     try {
       await updateDocument('students', selectedStudent.id, { 
@@ -148,9 +154,21 @@ export default function ManageBatchStudents() {
             >
               <option value="">-- Select a Batch --</option>
               {batches.map(b => (
-                <option key={b.id} value={b.id}>{b.name} (Code: {b.batchCode})</option>
+                <option key={b.id} value={b.id}>{b.name}</option>
               ))}
             </select>
+          </div>
+
+          <div>
+            <label className="text-sm font-bold text-white mb-1.5 block">Confirm Batch Code</label>
+            <input 
+              type="text"
+              placeholder="Enter the code for this batch to confirm"
+              className="input-field w-full"
+              value={enteredBatchCode}
+              onChange={(e) => setEnteredBatchCode(e.target.value)}
+            />
+            <p className="text-xs text-slate-500 mt-1">You must enter the correct code to approve and send credentials to the student.</p>
           </div>
           
           <div className="pt-2">
