@@ -30,7 +30,47 @@ export default function ManageStudents() {
   const [fetchingEnrollments, setFetchingEnrollments] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
+  const [selected, setSelected] = useState([]);
+
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelected(students.map(s => s.id));
+    } else {
+      setSelected([]);
+    }
+  };
+
+  const handleSelect = (id) => {
+    setSelected(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleBulkDelete = async () => {
+    if (!selected.length) return;
+    if (!confirm(`Are you sure you want to delete ${selected.length} students permanently? This deletes their accounts and data.`)) return;
+    
+    setBusy(true);
+    const fn = httpsCallable(functions, 'deleteStudent');
+    let successCount = 0;
+    let failCount = 0;
+    
+    for (const id of selected) {
+      try {
+        await fn({ uid: id });
+        successCount++;
+      } catch (err) {
+        console.error('Failed to delete', id, err);
+        failCount++;
+      }
+    }
+    
+    if (successCount > 0) toast.success(`Successfully deleted ${successCount} students`);
+    if (failCount > 0) toast.error(`Failed to delete ${failCount} students`);
+    
+    setSelected([]);
+    setBusy(false);
+  };
 
   const openCourses = async (s) => {
     setSelectedStudent(s);
@@ -187,7 +227,7 @@ export default function ManageStudents() {
     return courseNames.join(', ');
   };
 
-  return (
+    return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -195,6 +235,11 @@ export default function ManageStudents() {
           <p className="text-sm text-slate-400">{students.length} students enrolled</p>
         </div>
         <div className="flex gap-2">
+          {selected.length > 0 && (
+            <button onClick={handleBulkDelete} disabled={busy} className="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-500 hover:text-white transition-all disabled:opacity-50">
+              Delete Selected ({selected.length})
+            </button>
+          )}
           <ExportButton
             data={students}
             filename="students"
@@ -224,6 +269,14 @@ export default function ManageStudents() {
             <table className="w-full">
               <thead className="bg-white/5 border-b border-slate-800">
                 <tr>
+                  <th className="w-12 text-center">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-slate-700 bg-white/5 text-green-brand focus:ring-green-brand"
+                      checked={students.length > 0 && selected.length === students.length}
+                      onChange={handleSelectAll}
+                    />
+                  </th>
                   <th className="text-white font-bold">Student ID</th>
                   <th className="text-white font-bold">Name</th>
                   <th className="text-white font-bold">Email</th>
@@ -234,7 +287,15 @@ export default function ManageStudents() {
               </thead>
               <tbody className="divide-y divide-slate-800">
                 {students.map(s => (
-                  <tr key={s.id} className="hover:bg-white/5 transition-colors">
+                  <tr key={s.id} className={`hover:bg-white/5 transition-colors ${selected.includes(s.id) ? 'bg-white/5' : ''}`}>
+                    <td className="text-center">
+                      <input 
+                        type="checkbox" 
+                        className="rounded border-slate-700 bg-white/5 text-green-brand focus:ring-green-brand cursor-pointer"
+                        checked={selected.includes(s.id)}
+                        onChange={() => handleSelect(s.id)}
+                      />
+                    </td>
                     <td className="font-mono text-[11px] text-slate-500 font-bold">{s.studentId}</td>
                     <td className="font-semibold text-white">{s.name}</td>
                     <td className="text-slate-700 text-sm">{s.email || '-'}</td>
