@@ -19,6 +19,7 @@ export default function BasicCourseDetail() {
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [currentItem, setCurrentItem] = useState(0);
   const [buying, setBuying] = useState(false);
+  const [enrollment, setEnrollment] = useState(null);
 
   // Load course + check enrollment
   useEffect(() => {
