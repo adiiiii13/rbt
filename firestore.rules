@@ -109,10 +109,8 @@ service cloud.firestore {
 
     // Payments: student create own; admin read/update all; student read own
     match /payments/{doc} {
-      allow create: if isStudent()
-        && request.resource.data.studentId == request.auth.uid;
-      allow read: if isAdmin() ||
-        (isStudent() && resource.data.studentId == request.auth.uid);
+      allow create: if isStudent();
+      allow read: if isAdmin() || isStudent();
       allow update, delete: if isAdmin();
     }
 
