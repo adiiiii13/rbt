@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { ListSkeleton } from '../../components/ui/Skeleton'
-import { getCollectionWhere } from '../../lib/firebaseHelpers'
+import { getCollectionWhere, updateDocument, addDocument } from '../../lib/firebaseHelpers'
 import { formatCurrency } from '../../lib/invoice'
+import { openRazorpayClient } from '../../lib/razorpayClient'
 import InvoiceView from '../../components/InvoiceView'
 import Modal from '../../components/Modal'
 import { EyeIcon, ReceiptIcon } from '../../components/Icons'
+import toast from 'react-hot-toast'
 
 export default function Invoices() {
   const { user } = useAuth()
@@ -85,6 +87,47 @@ export default function Invoices() {
   const totalPaid = rows.filter(r => r.status === 'paid' || r.status === 'verified').reduce((s, r) => s + (r.amount || 0), 0)
   const totalPending = rows.filter(r => r.status === 'pending').reduce((s, r) => s + (r.amount || 0), 0)
 
+  const handlePay = (r) => {
+    openRazorpayClient({
+      amount: r.amount,
+      name: r.title,
+      description: r.subtitle || 'Invoice Payment',
+      user: user,
+      onSuccess: async (res) => {
+        try {
+          // Update invoice status
+          await updateDocument('invoices', r.id, {
+            status: 'paid',
+            paidAt: new Date().toISOString(),
+            paymentId: res.paymentId
+          })
+          
+          // Create payments record
+          await addDocument('payments', {
+            type: 'razorpay_invoice',
+            studentId: user.studentId || user.id,
+            studentUid: user.uid || user.id,
+            studentName: user.name,
+            studentEmail: user.email,
+            invoiceNumber: r.invoiceNumber,
+            courseTitle: r.title,
+            amount: r.amount,
+            method: 'razorpay',
+            paymentId: res.paymentId,
+            status: 'verified', // Manual invoices paid via razorpay are auto-verified
+            paidAt: new Date().toISOString()
+          })
+          
+          toast.success('Payment successful!')
+          load() // reload to show updated status
+        } catch (e) {
+          toast.error('Payment verified but failed to update status.')
+        }
+      },
+      onFailure: (err) => toast.error(err.message || 'Payment failed')
+    })
+  }
+
   const statusColors = { pending: 'badge-gold', verified: 'badge-green', paid: 'badge-green', rejected: 'badge-red' }
 
   return (
@@ -159,9 +202,16 @@ export default function Invoices() {
                     <td className="text-slate-400 text-sm">{r.date}</td>
                     <td><span className={`badge ${statusColors[r.status] || 'badge-navy'}`}>{r.status}</span></td>
                     <td>
-                      <button onClick={() => openView(r)} className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium inline-flex items-center gap-1.5">
-                        <EyeIcon size={14} /> View
-                      </button>
+                      <div className="flex gap-3 items-center">
+                        <button onClick={() => openView(r)} className="text-sm text-green-brand hover:text-green-light cursor-pointer font-medium inline-flex items-center gap-1.5">
+                          <EyeIcon size={14} /> View
+                        </button>
+                        {r.kind === 'invoice' && r.status === 'pending' && (
+                          <button onClick={() => handlePay(r)} className="px-3 py-1 bg-green-brand text-black font-bold rounded-lg hover:bg-green-500 transition-colors text-sm">
+                            Pay Now
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}

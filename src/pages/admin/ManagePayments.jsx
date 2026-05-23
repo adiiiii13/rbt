@@ -7,13 +7,19 @@ import { useState } from 'react'
 import Modal from '../../components/Modal'
 import InvoiceView from '../../components/InvoiceView'
 import ExportButton from '../../components/ExportButton'
+import CreateInvoiceModal from '../../components/CreateInvoiceModal'
 import { doc, setDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 
 export default function ManagePayments() {
   const { data: payments, loading } = useRealtimeCollection('payments')
   const { data: settings } = useRealtimeCollection('settings')
+  const { data: invoices } = useRealtimeCollection('invoices', { fallback: [] })
+  const { data: students } = useRealtimeCollection('students', { fallback: [] })
+  
   const [selectedInvoice, setSelectedInvoice] = useState(null)
+  const [activeTab, setActiveTab] = useState('all') // 'all' or 'dues'
+  const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false)
 
   const [isEditRevenueModalOpen, setIsEditRevenueModalOpen] = useState(false)
   const [revenueInput, setRevenueInput] = useState('')
@@ -34,12 +40,21 @@ export default function ManagePayments() {
     } catch (err) { toast.error(err.message || 'Reject failed') }
   }
 
-  const deleteInvoice = async (id) => {
+  const deleteInvoiceRecord = async (id) => {
     if (window.confirm("Are you sure you want to delete this invoice? This action cannot be undone.")) {
       try {
-        await deleteDocument('payments', id)
+        await deleteDocument('invoices', id)
         toast.success('Invoice deleted')
       } catch (err) { toast.error(err.message || 'Delete failed') }
+    }
+  }
+
+  const remind = async (inv) => {
+    try {
+      await updateDocument('invoices', inv.id, { remindedAt: new Date().toISOString() })
+      toast.success('Reminder logic executed')
+    } catch(e) {
+      toast.error(e.message)
     }
   }
 
@@ -83,28 +98,57 @@ export default function ManagePayments() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-white">Manage Payments</h1>
-          <p className="text-sm text-slate-400">{payments.length} transactions</p>
+          <p className="text-sm text-slate-400">Transactions and Dues</p>
         </div>
-        <ExportButton data={payments} filename="payments" columns={[
-          { key: 'invoiceNumber', label: 'Invoice #' },
-          { key: 'paymentId', label: 'Payment ID' },
-          { key: 'studentName', label: 'Student' },
-          { key: 'studentEmail', label: 'Email' },
-          { key: 'videoTitle', label: 'Video' },
-          { key: 'courseTitle', label: 'Course' },
-          { key: 'amount', label: 'Amount (₹)' },
-          { key: 'gpayTransactionId', label: 'UPI Txn ID' },
-          { key: 'status', label: 'Status' },
-          { key: 'verifiedAt', label: 'Verified At' },
-          { key: 'rejectedAt', label: 'Rejected At' },
-        ]} />
+        <div className="flex gap-3">
+          {activeTab === 'dues' ? (
+            <button onClick={() => setIsInvoiceModalOpen(true)} className="btn-primary flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+              Create Invoice
+            </button>
+          ) : (
+            <ExportButton data={payments} filename="payments" columns={[
+              { key: 'invoiceNumber', label: 'Invoice #' },
+              { key: 'paymentId', label: 'Payment ID' },
+              { key: 'studentName', label: 'Student' },
+              { key: 'studentEmail', label: 'Email' },
+              { key: 'videoTitle', label: 'Video' },
+              { key: 'courseTitle', label: 'Course' },
+              { key: 'amount', label: 'Amount (₹)' },
+              { key: 'gpayTransactionId', label: 'UPI Txn ID' },
+              { key: 'status', label: 'Status' },
+              { key: 'verifiedAt', label: 'Verified At' },
+              { key: 'rejectedAt', label: 'Rejected At' },
+            ]} />
+          )}
+        </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="flex gap-4 border-b border-slate-800 mb-6">
+        <button 
+          onClick={() => setActiveTab('all')} 
+          className={`pb-2 text-sm font-semibold transition-colors ${activeTab === 'all' ? 'text-green-brand border-b-2 border-green-brand' : 'text-slate-400 hover:text-white'}`}
+        >
+          All Payments
+        </button>
+        <button 
+          onClick={() => setActiveTab('dues')} 
+          className={`pb-2 text-sm font-semibold transition-colors flex items-center gap-2 ${activeTab === 'dues' ? 'text-green-brand border-b-2 border-green-brand' : 'text-slate-400 hover:text-white'}`}
+        >
+          Dues
+          {invoices.filter(i => i.status === 'pending').length > 0 && (
+            <span className="bg-amber-500/20 text-amber-500 px-2 py-0.5 rounded-full text-xs">{invoices.filter(i => i.status === 'pending').length}</span>
+          )}
+        </button>
+      </div>
+
+      {activeTab === 'all' ? (
+        <>
+          {/* Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-[#111111] rounded-2xl p-4 border border-slate-800">
           <div className="flex justify-between items-start mb-1">
             <p className="text-xs text-slate-400">Total Revenue</p>
@@ -186,6 +230,54 @@ export default function ManagePayments() {
           </div>
         </div>
       )}
+      </>
+      ) : (
+        <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
+          <div className="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th className="text-white">Invoice #</th>
+                  <th className="text-white">Student</th>
+                  <th className="text-white">Service / Batch</th>
+                  <th className="text-white">Amount</th>
+                  <th className="text-white">Due Date</th>
+                  <th className="text-white">Status</th>
+                  <th className="text-white">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoices.filter(inv => inv.status === 'pending').map((inv) => (
+                  <tr key={inv.id}>
+                    <td className="font-mono text-xs text-white">{inv.invoiceNumber}</td>
+                    <td className="text-white text-sm">
+                      {inv.studentName}
+                      <span className="block text-xs text-slate-400">{inv.studentEmail}</span>
+                    </td>
+                    <td className="text-slate-300 text-sm">{inv.courseName}</td>
+                    <td className="text-green-brand font-semibold">{formatCurrency(inv.amount)}</td>
+                    <td className="text-slate-400 text-sm">{inv.dueDate || 'No Due Date'}</td>
+                    <td><span className="badge badge-gold">Pending</span></td>
+                    <td>
+                      <div className="flex gap-3 items-center">
+                        <button onClick={() => remind(inv)} className="text-xs text-amber-500 font-bold hover:text-amber-400">Remind</button>
+                        <button onClick={() => deleteInvoiceRecord(inv.id)} className="text-xs text-red-500 font-bold hover:text-red-400">Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+                {invoices.filter(inv => inv.status === 'pending').length === 0 && (
+                  <tr>
+                    <td colSpan="7" className="text-center py-8 text-slate-400">
+                      No pending dues found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Invoice Modal */}
       <Modal isOpen={!!selectedInvoice} onClose={() => setSelectedInvoice(null)} title="Invoice Details">
@@ -240,6 +332,13 @@ export default function ManagePayments() {
           </div>
         </div>
       </Modal>
+
+      <CreateInvoiceModal 
+        isOpen={isInvoiceModalOpen} 
+        onClose={() => setIsInvoiceModalOpen(false)} 
+        students={students} 
+        invoicesCount={invoices.length} 
+      />
     </div>
   )
 }

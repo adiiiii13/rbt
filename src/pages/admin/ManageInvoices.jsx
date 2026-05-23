@@ -7,17 +7,14 @@ import InvoiceView from '../../components/InvoiceView'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 import ExportButton from '../../components/ExportButton'
-
-const emptyForm = { studentUid: '', studentName: '', studentEmail: '', courseName: '', description: '', amount: '', dueDate: '' }
+import CreateInvoiceModal from '../../components/CreateInvoiceModal'
+import { getCollectionWhere } from '../../lib/firebaseHelpers'
 
 export default function ManageInvoices() {
   const { data: invoices, loading } = useRealtimeCollection('invoices', { fallback: [] })
   const { data: students } = useRealtimeCollection('students', { fallback: [] })
   const [modal, setModal] = useState(false)
-  const [form, setForm] = useState(emptyForm)
-  const [sending, setSending] = useState(false)
   const [search, setSearch] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [viewInvoice, setViewInvoice] = useState(null)
   const [filterStudent, setFilterStudent] = useState('all')
   const [filterStatus, setFilterStatus] = useState('all')
@@ -53,48 +50,77 @@ export default function ManageInvoices() {
   }, [groups, filterStudent, filterStatus])
 
   const createInvoice = async () => {
-    if (!form.studentUid || !form.courseName || !form.amount) { toast.error('Student, course and amount required'); return }
+    if (!form.studentUid) { toast.error('Student required'); return }
+    
     setSending(true)
-    const num = generateInvoiceNumber(invoices.length)
     const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-    let invoiceOk = false
-    try {
-      await addDocument('invoices', {
-        invoiceNumber: num,
-        studentUid: form.studentUid,
-        studentName: form.studentName,
-        studentEmail: form.studentEmail,
+    
+    let toCreate = []
+    
+    if (invoiceTab === 'basic') {
+      if (!form.courseName || !form.amount) { toast.error('Course and amount required'); setSending(false); return }
+      toCreate.push({
         courseName: form.courseName,
         description: form.description,
         amount: Number(form.amount),
-        dueDate: form.dueDate,
-        status: 'pending',
-        paidAt: '',
-        issuedDate: paidAt,
+        dueDate: form.dueDate
       })
+    } else {
+      // batch selections
+      const selectedKeys = Object.keys(batchSelections).filter(k => batchSelections[k].selected)
+      if (selectedKeys.length === 0) { toast.error('Select at least one batch/class'); setSending(false); return }
+      
+      for (const k of selectedKeys) {
+        const itemData = studentEnrolledItems.find(i => i.id === k)
+        const sel = batchSelections[k]
+        if (!sel.amount) { toast.error(`Amount required for ${itemData.name}`); setSending(false); return }
+        toCreate.push({
+          courseName: itemData.name,
+          description: `Batch/Class Purchase`,
+          amount: Number(sel.amount),
+          dueDate: sel.dueDate
+        })
+      }
+    }
+
+    let invoiceOk = false
+    try {
+      for (const item of toCreate) {
+        const num = generateInvoiceNumber(invoices.length + Math.floor(Math.random() * 1000))
+        await addDocument('invoices', {
+          invoiceNumber: num,
+          studentUid: form.studentUid,
+          studentName: form.studentName,
+          studentEmail: form.studentEmail,
+          courseName: item.courseName,
+          description: item.description,
+          amount: item.amount,
+          dueDate: item.dueDate,
+          status: 'pending',
+          paidAt: '',
+          issuedDate: paidAt,
+        })
+        
+        // Notify student per invoice
+        try {
+          await addDocument('notifications', {
+            studentUid: form.studentUid,
+            studentName: form.studentName,
+            studentEmail: form.studentEmail,
+            subject: `New Invoice ${num}`,
+            message: `${item.courseName} — ${formatCurrency(item.amount)}${item.dueDate ? ` · due ${item.dueDate}` : ''}. View in My Invoices.`,
+            audience: 'invoice',
+            read: false,
+          })
+        } catch(e) { console.error(e) }
+      }
       invoiceOk = true
+      toast.success(`${toCreate.length} Invoice(s) created + student notified`)
     } catch (err) {
       console.error('[invoice create]', err)
       toast.error('Invoice failed: ' + (err.message || err.code || 'unknown'))
-      setSending(false)
-      return
     }
-    // Notify student — non-fatal; invoice already saved
-    try {
-      await addDocument('notifications', {
-        studentUid: form.studentUid,
-        studentName: form.studentName,
-        studentEmail: form.studentEmail,
-        subject: `New Invoice ${num}`,
-        message: `${form.courseName} — ${formatCurrency(Number(form.amount))}${form.dueDate ? ` · due ${form.dueDate}` : ''}. View in My Invoices.`,
-        audience: 'invoice',
-        read: false,
-      })
-      toast.success(`Invoice ${num} created + student notified`)
-    } catch (err) {
-      console.error('[invoice notify]', err)
-      toast.success(`Invoice ${num} created (notification failed — student can still see invoice)`)
-    }
+    
     if (invoiceOk) closeModal()
     setSending(false)
   }
@@ -148,8 +174,6 @@ export default function ManageInvoices() {
     try { await deleteDocument('invoices', id); toast.success('Deleted') }
     catch (err) { toast.error(err.message) }
   }
-
-  const closeModal = () => { setModal(false); setForm(emptyForm); setSearch(''); setDropdownOpen(false) }
 
   const openView = (inv) => {
     setViewInvoice({
@@ -292,68 +316,12 @@ export default function ManageInvoices() {
         )}
       </div>
 
-      {/* Create Invoice Modal */}
-      <Modal isOpen={modal} onClose={closeModal} title="Create Invoice" size="lg">
-        <div className="space-y-4">
-          {/* Search + Dropdown */}
-          <div className="relative">
-            <label className="text-sm font-medium text-slate-300 mb-1 block">Select Student *</label>
-            <div className="relative">
-              <input
-                className="input-field"
-                placeholder="Search by name, email, or ID..."
-                value={form.studentUid ? `${form.studentName} (${form.studentEmail || form.studentUid})` : search}
-                onChange={e => {
-                  setSearch(e.target.value)
-                  setDropdownOpen(true)
-                  if (!e.target.value) setForm({ ...form, studentUid: '', studentName: '', studentEmail: '' })
-                }}
-                onFocus={() => { if (!form.studentUid) setDropdownOpen(true) }}
-              />
-              {form.studentUid && (
-                <button
-                  onClick={() => { setForm({ ...form, studentUid: '', studentName: '', studentEmail: '' }); setSearch(''); setDropdownOpen(true) }}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white cursor-pointer"
-                >✕</button>
-              )}
-            </div>
-            {dropdownOpen && !form.studentUid && filteredStudents.length > 0 && (
-              <div className="absolute z-10 w-full mt-1 bg-[#111111] border border-slate-700 rounded-xl shadow-2xl max-h-48 overflow-y-auto">
-                {filteredStudents.slice(0, 20).map(s => (
-                  <button
-                    key={s.id || s.uid}
-                    onClick={() => {
-                      setForm({ ...form, studentUid: s.id || s.uid, studentName: s.name, studentEmail: s.email || '' })
-                      setSearch('')
-                      setDropdownOpen(false)
-                    }}
-                    className="w-full text-left px-4 py-2.5 hover:bg-white/5 transition-colors flex items-center justify-between cursor-pointer"
-                  >
-                    <span className="text-white text-sm">{s.name}</span>
-                    <span className="text-slate-500 text-xs">{s.email || s.studentId || s.id}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Course / Service *</label><input className="input-field" value={form.courseName} onChange={e => setForm({ ...form, courseName: e.target.value })} placeholder="Physics Pro, NEET Batch 2026..." /></div>
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Description</label><textarea className="input-field resize-none" rows={2} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Monthly fees, course enrollment..." /></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Amount (INR) *</label><input type="number" className="input-field" value={form.amount} onChange={e => setForm({ ...form, amount: e.target.value })} placeholder="5000" /></div>
-            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Due Date</label><input type="date" className="input-field" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} /></div>
-          </div>
-
-          {/* Preview */}
-          {form.studentUid && form.amount && (
-            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3 text-xs text-blue-200">
-              Invoice <b>{formatCurrency(Number(form.amount) || 0)}</b> for <b>{form.studentName}</b>. Student receives notification + sees in My Invoices.
-            </div>
-          )}
-
-          <button onClick={createInvoice} disabled={sending} className="btn-primary w-full disabled:opacity-50">{sending ? 'Creating...' : 'Create & Send Invoice'}</button>
-        </div>
-      </Modal>
+      <CreateInvoiceModal 
+        isOpen={modal} 
+        onClose={() => setModal(false)} 
+        students={students} 
+        invoicesCount={invoices.length} 
+      />
 
       {/* View Invoice Modal (Payment-style) */}
       <Modal isOpen={!!viewInvoice} onClose={() => setViewInvoice(null)} title="Invoice Preview" size="lg">
