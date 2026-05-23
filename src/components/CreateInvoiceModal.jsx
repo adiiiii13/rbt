@@ -11,30 +11,18 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
   const [form, setForm] = useState(emptyForm)
   const [invoiceTab, setInvoiceTab] = useState('basic') // 'basic' or 'batch'
   
-  // Realtime courses for basic purchases
+  // Realtime courses for looking up enrollment details
   const { data: allCourses } = useRealtimeCollection('courses', { fallback: [] })
 
-  const [studentEnrolledItems, setStudentEnrolledItems] = useState([])
-  const [batchSelections, setBatchSelections] = useState({})
+  const [studentEnrolledBatchItems, setStudentEnrolledBatchItems] = useState([])
+  const [studentEnrolledBasicItems, setStudentEnrolledBasicItems] = useState([])
   
+  const [batchSelections, setBatchSelections] = useState({})
   const [basicSelections, setBasicSelections] = useState({})
   
   const [sending, setSending] = useState(false)
   const [search, setSearch] = useState('')
   const [dropdownOpen, setDropdownOpen] = useState(false)
-
-  // Initialize basic selections when courses load
-  useEffect(() => {
-    if (allCourses && allCourses.length > 0) {
-      setBasicSelections(prev => {
-        const next = { ...prev }
-        allCourses.forEach(c => {
-          if (!next[c.id]) next[c.id] = { selected: false, amount: '', dueDate: '' }
-        })
-        return next
-      })
-    }
-  }, [allCourses])
 
   const filteredStudents = useMemo(() => {
     if (!search) return students
@@ -47,22 +35,48 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
       const student = students.find(s => s.id === uid || s.uid === uid)
       if (!student) return
       
-      const items = []
+      const batchItems = []
+      const basicItems = []
+
       if (student.assignedBatchName) {
-        items.push({ id: `batch_${student.assignedBatchId}`, name: student.assignedBatchName, type: 'Batch' })
+        batchItems.push({ id: `batch_${student.assignedBatchId || 'assigned'}`, name: student.assignedBatchName, type: 'Batch' })
       }
+      
       if (student.course) {
-        items.push({ id: `course_manual_${student.course}`, name: student.course, type: 'Course' })
+        basicItems.push({ id: `course_manual_${student.course}`, name: student.course, type: 'Basic' })
       }
       
-      await getCollectionWhere('enrollments', 'uid', '==', uid) // just checking if works
+      const enrolls = await getCollectionWhere('enrollments', 'uid', '==', uid) || []
       
-      setStudentEnrolledItems(items)
-      const initialSelections = {}
-      items.forEach(i => {
-        initialSelections[i.id] = { selected: false, amount: '', dueDate: '' }
+      enrolls.forEach(e => {
+         const cData = allCourses?.find(c => c.id === e.courseId)
+         if (cData) {
+            if (cData.courseType === 'batch') {
+               if (!batchItems.find(b => b.name === cData.title)) {
+                 batchItems.push({ id: e.courseId, name: cData.title, type: 'Batch' })
+               }
+            } else {
+               if (!basicItems.find(b => b.name === cData.title)) {
+                 basicItems.push({ id: e.courseId, name: cData.title, type: 'Basic' })
+               }
+            }
+         }
       })
-      setBatchSelections(initialSelections)
+      
+      setStudentEnrolledBatchItems(batchItems)
+      setStudentEnrolledBasicItems(basicItems)
+      
+      const bSelections = {}
+      batchItems.forEach(i => {
+        bSelections[i.id] = { selected: false, amount: '', dueDate: '', description: '' }
+      })
+      setBatchSelections(bSelections)
+
+      const basicSels = {}
+      basicItems.forEach(i => {
+        basicSels[i.id] = { selected: false, amount: '', dueDate: '', description: '' }
+      })
+      setBasicSelections(basicSels)
     } catch (err) {
       console.error(err)
     }
@@ -80,12 +94,12 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
       if (selectedKeys.length === 0) { toast.error('Select at least one basic course'); setSending(false); return }
       
       for (const k of selectedKeys) {
-        const itemData = allCourses.find(c => c.id === k)
+        const itemData = studentEnrolledBasicItems.find(c => c.id === k)
         const sel = basicSelections[k]
-        if (!sel.amount) { toast.error(`Amount required for ${itemData?.title || 'course'}`); setSending(false); return }
+        if (!sel.amount) { toast.error(`Amount required for ${itemData?.name || 'course'}`); setSending(false); return }
         toCreate.push({
-          courseName: itemData?.title || 'Basic Course',
-          description: `Basic Course Purchase`,
+          courseName: itemData?.name || 'Basic Course',
+          description: sel.description || `Basic Course Purchase`,
           amount: Number(sel.amount),
           dueDate: sel.dueDate
         })
@@ -95,12 +109,12 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
       if (selectedKeys.length === 0) { toast.error('Select at least one batch/class'); setSending(false); return }
       
       for (const k of selectedKeys) {
-        const itemData = studentEnrolledItems.find(i => i.id === k)
+        const itemData = studentEnrolledBatchItems.find(i => i.id === k)
         const sel = batchSelections[k]
         if (!sel.amount) { toast.error(`Amount required for ${itemData.name}`); setSending(false); return }
         toCreate.push({
           courseName: itemData.name,
-          description: `Batch/Class Purchase`,
+          description: sel.description || `Batch/Class Purchase`,
           amount: Number(sel.amount),
           dueDate: sel.dueDate
         })
@@ -152,16 +166,10 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
     setForm(emptyForm)
     setSearch('')
     setDropdownOpen(false)
-    setStudentEnrolledItems([])
+    setStudentEnrolledBatchItems([])
+    setStudentEnrolledBasicItems([])
     setBatchSelections({})
-    
-    // reset basic selections
-    setBasicSelections(prev => {
-      const next = {}
-      Object.keys(prev).forEach(k => next[k] = { selected: false, amount: '', dueDate: '' })
-      return next
-    })
-
+    setBasicSelections({})
     setInvoiceTab('basic')
     onClose()
   }
@@ -220,10 +228,12 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
 
         {invoiceTab === 'basic' ? (
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-            {!allCourses || allCourses.length === 0 ? (
-              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No basic courses found in the system.</p>
+            {!form.studentUid ? (
+              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">Select a student first to see their enrolled basic courses.</p>
+            ) : studentEnrolledBasicItems.length === 0 ? (
+              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No enrolled basic courses found for this student.</p>
             ) : (
-              allCourses.map(item => (
+              studentEnrolledBasicItems.map(item => (
                 <div key={item.id} className="p-3 border border-slate-700 rounded-lg bg-white/5 space-y-3">
                   <div className="flex items-center gap-3">
                     <input 
@@ -232,17 +242,23 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
                       checked={basicSelections[item.id]?.selected || false}
                       onChange={(e) => setBasicSelections(prev => ({...prev, [item.id]: {...prev[item.id], selected: e.target.checked}}))}
                     />
-                    <span className="text-sm font-bold text-white">{item.title || item.name || 'Untitled Course'} <span className="text-xs text-slate-400 font-normal ml-1">(Basic)</span></span>
+                    <span className="text-sm font-bold text-white">{item.name} <span className="text-xs text-slate-400 font-normal ml-1">(Basic)</span></span>
                   </div>
                   {basicSelections[item.id]?.selected && (
-                    <div className="grid grid-cols-2 gap-3 pl-7">
-                      <div>
-                        <label className="text-xs text-slate-400 block mb-1">Amount *</label>
-                        <input type="number" className="input-field text-sm px-3 py-1.5" placeholder="e.g. 500" value={basicSelections[item.id].amount} onChange={(e) => setBasicSelections(prev => ({...prev, [item.id]: {...prev[item.id], amount: e.target.value}}))} />
+                    <div className="space-y-3 pl-7">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Amount *</label>
+                          <input type="number" className="input-field text-sm px-3 py-1.5" placeholder="e.g. 500" value={basicSelections[item.id].amount} onChange={(e) => setBasicSelections(prev => ({...prev, [item.id]: {...prev[item.id], amount: e.target.value}}))} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Due Date</label>
+                          <input type="date" className="input-field text-sm px-3 py-1.5" value={basicSelections[item.id].dueDate} onChange={(e) => setBasicSelections(prev => ({...prev, [item.id]: {...prev[item.id], dueDate: e.target.value}}))} />
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs text-slate-400 block mb-1">Due Date</label>
-                        <input type="date" className="input-field text-sm px-3 py-1.5" value={basicSelections[item.id].dueDate} onChange={(e) => setBasicSelections(prev => ({...prev, [item.id]: {...prev[item.id], dueDate: e.target.value}}))} />
+                        <label className="text-xs text-slate-400 block mb-1">Description (Optional)</label>
+                        <input type="text" className="input-field text-sm px-3 py-1.5" placeholder="e.g. November Installment" value={basicSelections[item.id].description || ''} onChange={(e) => setBasicSelections(prev => ({...prev, [item.id]: {...prev[item.id], description: e.target.value}}))} />
                       </div>
                     </div>
                   )}
@@ -252,10 +268,12 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
           </div>
         ) : (
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-            {studentEnrolledItems.length === 0 ? (
-              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No enrolled batches/classes found for this student. Ensure they are assigned a batch in Manage Batch Students.</p>
+            {!form.studentUid ? (
+               <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">Select a student first to see their enrolled batches/classes.</p>
+            ) : studentEnrolledBatchItems.length === 0 ? (
+              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No enrolled batches/classes found for this student. Ensure they are assigned a batch in Manage Batch Students or have enrolled.</p>
             ) : (
-              studentEnrolledItems.map(item => (
+              studentEnrolledBatchItems.map(item => (
                 <div key={item.id} className="p-3 border border-slate-700 rounded-lg bg-white/5 space-y-3">
                   <div className="flex items-center gap-3">
                     <input 
@@ -267,14 +285,20 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
                     <span className="text-sm font-bold text-white">{item.name} <span className="text-xs text-slate-400 font-normal ml-1">({item.type})</span></span>
                   </div>
                   {batchSelections[item.id]?.selected && (
-                    <div className="grid grid-cols-2 gap-3 pl-7">
-                      <div>
-                        <label className="text-xs text-slate-400 block mb-1">Amount *</label>
-                        <input type="number" className="input-field text-sm px-3 py-1.5" placeholder="e.g. 500" value={batchSelections[item.id].amount} onChange={(e) => setBatchSelections(prev => ({...prev, [item.id]: {...prev[item.id], amount: e.target.value}}))} />
+                    <div className="space-y-3 pl-7">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Amount *</label>
+                          <input type="number" className="input-field text-sm px-3 py-1.5" placeholder="e.g. 500" value={batchSelections[item.id].amount} onChange={(e) => setBatchSelections(prev => ({...prev, [item.id]: {...prev[item.id], amount: e.target.value}}))} />
+                        </div>
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Due Date</label>
+                          <input type="date" className="input-field text-sm px-3 py-1.5" value={batchSelections[item.id].dueDate} onChange={(e) => setBatchSelections(prev => ({...prev, [item.id]: {...prev[item.id], dueDate: e.target.value}}))} />
+                        </div>
                       </div>
                       <div>
-                        <label className="text-xs text-slate-400 block mb-1">Due Date</label>
-                        <input type="date" className="input-field text-sm px-3 py-1.5" value={batchSelections[item.id].dueDate} onChange={(e) => setBatchSelections(prev => ({...prev, [item.id]: {...prev[item.id], dueDate: e.target.value}}))} />
+                        <label className="text-xs text-slate-400 block mb-1">Description (Optional)</label>
+                        <input type="text" className="input-field text-sm px-3 py-1.5" placeholder="e.g. November Installment" value={batchSelections[item.id].description || ''} onChange={(e) => setBatchSelections(prev => ({...prev, [item.id]: {...prev[item.id], description: e.target.value}}))} />
                       </div>
                     </div>
                   )}
@@ -289,4 +313,5 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
     </Modal>
   )
 }
+
 
