@@ -100,6 +100,45 @@ export default function ManageCourses() {
 
   const closeModal = () => { setModal(false); setEditing(null); reset() }
 
+  const handlePricingChange = (i, field, val) => {
+    const v = [...pricing];
+    v[i] = { ...v[i], [field]: val };
+    
+    const orig = Number(v[i].originalPrice);
+    const price = Number(v[i].price);
+    const extractDisc = (str) => { const m = String(str||'').match(/(\d+)/); return m ? Number(m[1]) : 0; };
+    
+    if (field === 'price') {
+      if (orig > 0 && price > 0 && orig >= price) {
+        const d = Math.round(((orig - price) / orig) * 100);
+        v[i].discount = d > 0 ? `${d}% OFF` : '';
+      }
+    } else if (field === 'originalPrice') {
+      const d = extractDisc(v[i].discount);
+      if (d > 0 && orig > 0) {
+        v[i].price = Math.round(orig - (orig * d / 100)).toString();
+      } else if (orig > 0 && price > 0 && orig >= price) {
+        const newD = Math.round(((orig - price) / orig) * 100);
+        v[i].discount = newD > 0 ? `${newD}% OFF` : '';
+      }
+    } else if (field === 'discount') {
+      const d = extractDisc(val);
+      if (d > 0 && orig > 0) {
+        v[i].price = Math.round(orig - (orig * d / 100)).toString();
+      }
+    }
+    setPricing(v);
+  }
+
+  const handleDiscountBlur = (i) => {
+    const v = [...pricing];
+    const m = String(v[i].discount || '').match(/(\d+)/);
+    if (m && !String(v[i].discount).includes('%')) {
+      v[i].discount = `${m[1]}% OFF`;
+      setPricing(v);
+    }
+  }
+
   const addPricing = () => setPricing(p => [...p, { months: 1, price: 1999, originalPrice: 2999, discount: '', note: '' }])
   const removePricing = (i) => setPricing(p => p.filter((_, idx) => idx !== i))
 
@@ -407,21 +446,15 @@ export default function ManageCourses() {
                       </div>
                       <div>
                         <label className="text-xs text-slate-400 block mb-1">Price (₹)</label>
-                        <input type="number" className="input-field text-sm" value={p.price} onChange={e => {
-                          const v = [...pricing]; v[i] = { ...v[i], price: e.target.value }; setPricing(v)
-                        }} />
+                        <input type="number" className="input-field text-sm" value={p.price} onChange={e => handlePricingChange(i, 'price', e.target.value)} />
                       </div>
                       <div>
                         <label className="text-xs text-slate-400 block mb-1">Original Price (₹)</label>
-                        <input type="number" className="input-field text-sm" value={p.originalPrice} onChange={e => {
-                          const v = [...pricing]; v[i] = { ...v[i], originalPrice: e.target.value }; setPricing(v)
-                        }} />
+                        <input type="number" className="input-field text-sm" value={p.originalPrice} onChange={e => handlePricingChange(i, 'originalPrice', e.target.value)} />
                       </div>
                       <div>
                         <label className="text-xs text-slate-400 block mb-1">Discount Label</label>
-                        <input className="input-field text-sm" value={p.discount} onChange={e => {
-                          const v = [...pricing]; v[i] = { ...v[i], discount: e.target.value }; setPricing(v)
-                        }} placeholder="37% OFF" />
+                        <input className="input-field text-sm" value={p.discount} onChange={e => handlePricingChange(i, 'discount', e.target.value)} onBlur={() => handleDiscountBlur(i)} placeholder="37% OFF" />
                       </div>
                     </div>
                     <div>
