@@ -294,6 +294,18 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const logout = async () => {
+    isAuthActionInProgress.current = true;
+    try {
+      await signOut(auth);
+      setUser(null);
+    } catch (err) {
+      console.error('Logout error', err);
+    } finally {
+      isAuthActionInProgress.current = false;
+    }
+  }
+
   return (
     <AuthContext.Provider
       value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, signupStudent, resetPassword, logout }}
