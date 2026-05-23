@@ -13,3 +13,11 @@ functions/node_modules
 
 # Local Netlify folder
 .netlify
+
+# Lint output dumps (one-off, never commit)
+errors.json
+eslint-errors.json
+*-errors.json
+
+# One-off migration scripts
+fix-tailwind.js
