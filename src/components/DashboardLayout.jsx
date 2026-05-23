@@ -39,6 +39,7 @@ export default function DashboardLayout({ type }) {
     const saved = localStorage.getItem('sidebarCollapsed')
     return saved ? JSON.parse(saved) : false
   })
+  const isSidebarExpanded = !isCollapsed;
   
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
