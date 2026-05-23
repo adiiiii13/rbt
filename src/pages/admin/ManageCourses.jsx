@@ -153,12 +153,20 @@ export default function ManageCourses() {
     { n: 4, label: 'Review' },
   ]
 
+  const [activeTab, setActiveTab] = useState('basic')
+
+  const filteredCourses = courses.filter(c => {
+    if (activeTab === 'basic') return c.courseType !== 'batch'
+    if (activeTab === 'batch') return c.courseType === 'batch'
+    return true
+  })
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <div><h1 className="text-2xl font-bold text-white">Manage Courses</h1><p className="text-sm text-slate-400">{courses.length} courses</p></div>
+        <div><h1 className="text-2xl font-bold text-white">Manage Courses</h1><p className="text-sm text-slate-400">{filteredCourses.length} courses</p></div>
         <div className="flex gap-2">
-          <ExportButton data={courses} filename="courses" columns={[
+          <ExportButton data={filteredCourses} filename="courses" columns={[
             { key: 'title', label: 'Title' },
             { key: 'level', label: 'Level' },
             { key: 'duration', label: 'Duration' },
@@ -171,6 +179,22 @@ export default function ManageCourses() {
           <button onClick={openCreate} className="btn-primary">+ Add Course</button>
         </div>
       </div>
+
+      <div className="flex items-center gap-4 border-b border-slate-800 mb-6">
+        <button
+          onClick={() => setActiveTab('basic')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'basic' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
+        >
+          Basic Courses
+        </button>
+        <button
+          onClick={() => setActiveTab('batch')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'batch' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
+        >
+          Batch Courses
+        </button>
+      </div>
+
       {loading && <TableSkeleton />}
 
       {/* Course list */}
@@ -178,7 +202,7 @@ export default function ManageCourses() {
         <div className="table-container">
           <table>
             <thead><tr><th className="text-white">Course</th><th className="text-white">Level</th><th className="text-white">Price</th><th className="text-white">Lessons</th><th className="text-white">Actions</th></tr></thead>
-            <tbody>{courses.map(c => {
+            <tbody>{filteredCourses.map(c => {
               const Ico = iconMap[c.image] || BookOpenIcon
               const minPrice = c.variants?.length ? Math.min(...c.variants.map(v => Number(v.price) || 0)) : null
               return (
