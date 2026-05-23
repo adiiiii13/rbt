@@ -10,85 +10,53 @@ const categories = [
       {
         title: 'Manage Courses',
         icon: '📚',
-        what: 'Full course system with pricing variants, video lessons (YouTube), thumbnails, free/paid lessons.',
+        what: 'Full course system with pricing variants, video lessons, and thumbnails.',
         workflow: [
-          '+ Add Course → fill Basic Info (title, description, subjects comma-separated, level, duration)',
-          'Thumbnail: upload image OR paste URL (imgur, postimages) — saves storage. Leave blank to auto-derive from first YouTube lesson.',
-          'Pricing tab: add multiple variants (3-month, 6-month) with price, original price, discount, note',
-          'Lessons tab: paste YouTube URL (auto-detects ID + thumbnail preview), set title/duration/free toggle',
-          'Reorder lessons with up/down arrows',
-          'Students see courses on Home + /courses → click → variant picker + lesson player',
+          'Add Course: Fill out the title, description, and subjects.',
+          'Pricing: Add duration options (e.g. 3-month) and prices.',
+          'Lessons: Paste YouTube URLs. The system automatically grabs the thumbnail.',
         ],
-        tips: 'Use Unlisted YouTube videos (not Private) to keep videos hidden from search but playable in your site. Free lessons preview to anyone; paid lessons require enrollment.',
+        tips: 'Use "Unlisted" YouTube videos. They will play perfectly on your site but remain hidden from public YouTube search.',
       },
       {
         title: 'Manage Videos',
         icon: '🎬',
-        what: 'Standalone paid videos. YouTube URL or self-hosted MP4/HLS. Razorpay or manual UPI purchase.',
+        what: 'Upload standalone paid or free videos for students to watch.',
         workflow: [
-          '+ Add Video → paste YouTube link OR upload file (warns >500MB)',
-          'Set thumbnail (auto-derived from YT ID, or upload custom)',
-          'Toggle Free / Paid. Paid → set price (INR)',
-          'Student clicks paid video → Payment page → Razorpay (instant) OR manual UPI (verify needed)',
-          'After payment, access unlocks; appears in /student/videos',
+          'Add Video: Paste a YouTube link or upload an MP4 file.',
+          'Set it as Free or Paid. Paid videos require students to pay before watching.',
+          'Once paid, the video unlocks in their dashboard.',
         ],
-        tips: 'Razorpay = instant access. Manual UPI = student enters txn ID, admin verifies under Manage Payments.',
       },
       {
         title: 'Manage PDFs',
         icon: '📄',
-        what: 'Upload test papers, worksheets, notes. PDF upload or Google Drive paste.',
+        what: 'Upload study notes, worksheets, and test papers.',
         workflow: [
-          '+ Add PDF → Upload file (max 50MB) OR paste URL (Google Drive auto-converted to direct link)',
-          'Fill: title, class, subject, exam type, date, file size, description',
-          'Appears on /test-papers downloadable tab + Student PDFs',
-          'Edit / Delete from card',
+          'Upload a file directly (max 50MB) OR paste a Google Drive link.',
+          'Fill in details like class, subject, and description.',
+          'Students can instantly download it from their portal.',
         ],
       },
       {
         title: 'Manage Gallery',
         icon: '🖼️',
-        what: 'Campus photos with event bundles, custom categories, bulk upload, drag-drop reorder.',
+        what: 'Showcase campus photos grouped by events.',
         workflow: [
-          'Filter chips: by Category and by Event (auto-built from images)',
-          'Add custom category in chip strip (saved per-browser)',
-          'Single: + Add Image → upload/URL + title + category + event',
-          'Bulk: 📦 Bulk Upload → pick category + event → select many images → progress bar',
-          'Drag card to reorder within view (writes order field)',
-          'View bundles by event when filter = All events',
+          'Bulk Upload: Select multiple images at once to save time.',
+          'Categorize: Group photos by event (e.g., "Annual Day 2026").',
+          'Drag & Drop: Easily reorder photos just by dragging them.',
         ],
-        tips: 'Group photos by event name (e.g. "Annual Day 2026") to bundle them on the public gallery page.',
-      },
-      {
-        title: 'Testimonials',
-        icon: '💬',
-        what: 'Student/parent quotes with star ratings (1-5).',
-        workflow: ['+ Add → name, role, type, text, rating', 'Shows on Home page testimonials carousel'],
-      },
-      {
-        title: 'Achievements',
-        icon: '🏆',
-        what: 'Student results, ranks, exam scores. Shows on /achievements + student dashboard.',
-        workflow: ['+ Add → student name, course, result, marks, year, description', 'Edit / Delete'],
-      },
-      {
-        title: 'Study Material',
-        icon: '📖',
-        what: 'Organize study notes by subject/class. Nested folders.',
-        workflow: ['+ Add → title, subject, class, URL or file', 'Auto-thumbnail when no image provided', 'Students see on /study-material'],
       },
       {
         title: 'Manage Mock Tests',
         icon: '📝',
-        what: 'MCQ tests with images, timer, anti-cheat, negative marking, per-Q explanations.',
+        what: 'Create MCQ tests with timers and anti-cheat tracking.',
         workflow: [
-          '+ Add Mock Test → title, subject, duration, marks per Q, negative marking',
-          'Add questions: text, 4 options, correct index, explanation, optional image',
-          'Reorder questions with arrow buttons (always visible — no hover needed)',
-          'Bulk import JSON: [{question, options:[a,b,c,d], correctIndex, explanation, imageUrl}]',
-          'Students take in /mock-test/:id (fullscreen + tab-switch detection)',
+          'Add Test: Set duration, negative marking, and total marks.',
+          'Add Questions: Enter text, options, and explanations.',
+          'Students take the test in a locked fullscreen view.',
         ],
-        tips: 'After student submits, you can also write per-Q remarks in Mock Results that flow back to the student.',
       },
     ],
   },
@@ -101,33 +69,32 @@ const categories = [
       {
         title: 'Manage Students',
         icon: '👨‍🎓',
-        what: 'Create real Firebase Auth accounts. Edit, disable, delete.',
+        what: 'Control student accounts and access levels.',
         workflow: [
-          '+ Add Student → ID, name, email, phone, class, course, password (min 8 chars)',
-          'Submit → Cloud Function creates Auth user',
-          'Disable blocks login (keeps data). Enable restores access.',
-          'Delete removes account + Firestore profile permanently.',
+          'Add Student: Create accounts manually for them.',
+          'Disable Account: Temporarily block login without deleting their data.',
+          'Assign Batches: Move students into batches to grant them premium access.',
         ],
-        tips: 'ID format: STU001. Share password privately with student.',
       },
       {
         title: 'Counselling Bookings',
         icon: '📅',
-        what: 'Student books slot → admin approves with Meet link OR rejects with reason. Both notify student.',
+        what: 'Manage 1-on-1 sessions requested by students.',
         workflow: [
-          'Student fills form → booking appears with Pending + Type (Batch / Non-batch)',
-          'Approve → paste Google Meet link → student gets notification + link visible',
-          'Reject → enter reason → student notified with reason + asked to rebook',
-          'Re-open rejected bookings back to pending if changed your mind',
-          'Edit any field (date, time, status, meet link). Complete after session.',
+          'View requests from students.',
+          'Approve: Paste a Google Meet link. The student gets notified.',
+          'Reject: Provide a reason. The student is asked to pick another time.',
         ],
-        tips: 'Meet links auto-generate at meet.new. Rejection reason is sent verbatim to student — keep it polite.',
       },
       {
         title: 'Doubts',
         icon: '❓',
-        what: 'Students upload doubt + photo. Admin replies.',
-        workflow: ['Student → My Doubts → text + optional photo', 'Admin → Doubts → write answer', 'Student sees reply. Status: pending → answered.'],
+        what: 'Answer student questions directly.',
+        workflow: [
+          'Student asks a question and attaches an optional photo.',
+          'You write a reply from the Doubts dashboard.',
+          'The student receives your answer immediately.',
+        ],
       },
     ],
   },
@@ -138,44 +105,24 @@ const categories = [
     color: 'amber',
     features: [
       {
-        title: 'Notices',
-        icon: '📢',
-        what: 'Site-wide announcements. Visible on student dashboard.',
-        workflow: ['+ Add Notice → title, content, priority, category', 'Publish → shows on /student/notices'],
-      },
-      {
-        title: 'Contact Inquiries',
-        icon: '📧',
-        what: 'Public contact form submissions.',
-        workflow: ['Visitor fills /contact form', 'Appears here with unread badge', 'View, mark read, email reply, delete'],
-      },
-      {
         title: 'Send Notifications',
         icon: '🔔',
-        what: 'Targeted in-app notifications: specific students, whole class, or all.',
+        what: 'Send push alerts to specific students or entire classes.',
         workflow: [
-          '+ Send Notification → pick audience: Specific / Class / All',
-          'Specific: search + multi-select students (checkboxes). Select-all-shown shortcut.',
-          'Class: pick class — auto-built from student records',
-          'All: blasts to every student',
-          'Write subject + message → Send. One doc per recipient (preserves student-side queries).',
-          'List view groups broadcasts by subject + time. Delete clears all copies.',
+          'Select Audience: Pick one student, a whole batch, or everyone.',
+          'Write Message: Add a subject and the notification text.',
+          'Send: Instantly pings their dashboard bell icon.',
         ],
-        tips: 'Confirms before sending to >50 students. Counter shows exact recipient count before send.',
       },
       {
         title: 'Offers',
         icon: '🎁',
-        what: 'Promo banners with 3 styles: gradient, solid, image. Position popup, top bar, or corner.',
+        what: 'Display promotional banners on the homepage.',
         workflow: [
-          '+ Add Offer → badge, title, message, CTA text + link',
-          'Style: Gradient (2 colors) / Solid (1 color) / Image (background photo)',
-          '6 color presets: Green Glow, Sunset, Ocean, Royal, Gold, Mono',
-          'Live preview panel shows banner as you edit',
-          'Set position, priority (higher shows first), start/end dates',
-          'Toggle Active to show/hide. WhatsApp click-through optional.',
+          'Create Offer: Write a catchy title and select a color theme.',
+          'Position: Choose if it appears as a popup, top bar, or corner alert.',
+          'Activate: Turn it on or off at any time.',
         ],
-        tips: 'Multiple active offers → highest priority wins. Use start/end dates for time-limited campaigns.',
       },
     ],
   },
@@ -188,103 +135,25 @@ const categories = [
       {
         title: 'Manage Payments',
         icon: '💰',
-        what: 'All student video purchases. Razorpay auto-verified; manual UPI needs admin approval.',
+        what: 'Verify manual UPI payments made by students.',
         workflow: [
-          'Razorpay payments → status "verified" auto (gateway confirmed)',
-          'UPI payments → status "pending" → admin reviews txn ID → Verify or Reject',
-          'Verify → student unlocks video instantly',
-          'Reject → student notified to retry',
+          'Students paying manually will submit a Transaction ID.',
+          'Check your bank/UPI app for the matching Transaction ID.',
+          'Click "Verify" in the admin panel to unlock their course.',
         ],
       },
       {
         title: 'Create Invoices',
         icon: '🧾',
-        what: 'Bill students for courses/services. Grouped by student. Send + reminder + mark paid.',
+        what: 'Manually bill students for offline services.',
         workflow: [
-          '+ Create Invoice → search student → fill course, description, amount, due date',
-          'Submit → invoice doc + notification sent to student automatically',
-          'List grouped by student: see total due + total paid per person',
-          'Mark Paid → status updates + student notified',
-          'Remind → resend notification without re-creating invoice',
-          'View → opens Payment-style invoice preview (printable)',
+          'Select a student and enter the due amount.',
+          'Send: The student gets an invoice in their portal.',
+          'Mark as Paid when you receive the cash/transfer.',
         ],
-        tips: 'Filter by student or status. Student sees invoices in /student/invoices alongside video purchases.',
       },
     ],
-  },
-  {
-    id: 'exam',
-    name: 'Exam System',
-    icon: '🎯',
-    color: 'red',
-    features: [
-      {
-        title: 'Mock Tests (Student)',
-        icon: '🎯',
-        what: 'Timed proctored MCQs. Fullscreen + tab-switch detection + auto-submit on cheat.',
-        workflow: ['Test Papers → Mock Tests → start', 'Fullscreen + timer countdown', '3 tab switches → auto-submit', 'Submit → score breakdown'],
-      },
-      {
-        title: 'Mock Results (Student)',
-        icon: '🏅',
-        what: 'Past attempts with full Q-by-Q review + admin remarks.',
-        workflow: [
-          'My Results → list of attempts with correct/wrong/skipped + %',
-          'View Full Results → modal shows every Q',
-          'Shows: question + image, options, your answer (red if wrong), correct answer (green), explanation',
-          'Admin remark per Q displays in amber box',
-        ],
-      },
-      {
-        title: 'Mock Results (Admin)',
-        icon: '📊',
-        what: 'All student attempts. Per-Q remarks editor.',
-        workflow: [
-          'Mock Results → filter by test/student/status',
-          'View any attempt → see student answers Q by Q',
-          'Write per-Q remark (amber textarea) → Save All Remarks',
-          'Student sees your remarks in their results view',
-        ],
-        tips: 'Use remarks to explain common mistakes, point to study material, or congratulate.',
-      },
-    ],
-  },
-  {
-    id: 'system',
-    name: 'System & Settings',
-    icon: '⚙️',
-    color: 'slate',
-    features: [
-      {
-        title: 'Seed Data',
-        icon: '🌱',
-        what: 'One-click demo content for empty collections.',
-        workflow: ['Dashboard → Seed Data → fills only empty collections', 'Delete demo items individually from each page'],
-      },
-      {
-        title: 'Batch vs Basic Login',
-        icon: '🔐',
-        what: 'Two student tiers. Batch = full access, Basic = browse-only.',
-        workflow: [
-          'Batch: Google sign-in + code "2026" → 11 dashboard pages',
-          'Basic: Google only → courses, free videos, PDFs, payments',
-          'Batch-only: counselling, invoices, notices, achievements, doubts, mock results',
-        ],
-      },
-      {
-        title: 'Firebase Storage',
-        icon: '📁',
-        what: 'Path layout for uploads.',
-        workflow: ['Gallery: public/gallery/', 'PDFs: pdfs/', 'Offers: public/offers/', 'Videos + thumbnails: videos/', 'Doubt photos: doubts/{uid}/', 'Mock test images: mock-tests/images/'],
-      },
-      {
-        title: 'Video Player',
-        icon: '🎬',
-        what: 'Unified HlsPlayer: YouTube iframe, MP4 native, HLS via react-player.',
-        workflow: ['YouTube URL → iframe embed (works for unlisted)', 'Uploaded MP4 → HTML5 video', '.m3u8 → HLS playback'],
-      },
-    ],
-  },
+  }
 ]
 
 const colorClasses = {
@@ -297,6 +166,7 @@ const colorClasses = {
 }
 
 export default function HelpPage() {
+  const [activeTab, setActiveTab] = useState('admin')
   const [expanded, setExpanded] = useState(null)
   const [search, setSearch] = useState('')
   const [activeCat, setActiveCat] = useState('all')
@@ -319,168 +189,258 @@ export default function HelpPage() {
     return cats
   }, [search, activeCat])
 
-  const totalFeatures = categories.reduce((s, c) => s + c.features.length, 0)
-  const totalMatches = filtered.reduce((s, c) => s + c.features.length, 0)
-
   return (
-    <div>
-      {/* Hero */}
-      <div className="bg-gradient-to-br from-green-500/10 via-blue-500/5 to-purple-500/10 rounded-3xl p-6 sm:p-8 border border-slate-800 mb-6">
-        <div className="flex items-start gap-4 mb-4">
-          <div className="w-12 h-12 rounded-2xl bg-green-brand/20 flex items-center justify-center text-2xl shrink-0">📋</div>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">Admin Help Center</h1>
-            <p className="text-slate-400 text-sm">{totalFeatures} features across {categories.length} categories — full workflow + tips for everything.</p>
-          </div>
-        </div>
-        <input
-          className="w-full bg-black/40 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand transition-all"
-          placeholder="🔍 Search features, workflows, tips..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-        />
-        {search && (
-          <p className="text-xs text-slate-500 mt-2">{totalMatches} match{totalMatches !== 1 ? 'es' : ''} for "{search}"</p>
-        )}
+    <div className="max-w-6xl mx-auto pb-12">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Help & Documentation</h1>
+        <p className="text-slate-400">Everything you need to know about managing your platform and students.</p>
       </div>
 
-      {/* Storage savings tip — top banner */}
-      <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-2xl p-4 mb-6 flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl shrink-0">💾</div>
-        <div className="flex-1">
-          <h3 className="font-bold text-amber-300 text-sm mb-1">Save Firebase Storage — Paste URLs Instead of Uploading</h3>
-          <p className="text-xs text-slate-300 leading-relaxed">
-            Every upload form (Doubts, Gallery, Offers, Videos, PDFs, Course thumbnails, Study Material) has <b>two options</b>: click to upload <b>OR</b> paste an image / video URL. URLs cost <b>zero storage</b>.
-          </p>
-          <ul className="text-xs text-slate-400 mt-2 space-y-1 list-disc list-inside">
-            <li><b>Images</b> → upload to <a href="https://imgur.com" target="_blank" rel="noopener noreferrer" className="text-amber-300 underline hover:text-amber-200">imgur.com</a> or <a href="https://postimages.org" target="_blank" rel="noopener noreferrer" className="text-amber-300 underline hover:text-amber-200">postimages.org</a> → copy direct link → paste</li>
-            <li><b>Videos</b> → upload to YouTube as <b>Unlisted</b> → paste link (best — also playable in app)</li>
-            <li><b>PDFs</b> → upload to Google Drive → set Anyone-with-link → paste (auto-converted to direct link)</li>
-          </ul>
-        </div>
-      </div>
-
-      {/* Category chips */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button onClick={() => setActiveCat('all')}
-          className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${activeCat === 'all' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'}`}>
-          All ({totalFeatures})
+      {/* Tabs */}
+      <div className="flex gap-2 mb-8 bg-[#111111] p-1.5 rounded-2xl border border-slate-800 w-fit">
+        <button
+          onClick={() => setActiveTab('admin')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            activeTab === 'admin' 
+              ? 'bg-blue-600 text-white shadow-lg' 
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          ⚙️ Admin Module
         </button>
-        {categories.map(c => {
-          const cc = colorClasses[c.color]
-          const active = activeCat === c.id
-          return (
-            <button key={c.id} onClick={() => setActiveCat(c.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${active ? `${cc.bg} ${cc.border} ${cc.text} border` : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'}`}>
-              <span>{c.icon}</span>
-              <span>{c.name}</span>
-              <span className="text-xs opacity-60">({c.features.length})</span>
-            </button>
-          )
-        })}
+        <button
+          onClick={() => setActiveTab('student')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+            activeTab === 'student' 
+              ? 'bg-green-600 text-white shadow-lg' 
+              : 'text-slate-400 hover:text-white hover:bg-white/5'
+          }`}
+        >
+          👨‍🎓 Student Flows
+        </button>
       </div>
 
-      {filtered.length === 0 && (
-        <div className="bg-[#111111] rounded-2xl p-12 border border-slate-800 text-center">
-          <p className="text-slate-500 mb-2">No features match "{search}"</p>
-          <button onClick={() => { setSearch(''); setActiveCat('all') }} className="text-sm text-green-brand hover:underline">Clear filters</button>
-        </div>
-      )}
-
-      {filtered.map(cat => {
-        const cc = colorClasses[cat.color]
-        return (
-          <div key={cat.id} className="mb-8">
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-xl ${cc.bg} ${cc.border} border flex items-center justify-center text-xl`}>{cat.icon}</div>
-              <div>
-                <h2 className="text-lg font-bold text-white">{cat.name}</h2>
-                <p className="text-xs text-slate-500">{cat.features.length} feature{cat.features.length !== 1 ? 's' : ''}</p>
+      {activeTab === 'admin' ? (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+          
+          {/* Credentials Section */}
+          <div className="bg-gradient-to-br from-slate-900 to-black rounded-3xl p-6 sm:p-8 border border-slate-800 mb-8 shadow-xl">
+            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-500/20 flex items-center justify-center text-xl">🔐</div>
+              Your Credentials
+            </h2>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Admin Login</div>
+                <div className="text-white font-mono text-sm">rbtmissionlearningofficial@gmail.com</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Admin Domain</div>
+                <div className="text-white font-mono text-sm">@rbtmission.com</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+                <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Hosting</div>
+                <div className="text-white text-sm">Firebase + Hostinger</div>
               </div>
             </div>
-            <div className="space-y-3">
-              {cat.features.map((f, fi) => {
-                const key = `${cat.id}-${fi}`
-                const isOpen = expanded === key
+          </div>
+
+          {/* Storage saving tip */}
+          <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/30 rounded-3xl p-6 mb-8 flex flex-col sm:flex-row items-start gap-4">
+            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 flex items-center justify-center text-3xl shrink-0 shadow-inner">💡</div>
+            <div>
+              <h3 className="font-bold text-amber-400 text-lg mb-2">Pro Tip: Save Storage Space</h3>
+              <p className="text-sm text-amber-200/80 leading-relaxed mb-3">
+                Whenever you add Videos, Gallery photos, or PDF notes, you can <b>paste a URL</b> instead of uploading a file directly to the server. This saves your storage limits!
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <span className="px-3 py-1 rounded-lg bg-black/40 border border-amber-500/20 text-xs text-amber-300">Images: Use imgur.com</span>
+                <span className="px-3 py-1 rounded-lg bg-black/40 border border-amber-500/20 text-xs text-amber-300">Videos: Use Unlisted YouTube links</span>
+                <span className="px-3 py-1 rounded-lg bg-black/40 border border-amber-500/20 text-xs text-amber-300">PDFs: Paste Google Drive links</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Search & Categories */}
+          <div className="bg-[#111111] rounded-3xl p-6 border border-slate-800 mb-8">
+            <input
+              className="w-full bg-black/50 border border-slate-700 rounded-xl px-4 py-4 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 transition-all mb-6 text-lg"
+              placeholder="🔍 Search features, workflows..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+            
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setActiveCat('all')}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all ${activeCat === 'all' ? 'bg-blue-600 text-white' : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'}`}>
+                All Features
+              </button>
+              {categories.map(c => {
+                const cc = colorClasses[c.color]
+                const active = activeCat === c.id
                 return (
-                  <div key={fi} className={`bg-[#111111] rounded-2xl border ${isOpen ? cc.border : 'border-slate-800'} overflow-hidden transition-colors`}>
-                    <button onClick={() => setExpanded(isOpen ? null : key)}
-                      className="w-full flex items-center justify-between p-4 text-left cursor-pointer hover:bg-white/[0.02]">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="text-2xl shrink-0">{f.icon}</span>
-                        <div className="min-w-0">
-                          <h3 className="font-bold text-white truncate">{f.title}</h3>
-                          <p className="text-xs text-slate-400 mt-0.5 line-clamp-2">{f.what}</p>
-                        </div>
-                      </div>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
-                        className={`text-slate-400 transition-transform shrink-0 ml-3 ${isOpen ? 'rotate-180' : ''}`}>
-                        <path d="m6 9 6 6 6-6" />
-                      </svg>
-                    </button>
-                    {isOpen && (
-                      <div className="px-4 pb-4 border-t border-slate-800 pt-4">
-                        <div className="mb-4">
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">What it does</p>
-                          <p className="text-sm text-slate-300">{f.what}</p>
-                        </div>
-                        <div className="mb-4">
-                          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Workflow ({f.workflow.length} steps)</p>
-                          <ol className="space-y-2">{f.workflow.map((step, j) => (
-                            <li key={j} className="text-sm text-slate-300 flex items-start gap-3">
-                              <span className={`w-6 h-6 rounded-full ${cc.bg} ${cc.text} text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold border ${cc.border}`}>{j + 1}</span>
-                              <span className="flex-1">{step}</span>
-                            </li>
-                          ))}</ol>
-                        </div>
-                        {f.tips && (
-                          <div className="bg-amber-500/5 rounded-xl p-3 border border-amber-500/20">
-                            <p className="text-xs font-bold text-amber-400 uppercase mb-1 flex items-center gap-1.5">💡 Pro Tip</p>
-                            <p className="text-sm text-slate-300">{f.tips}</p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
+                  <button key={c.id} onClick={() => setActiveCat(c.id)}
+                    className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-2 ${active ? `${cc.bg} ${cc.border} ${cc.text} border shadow-lg` : 'bg-white/5 text-slate-300 border border-white/10 hover:bg-white/10'}`}>
+                    <span>{c.icon}</span>
+                    <span>{c.name}</span>
+                  </button>
                 )
               })}
             </div>
           </div>
-        )
-      })}
 
-      {/* Quick reference footer */}
-      <div className="bg-gradient-to-br from-[#0a0a0a] to-[#111111] rounded-3xl p-6 border border-slate-800 mt-8">
-        <h3 className="font-bold text-white mb-4 flex items-center gap-2">
-          <span>⚡</span> Quick Reference
-        </h3>
-        <div className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
-          <Ref label="Admin login" value="rbtmissionlearningofficial@gmail.com" />
-          <Ref label="Batch code" value="2026" />
-          <Ref label="Admin domain" value="@rbtmission.com" />
-          <Ref label="Hosting" value="Firebase + Hostinger Git auto-deploy" />
-          <Ref label="GitHub" value="rbtmission/rbtmissionlearning" />
-          <Ref label="Realtime" value="Firestore onSnapshot (instant sync)" />
-          <Ref label="Storage upload limit" value="5MB (images), 50MB (PDFs), 500MB (videos warn)" />
-          <Ref label="YouTube tip" value="Use Unlisted (not Private) for site-only videos" />
+          {/* Feature List */}
+          <div className="grid lg:grid-cols-2 gap-6">
+            {filtered.map(cat => {
+              const cc = colorClasses[cat.color]
+              return (
+                <div key={cat.id} className="space-y-4">
+                  <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-4 mt-2">
+                    <span className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${cc.bg} ${cc.text}`}>{cat.icon}</span>
+                    {cat.name}
+                  </h3>
+                  
+                  {cat.features.map((f, fi) => {
+                    const key = `${cat.id}-${fi}`
+                    const isOpen = expanded === key
+                    return (
+                      <div key={fi} className={`bg-[#111111] rounded-2xl border ${isOpen ? cc.border : 'border-slate-800'} overflow-hidden transition-all duration-300 hover:border-slate-600`}>
+                        <button onClick={() => setExpanded(isOpen ? null : key)}
+                          className="w-full flex items-center justify-between p-5 text-left cursor-pointer">
+                          <div className="flex items-center gap-4">
+                            <div className="text-3xl drop-shadow-md">{f.icon}</div>
+                            <div>
+                              <h4 className="font-bold text-white text-lg">{f.title}</h4>
+                              <p className="text-sm text-slate-400 mt-1">{f.what}</p>
+                            </div>
+                          </div>
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-white/5 text-slate-400 transition-transform ${isOpen ? 'rotate-180 bg-white/10' : ''}`}>
+                            ↓
+                          </div>
+                        </button>
+                        
+                        {isOpen && (
+                          <div className="px-5 pb-5 border-t border-slate-800/50 pt-4 bg-black/20">
+                            <div className="mb-4">
+                              <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">How it works</p>
+                              <div className="space-y-3">
+                                {f.workflow.map((step, j) => (
+                                  <div key={j} className="flex items-start gap-3">
+                                    <div className={`w-6 h-6 rounded-full ${cc.bg} ${cc.text} text-xs flex items-center justify-center shrink-0 mt-0.5 font-bold`}>{j + 1}</div>
+                                    <p className="text-sm text-slate-300 leading-relaxed">{step}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                            {f.tips && (
+                              <div className="mt-4 bg-blue-500/10 rounded-xl p-4 border border-blue-500/20 flex gap-3">
+                                <div className="text-xl">💡</div>
+                                <p className="text-sm text-blue-200">{f.tips}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-4xl">
+          
+          <div className="bg-[#111111] rounded-3xl p-8 border border-slate-800 mb-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            
+            <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+              <span className="text-3xl">👋</span> Account Creation & Login
+            </h2>
+            <p className="text-slate-400 mb-8">How students register and gain access to the platform.</p>
 
-      <div className="bg-[#111111] rounded-2xl p-5 border border-slate-800 mt-4 text-center">
-        <p className="text-xs text-slate-500">Need help? Contact dev support — most issues fixable in &lt;5 min via this admin panel.</p>
-      </div>
-    </div>
-  )
-}
+            <div className="relative pl-8 border-l-2 border-slate-800 space-y-8">
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-slate-800 border-4 border-[#111111]"></div>
+                <h3 className="font-bold text-white text-lg">1. Student Signs Up</h3>
+                <p className="text-slate-400 mt-1">They visit <code className="bg-black px-2 py-0.5 rounded text-green-400 text-sm">/student-signup</code> and create an account with Email or Google.</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-slate-800 border-4 border-[#111111]"></div>
+                <h3 className="font-bold text-white text-lg">2. Profile Initialization</h3>
+                <p className="text-slate-400 mt-1">They are forced to a setup page where they enter their Class, School Name, and Phone Number.</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-blue-500 border-4 border-[#111111] shadow-[0_0_10px_rgba(59,130,246,0.5)]"></div>
+                <h3 className="font-bold text-blue-400 text-lg">3. Admin Assigns Batch (Your Job)</h3>
+                <p className="text-slate-300 mt-1">You go to <b>Manage Students</b>, find their name, and assign them to a Batch. Once assigned, they instantly get full access to the premium dashboard!</p>
+              </div>
+            </div>
+          </div>
 
-function Ref({ label, value }) {
-  return (
-    <div className="flex items-start gap-2">
-      <span className="text-green-brand mt-0.5">▸</span>
-      <div className="flex-1">
-        <div className="text-xs text-slate-500 uppercase tracking-wider">{label}</div>
-        <div className="text-slate-200 text-sm font-medium">{value}</div>
-      </div>
+          <div className="bg-[#111111] rounded-3xl p-8 border border-slate-800 mb-8 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            
+            <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+              <span className="text-3xl">💳</span> Purchasing Courses
+            </h2>
+            <p className="text-slate-400 mb-8">The complete flow when a student buys a course or video.</p>
+
+            <div className="relative pl-8 border-l-2 border-slate-800 space-y-8">
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-slate-800 border-4 border-[#111111]"></div>
+                <h3 className="font-bold text-white text-lg">1. Student Browses</h3>
+                <p className="text-slate-400 mt-1">They open <b>Buy Courses</b> on their dashboard and select a package (e.g. 3-Months).</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-slate-800 border-4 border-[#111111]"></div>
+                <h3 className="font-bold text-white text-lg">2. Makes Payment</h3>
+                <p className="text-slate-400 mt-1">They pay instantly using <b>Razorpay</b>, or they scan a QR code and manually enter their UPI Transaction ID.</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-amber-500 border-4 border-[#111111] shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
+                <h3 className="font-bold text-amber-400 text-lg">3. Admin Verifies (If UPI)</h3>
+                <p className="text-slate-300 mt-1">If they paid manually, it stays "Pending". You check your bank app, go to <b>Manage Payments</b>, and click <b>Verify</b>.</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-green-500 border-4 border-[#111111] shadow-[0_0_10px_rgba(34,197,94,0.5)]"></div>
+                <h3 className="font-bold text-green-400 text-lg">4. Course Unlocks</h3>
+                <p className="text-slate-300 mt-1">The course automatically moves to their <b>My Courses</b> tab and all locked lessons become playable!</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-[#111111] rounded-3xl p-8 border border-slate-800 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-red-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+            
+            <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+              <span className="text-3xl">📝</span> Mock Tests
+            </h2>
+            <p className="text-slate-400 mb-8">How exams are taken and graded.</p>
+
+            <div className="relative pl-8 border-l-2 border-slate-800 space-y-8">
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-slate-800 border-4 border-[#111111]"></div>
+                <h3 className="font-bold text-white text-lg">1. Taking the Test</h3>
+                <p className="text-slate-400 mt-1">Student starts the test. It forces full screen. If they switch tabs 3 times to search Google, the test auto-submits!</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-slate-800 border-4 border-[#111111]"></div>
+                <h3 className="font-bold text-white text-lg">2. Auto Grading</h3>
+                <p className="text-slate-400 mt-1">Once submitted, the system calculates marks and applies negative marking automatically.</p>
+              </div>
+              <div className="relative">
+                <div className="absolute -left-[41px] w-5 h-5 rounded-full bg-red-500 border-4 border-[#111111] shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
+                <h3 className="font-bold text-red-400 text-lg">3. Admin Feedback (Optional)</h3>
+                <p className="text-slate-300 mt-1">You go to <b>Mock Results</b>, view their answers, and type custom remarks on specific questions they got wrong to help them learn.</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
     </div>
   )
 }
