@@ -150,7 +150,10 @@ export default function ProfilePopup() {
                     {f.type === 'batchSelect' ? (
                       <select className="input-field w-full" value={form[f.id] || ''} onChange={e => setForm({ ...form, [f.id]: e.target.value })}>
                         <option value="">Select Batch / Class</option>
-                        {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        {batches.map(b => {
+                          const timingsStr = (b.timings || (b.timing ? [b.timing] : [])).join(', ');
+                          return <option key={b.id} value={b.id}>{b.className || b.name}{timingsStr ? ` — ${timingsStr}` : ''}</option>;
+                        })}
                       </select>
                     ) : f.type === 'boardSelect' ? (
                       <select className="input-field w-full" value={form[f.id] || ''} onChange={e => setForm({ ...form, [f.id]: e.target.value })}>

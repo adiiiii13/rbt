@@ -10,7 +10,7 @@ import { TableSkeleton } from '../../components/ui/Skeleton';
 export default function ManageBatches() {
   const { data: batches, loading } = useRealtimeCollection('batches', { orderField: 'createdAt', orderDir: 'desc' });
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: '', batchCode: '', board: '', className: '', timing: '' });
+  const [form, setForm] = useState({ batchCode: '', board: '', className: '', timings: [] });
   const [options, setOptions] = useState({ boards: [], classes: [], timings: [] });
 
   useEffect(() => {
@@ -32,28 +32,35 @@ export default function ManageBatches() {
     fetchOptions();
   }, []);
 
+  const toggleTiming = (timing) => {
+    setForm(prev => {
+      const current = prev.timings || [];
+      if (current.includes(timing)) {
+        return { ...prev, timings: current.filter(t => t !== timing) };
+      } else {
+        return { ...prev, timings: [...current, timing] };
+      }
+    });
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
-    if (!form.name || !form.batchCode) return toast.error('All fields are required');
+    if (!form.className || !form.batchCode) return toast.error('Class and Batch Code are required');
+
+    const saveData = {
+      name: form.className,
+      batchCode: form.batchCode,
+      board: form.board || '',
+      className: form.className || '',
+      timings: form.timings || []
+    };
 
     try {
       if (form.id) {
-        await updateDocument('batches', form.id, { 
-          name: form.name, 
-          batchCode: form.batchCode,
-          board: form.board || '',
-          className: form.className || '',
-          timing: form.timing || ''
-        });
+        await updateDocument('batches', form.id, saveData);
         toast.success('Batch / Class updated');
       } else {
-        await addDocument('batches', { 
-          name: form.name, 
-          batchCode: form.batchCode,
-          board: form.board || '',
-          className: form.className || '',
-          timing: form.timing || ''
-        });
+        await addDocument('batches', saveData);
         toast.success('Batch / Class created');
       }
       setModal(false);
@@ -72,6 +79,14 @@ export default function ManageBatches() {
     }
   };
 
+  const openEdit = (b) => {
+    setForm({
+      ...b,
+      timings: b.timings || (b.timing ? [b.timing] : [])
+    });
+    setModal(true);
+  };
+
   if (loading) return <div className="p-8"><TableSkeleton /></div>;
 
   return (
@@ -81,7 +96,7 @@ export default function ManageBatches() {
           <h1 className="text-2xl font-bold text-white">Manage Batches / Classes</h1>
           <p className="text-sm text-slate-400">{batches.length} batches / classes active</p>
         </div>
-        <button onClick={() => { setForm({ name: '', batchCode: '', board: '', className: '', timing: '' }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch / Class</button>
+        <button onClick={() => { setForm({ batchCode: '', board: '', className: '', timings: [] }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch / Class</button>
       </div>
 
       <div className="bg-[#111111] rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
@@ -89,25 +104,32 @@ export default function ManageBatches() {
           <table className="w-full">
             <thead className="bg-white/5 border-b border-slate-800">
               <tr>
-                <th className="text-white font-bold">Batch / Class Name</th>
-                <th className="text-white font-bold">Batch / Class Code</th>
+                <th className="text-white font-bold">Batch / Class</th>
+                <th className="text-white font-bold">Code</th>
                 <th className="text-white font-bold">Board</th>
-                <th className="text-white font-bold">Class</th>
-                <th className="text-white font-bold">Timing</th>
+                <th className="text-white font-bold">Timings</th>
                 <th className="text-white font-bold">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800">
               {batches.map(b => (
                 <tr key={b.id} className="hover:bg-white/5 transition-colors">
-                  <td className="font-semibold text-white">{b.name}</td>
+                  <td className="font-semibold text-white">{b.className || b.name}</td>
                   <td className="font-mono text-emerald-400 font-bold">{b.batchCode}</td>
                   <td className="text-slate-300">{b.board || '-'}</td>
-                  <td className="text-slate-300">{b.className || '-'}</td>
-                  <td className="text-slate-300">{b.timing || '-'}</td>
+                  <td>
+                    <div className="flex flex-wrap gap-1.5">
+                      {(b.timings || (b.timing ? [b.timing] : [])).length > 0
+                        ? (b.timings || [b.timing]).map(t => (
+                          <span key={t} className="text-[11px] bg-blue-500/15 text-blue-400 px-2 py-0.5 rounded-full font-medium">{t}</span>
+                        ))
+                        : <span className="text-slate-500">-</span>
+                      }
+                    </div>
+                  </td>
                   <td>
                     <div className="flex gap-3">
-                      <button onClick={() => { setForm(b); setModal(true); }} className="text-sm font-bold text-blue-400 cursor-pointer">Edit</button>
+                      <button onClick={() => openEdit(b)} className="text-sm font-bold text-blue-400 cursor-pointer">Edit</button>
                       <button onClick={() => remove(b.id)} className="text-sm font-bold text-red-400 cursor-pointer">Delete</button>
                     </div>
                   </td>
@@ -121,12 +143,16 @@ export default function ManageBatches() {
       <Modal isOpen={modal} onClose={() => setModal(false)} title={form.id ? 'Edit Batch / Class' : 'Create Batch / Class'}>
         <form onSubmit={handleSave} className="space-y-4 p-1">
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Batch / Class Name</label>
-            <input className="input-field w-full" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Foundation 2026 or Class 10" />
+            <label className="text-sm font-bold text-white mb-1.5 block">Batch / Class *</label>
+            <select className="input-field w-full" value={form.className} onChange={e => setForm({ ...form, className: e.target.value })}>
+              <option value="">Select Class...</option>
+              {options.classes.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+            <p className="text-[10px] text-slate-500 mt-1">This will be the name shown to students.</p>
           </div>
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Batch / Class Code</label>
-            <input className="input-field w-full" value={form.batchCode} onChange={e => setForm({ ...form, batchCode: e.target.value })} placeholder="e.g. F2026 or C10" />
+            <label className="text-sm font-bold text-white mb-1.5 block">Batch / Class Code *</label>
+            <input className="input-field w-full" value={form.batchCode} onChange={e => setForm({ ...form, batchCode: e.target.value })} placeholder="e.g. C10" />
           </div>
           <div>
             <label className="text-sm font-bold text-white mb-1.5 block">Board</label>
@@ -136,18 +162,25 @@ export default function ManageBatches() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Class</label>
-            <select className="input-field w-full" value={form.className} onChange={e => setForm({ ...form, className: e.target.value })}>
-              <option value="">Select Class...</option>
-              {options.classes.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Timing</label>
-            <select className="input-field w-full" value={form.timing} onChange={e => setForm({ ...form, timing: e.target.value })}>
-              <option value="">Select Timing...</option>
-              {options.timings.map(t => <option key={t} value={t}>{t}</option>)}
-            </select>
+            <label className="text-sm font-bold text-white mb-2 block">Timings</label>
+            {options.timings.length > 0 ? (
+              <div className="space-y-2 bg-slate-800/30 border border-slate-700/50 rounded-xl p-4">
+                {options.timings.map(t => (
+                  <label key={t} className="flex items-center gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={(form.timings || []).includes(t)}
+                      onChange={() => toggleTiming(t)}
+                      className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-brand focus:ring-green-brand/30 focus:ring-offset-0"
+                    />
+                    <span className="text-sm text-slate-300 group-hover:text-white transition-colors">{t}</span>
+                  </label>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500 italic">No timings configured. Add timings in Profile Form Settings.</p>
+            )}
+            <p className="text-[10px] text-slate-500 mt-1.5">Selected timings will be visible to students next to this batch/class.</p>
           </div>
           <div className="pt-2"><button type="submit" className="btn-primary w-full">Save Batch / Class</button></div>
         </form>
