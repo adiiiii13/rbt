@@ -127,6 +127,13 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // Razorpay Orders: owner read/create; admin full
+    match /razorpayOrders/{doc} {
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
     // Offers: public read; admin write
     match /offers/{doc} {
       allow read: if true;
