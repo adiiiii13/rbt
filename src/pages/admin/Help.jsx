@@ -237,7 +237,7 @@ export default function HelpPage() {
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
                 <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Admin Domain</div>
-                <div className="text-white font-mono text-sm">@rbtmission.com</div>
+                <div className="text-white font-mono text-sm">@rbtmissionlearning.in</div>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
                 <div className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Hosting</div>
