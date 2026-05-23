@@ -52,23 +52,24 @@ export default function ManageStudents() {
     
     setBusy(true);
     const fn = httpsCallable(functions, 'deleteStudent');
-    let successCount = 0;
-    let failCount = 0;
     
-    for (const id of selected) {
-      try {
-        await fn({ uid: id });
-        successCount++;
-      } catch (err) {
-        console.error('Failed to delete', id, err);
-        failCount++;
-      }
+    try {
+      const results = await Promise.allSettled(
+        selected.map(id => fn({ uid: id }))
+      );
+      
+      const successCount = results.filter(r => r.status === 'fulfilled').length;
+      const failCount = results.filter(r => r.status === 'rejected').length;
+      
+      if (successCount > 0) toast.success(`Successfully deleted ${successCount} students`);
+      if (failCount > 0) toast.error(`Failed to delete ${failCount} students`);
+      
+      setSelected([]);
+    } catch (err) {
+      toast.error('An error occurred during deletion');
+      console.error(err);
     }
     
-    if (successCount > 0) toast.success(`Successfully deleted ${successCount} students`);
-    if (failCount > 0) toast.error(`Failed to delete ${failCount} students`);
-    
-    setSelected([]);
     setBusy(false);
   };
 
