@@ -51,22 +51,18 @@ export default function ManageStudents() {
     if (!confirm(`Are you sure you want to delete ${selected.length} students permanently? This deletes their accounts and data.`)) return;
     
     setBusy(true);
-    const fn = httpsCallable(functions, 'deleteStudent');
+    const fn = httpsCallable(functions, 'bulkDeleteStudents');
     
     try {
-      const results = await Promise.allSettled(
-        selected.map(id => fn({ uid: id }))
-      );
+      const result = await fn({ uids: selected });
+      const { success, failed } = result.data || {};
       
-      const successCount = results.filter(r => r.status === 'fulfilled').length;
-      const failCount = results.filter(r => r.status === 'rejected').length;
-      
-      if (successCount > 0) toast.success(`Successfully deleted ${successCount} students`);
-      if (failCount > 0) toast.error(`Failed to delete ${failCount} students`);
+      if (success > 0) toast.success(`Successfully deleted ${success} students`);
+      if (failed > 0) toast.error(`Failed to delete ${failed} students`);
       
       setSelected([]);
     } catch (err) {
-      toast.error('An error occurred during deletion');
+      toast.error('An error occurred during bulk deletion');
       console.error(err);
     }
     

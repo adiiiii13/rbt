@@ -170,6 +170,76 @@ export const deleteStudent = onCall(async (request) => {
   }
 })
 
+// Bulk delete students (server-side, chunked parallel processing)
+export const bulkDeleteStudents = onCall(async (request) => {
+  assertAdmin(request.auth)
+  const { uids } = request.data || {}
+  if (!uids || !Array.isArray(uids)) {
+    throw new HttpsError('invalid-argument', 'uids array required')
+  }
+
+  const results = { success: 0, failed: 0, errors: [] }
+
+  // Process in chunks of 10 to avoid hitting limits but remain fast
+  const chunkSize = 10;
+  for (let i = 0; i < uids.length; i += chunkSize) {
+    const chunk = uids.slice(i, i + chunkSize);
+    
+    await Promise.allSettled(chunk.map(async (uid) => {
+      try {
+        const studentSnap = await db.collection('students').doc(uid).get()
+        const studentData = studentSnap.exists ? studentSnap.data() : {}
+        const studentId = studentData?.studentId
+
+        const collectionsToDelete = [
+          { name: 'enrollments', field: 'uid', value: uid },
+          { name: 'razorpayOrders', field: 'uid', value: uid },
+          { name: 'mockResults', field: 'uid', value: uid },
+          { name: 'payments', field: 'studentId', value: uid }
+        ]
+
+        for (const coll of collectionsToDelete) {
+          const snap = await db.collection(coll.name).where(coll.field, '==', coll.value).get()
+          const batch = db.batch()
+          snap.forEach(doc => batch.delete(doc.ref))
+          await batch.commit()
+        }
+
+        if (studentId && studentId !== uid) {
+          const snap = await db.collection('payments').where('studentId', '==', studentId).get()
+          const batch = db.batch()
+          snap.forEach(doc => batch.delete(doc.ref))
+          await batch.commit()
+        }
+
+        await db.collection('students').doc(uid).delete()
+
+        try {
+          await auth.deleteUser(uid)
+        } catch (authErr) {
+          console.warn(`Auth user ${uid} might already be deleted:`, authErr.message)
+        }
+
+        try {
+          const { getStorage } = await import('firebase-admin/storage')
+          const bucket = getStorage().bucket()
+          await bucket.deleteFiles({ prefix: `students/${uid}/` })
+        } catch (storageErr) {
+          console.warn(`Could not delete storage for ${uid}:`, storageErr.message)
+        }
+
+        results.success++;
+      } catch (err) {
+        console.error(`Error deleting student ${uid}:`, err)
+        results.failed++;
+        results.errors.push({ uid, error: err.message });
+      }
+    }));
+  }
+
+  return results;
+})
+
 // Trigger: new counselling booking → FCM push to admins
 export const onCounsellingCreated = onDocumentCreated('counsellingBookings/{id}', async (event) => {
   const data = event.data?.data()
