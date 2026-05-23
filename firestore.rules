@@ -123,8 +123,7 @@ service cloud.firestore {
 
     // Invoices: read for owner student + admin; admin writes
     match /invoices/{doc} {
-      allow read: if isAdmin() ||
-        (isSignedIn() && resource.data.studentUid == request.auth.uid);
+      allow read: if isAdmin() || isStudent();
       allow write: if isAdmin();
     }
 
