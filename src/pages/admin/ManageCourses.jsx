@@ -28,7 +28,7 @@ export default function ManageCourses() {
   const [step, setStep] = useState(1) // 1-4
 
   // Step 1: Basic
-  const [basic, setBasic] = useState({ title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false, courseType: 'basic', batchId: '' })
+  const [basic, setBasic] = useState({ title: '', description: '', subjects: '', level: 'Foundation', durationValue: '12', durationUnit: 'Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false, courseType: 'basic', batchId: '' })
 
   // Step 2: Pricing
   const [pricing, setPricing] = useState([{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: 'Most Popular' }])
@@ -56,7 +56,7 @@ export default function ManageCourses() {
 
   const reset = () => {
     setStep(1)
-    setBasic({ title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false, courseType: 'basic', batchId: '' })
+    setBasic({ title: '', description: '', subjects: '', level: 'Foundation', durationValue: '12', durationUnit: 'Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false, courseType: 'basic', batchId: '' })
     setPricing([{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: 'Most Popular' }])
     setModules([])
   }
@@ -65,10 +65,21 @@ export default function ManageCourses() {
 
   const openEdit = (c) => {
     setEditing(c)
+    let dVal = '12';
+    let dUnit = 'Months';
+    if (c.duration) {
+      if (c.duration === 'Lifetime') { dVal = ''; dUnit = 'Lifetime'; }
+      else {
+        const parts = c.duration.split(' ');
+        if (parts.length >= 2) { dVal = parts[0]; dUnit = parts[1]; }
+        else { dVal = c.duration; }
+      }
+    }
+
     setBasic({
       title: c.title || '', description: c.description || '',
       subjects: Array.isArray(c.subjects) ? c.subjects.join(', ') : '',
-      level: c.level || 'Foundation', duration: c.duration || '12 Months',
+      level: c.level || 'Foundation', durationValue: dVal, durationUnit: dUnit,
       thumbnail: c.thumbnail || '', image: c.image || 'BookOpen',
       color: c.color || '#3b82f6', isFree: !!c.isFree,
       courseType: c.courseType || 'basic', batchId: c.batchId || '',
@@ -124,8 +135,11 @@ export default function ManageCourses() {
     for (const m of modules) { const v = m.items.find(i => i.type === 'video'); if (v?.data) { firstVideoUrl = v.data; break } }
     const autoThumb = !basic.thumbnail ? ytThumb(firstVideoUrl) : ''
     
+    const finalDuration = basic.durationUnit === 'Lifetime' ? 'Lifetime' : `${basic.durationValue} ${basic.durationUnit}`
+    
     const payload = {
       ...basic, subjects: subjectsArr, thumbnail: basic.thumbnail || autoThumb,
+      duration: finalDuration,
       isFree: basic.isFree,
       courseType: basic.courseType || 'basic',
       batchId: basic.courseType === 'batch' ? basic.batchId : null,
@@ -261,13 +275,33 @@ export default function ManageCourses() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-sm text-slate-300 font-medium mb-1 block">Level</label>
-                <select className="input-field" value={basic.level} onChange={e => setBasic({ ...basic, level: e.target.value })}>
-                  {LEVELS.map(l => <option key={l}>{l}</option>)}
+                <select className="input-field mb-2" value={LEVELS.includes(basic.level) ? basic.level : 'Other'} onChange={e => {
+                  if (e.target.value === 'Other') {
+                    setBasic({ ...basic, level: '' })
+                  } else {
+                    setBasic({ ...basic, level: e.target.value })
+                  }
+                }}>
+                  {LEVELS.map(l => <option key={l} value={l}>{l}</option>)}
+                  <option value="Other">Other (Custom)</option>
                 </select>
+                {!LEVELS.includes(basic.level) && (
+                  <input className="input-field" value={basic.level} onChange={e => setBasic({ ...basic, level: e.target.value })} placeholder="Type custom level..." />
+                )}
               </div>
               <div>
                 <label className="text-sm text-slate-300 font-medium mb-1 block">Duration</label>
-                <input className="input-field" value={basic.duration} onChange={e => setBasic({ ...basic, duration: e.target.value })} placeholder="e.g. 12 Months" />
+                <div className="flex gap-2">
+                  {basic.durationUnit !== 'Lifetime' && (
+                    <input type="number" className="input-field w-1/2" value={basic.durationValue} onChange={e => setBasic({ ...basic, durationValue: e.target.value })} placeholder="e.g. 12" />
+                  )}
+                  <select className={`input-field ${basic.durationUnit === 'Lifetime' ? 'w-full' : 'w-1/2'}`} value={basic.durationUnit} onChange={e => setBasic({ ...basic, durationUnit: e.target.value })}>
+                    <option value="Days">Days</option>
+                    <option value="Months">Months</option>
+                    <option value="Years">Years</option>
+                    <option value="Lifetime">Lifetime</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

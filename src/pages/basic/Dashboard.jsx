@@ -27,7 +27,14 @@ export default function BasicDashboard() {
         if (!alive) return
         const ids = snap.docs
           .map(d => d.data())
-          .filter(e => e.status !== 'revoked')
+          .filter(e => {
+            if (e.status === 'revoked') return false;
+            if (!e.enrolledAt || !e.months) return true;
+            const enrolledDate = e.enrolledAt.toDate ? e.enrolledAt.toDate() : new Date(e.enrolledAt);
+            if (e.months >= 1200) return true; // Lifetime
+            const expiryMs = enrolledDate.getTime() + (e.months * 30 * 24 * 60 * 60 * 1000);
+            return new Date().getTime() <= expiryMs;
+          })
           .map(e => e.courseId)
         setEnrolledCourseIds(ids)
       } catch (err) {

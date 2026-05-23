@@ -39,7 +39,14 @@ export default function BasicCourseDetail() {
             where('courseId', '==', id),
           );
           const enrolSnap = await getDocs(q);
-          const validEnrollment = enrolSnap.docs.map(d => ({id: d.id, ...d.data()})).find(e => e.status !== 'revoked');
+          const validEnrollment = enrolSnap.docs.map(d => ({id: d.id, ...d.data()})).find(e => {
+            if (e.status === 'revoked') return false;
+            if (!e.enrolledAt || !e.months) return true;
+            const enrolledDate = e.enrolledAt.toDate ? e.enrolledAt.toDate() : new Date(e.enrolledAt);
+            if (e.months >= 1200) return true; // Lifetime
+            const expiryMs = enrolledDate.getTime() + (e.months * 30 * 24 * 60 * 60 * 1000);
+            return new Date().getTime() <= expiryMs;
+          });
           if (validEnrollment) setEnrollment(validEnrollment);
         }
       } catch (err) { toast.error(err.message); }
@@ -87,6 +94,21 @@ export default function BasicCourseDetail() {
     
     setBuying(true);
 
+    let courseMonths = variant.months;
+    if (isFree && !selectedVariant && course.duration) {
+      if (course.duration === 'Lifetime') {
+        courseMonths = 1200; // 100 years
+      } else {
+        const parts = course.duration.split(' ');
+        if (parts.length === 2) {
+          const val = parseFloat(parts[0]) || 12;
+          if (parts[1] === 'Days') courseMonths = val / 30;
+          else if (parts[1] === 'Months') courseMonths = val;
+          else if (parts[1] === 'Years') courseMonths = val * 12;
+        }
+      }
+    }
+
     if (isFree) {
       try {
         const { addDoc, serverTimestamp } = await import('firebase/firestore')
@@ -97,7 +119,7 @@ export default function BasicCourseDetail() {
           uid: user.uid,
           courseId: course.id,
           courseName: course.title,
-          months: variant.months,
+          months: courseMonths,
           amount: variant.price,
           status: 'active',
           enrolledAt: serverTimestamp(),
@@ -116,7 +138,7 @@ export default function BasicCourseDetail() {
           studentName: user.name || '',
           studentEmail: user.email || '',
           courseName: course.title,
-          description: `${variant.months}-month plan (Free)`,
+          description: course.duration === 'Lifetime' ? 'Lifetime Access (Free)' : `${course.duration || '12 Months'} plan (Free)`,
           amount: variant.price,
           status: 'paid',
           paidAt: paidAt,
@@ -124,7 +146,7 @@ export default function BasicCourseDetail() {
           createdAt: serverTimestamp(),
         })
 
-        setEnrollment({ id: enrolRef.id, uid: user.uid, courseId: course.id, months: variant.months, amount: variant.price })
+        setEnrollment({ id: enrolRef.id, uid: user.uid, courseId: course.id, months: courseMonths, amount: variant.price })
         toast.success('🎉 Enrolled successfully! Start learning now.')
       } catch (err) { toast.error(err.message) }
       finally { setBuying(false) }
