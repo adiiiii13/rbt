@@ -112,9 +112,62 @@ export const deleteStudent = onCall(async (request) => {
   assertAdmin(request.auth)
   const { uid } = request.data || {}
   if (!uid) throw new HttpsError('invalid-argument', 'uid required')
-  await auth.deleteUser(uid)
-  await db.collection('students').doc(uid).delete()
-  return { ok: true }
+
+  try {
+    // 1. Fetch student data to get studentId
+    const studentSnap = await db.collection('students').doc(uid).get()
+    const studentData = studentSnap.data()
+    const studentId = studentData?.studentId
+
+    // 2. Delete related records in batches
+    // We'll execute them separately since a batch has a 500 operation limit, 
+    // though a single student unlikely to exceed this, it's safer.
+    const collectionsToDelete = [
+      { name: 'enrollments', field: 'uid', value: uid },
+      { name: 'razorpayOrders', field: 'uid', value: uid },
+      { name: 'mockResults', field: 'uid', value: uid },
+      { name: 'payments', field: 'studentId', value: uid }
+    ]
+
+    for (const coll of collectionsToDelete) {
+      const snap = await db.collection(coll.name).where(coll.field, '==', coll.value).get()
+      const batch = db.batch()
+      snap.forEach(doc => batch.delete(doc.ref))
+      await batch.commit()
+    }
+
+    // Also check payments with string studentId if different from uid
+    if (studentId && studentId !== uid) {
+      const snap = await db.collection('payments').where('studentId', '==', studentId).get()
+      const batch = db.batch()
+      snap.forEach(doc => batch.delete(doc.ref))
+      await batch.commit()
+    }
+
+    // 3. Delete student document
+    await db.collection('students').doc(uid).delete()
+
+    // 4. Delete user from Firebase Authentication
+    try {
+      await auth.deleteUser(uid)
+    } catch (authErr) {
+      console.warn(`Auth user ${uid} might already be deleted:`, authErr.message)
+    }
+
+    // 5. Delete associated storage files (if any exist under students/{uid}/)
+    try {
+      const { getStorage } = await import('firebase-admin/storage')
+      const bucket = getStorage().bucket()
+      await bucket.deleteFiles({ prefix: `students/${uid}/` })
+    } catch (storageErr) {
+      console.warn(`Could not delete storage for ${uid}:`, storageErr.message)
+    }
+
+    return { ok: true }
+  } catch (err) {
+    console.error('Error deleting student completely:', err)
+    throw new HttpsError('internal', 'Failed to fully delete student.')
+  }
 })
 
 // Trigger: new counselling booking → FCM push to admins
