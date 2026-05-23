@@ -145,7 +145,7 @@ export default function ManageBatches() {
           <div>
             <label className="text-sm font-bold text-white mb-1.5 block">Batch / Class *</label>
             <select className="input-field w-full" value={form.className} onChange={e => setForm({ ...form, className: e.target.value })}>
-              <option value="">Select Class...</option>
+              <option value="">Select Batch/Class...</option>
               {options.classes.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
             <p className="text-[10px] text-slate-500 mt-1">This will be the name shown to students.</p>

@@ -348,17 +348,17 @@ export default function ManageCourses() {
                 <label className="text-sm text-slate-300 font-medium mb-1 block">Course Audience</label>
                 <select className="input-field" value={basic.courseType || 'basic'} onChange={e => setBasic({ ...basic, courseType: e.target.value })}>
                   <option value="basic">Basic Users Course</option>
-                  <option value="batch">Specific Batch Course</option>
+                  <option value="batch">Specific Batch/Class Course</option>
                 </select>
               </div>
               <div>
                 {basic.courseType === 'batch' && (
                   <>
-                    <label className="text-sm text-slate-300 font-medium mb-1 block">Select Batch *</label>
+                    <label className="text-sm text-slate-300 font-medium mb-1 block">Select Batch/Class *</label>
                     <select className="input-field" value={basic.batchId || ''} onChange={e => setBasic({ ...basic, batchId: e.target.value })}>
-                      <option value="">-- Choose Batch --</option>
+                      <option value="">-- Choose Batch/Class --</option>
                       {batches?.map(b => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
+                        <option key={b.id} value={b.id}>{b.className || b.name}</option>
                       ))}
                     </select>
                   </>
