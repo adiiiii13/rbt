@@ -17,24 +17,24 @@ export default function ManageBatches() {
     try {
       if (form.id) {
         await updateDocument('batches', form.id, { name: form.name, batchCode: form.batchCode });
-        toast.success('Batch updated');
+        toast.success('Batch / Class updated');
       } else {
         await addDocument('batches', { name: form.name, batchCode: form.batchCode });
-        toast.success('Batch created');
+        toast.success('Batch / Class created');
       }
       setModal(false);
     } catch (err) {
-      toast.error('Failed to save batch');
+      toast.error('Failed to save batch / class');
     }
   };
 
   const remove = async (id) => {
-    if (!confirm('Delete this batch?')) return;
+    if (!confirm('Delete this batch / class?')) return;
     try {
       await deleteDocument('batches', id);
-      toast.success('Batch deleted');
+      toast.success('Batch / Class deleted');
     } catch (err) {
-      toast.error('Failed to delete batch');
+      toast.error('Failed to delete batch / class');
     }
   };
 
@@ -44,10 +44,10 @@ export default function ManageBatches() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Manage Batches</h1>
-          <p className="text-sm text-slate-400">{batches.length} batches active</p>
+          <h1 className="text-2xl font-bold text-white">Manage Batches / Classes</h1>
+          <p className="text-sm text-slate-400">{batches.length} batches / classes active</p>
         </div>
-        <button onClick={() => { setForm({ name: '', batchCode: '' }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch</button>
+        <button onClick={() => { setForm({ name: '', batchCode: '' }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch / Class</button>
       </div>
 
       <div className="bg-[#111111] rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
@@ -55,8 +55,8 @@ export default function ManageBatches() {
           <table className="w-full">
             <thead className="bg-white/5 border-b border-slate-800">
               <tr>
-                <th className="text-white font-bold">Batch Name</th>
-                <th className="text-white font-bold">Batch Code</th>
+                <th className="text-white font-bold">Batch / Class Name</th>
+                <th className="text-white font-bold">Batch / Class Code</th>
                 <th className="text-white font-bold">Actions</th>
               </tr>
             </thead>
@@ -78,17 +78,17 @@ export default function ManageBatches() {
         </div>
       </div>
 
-      <Modal isOpen={modal} onClose={() => setModal(false)} title={form.id ? 'Edit Batch' : 'Create Batch'}>
+      <Modal isOpen={modal} onClose={() => setModal(false)} title={form.id ? 'Edit Batch / Class' : 'Create Batch / Class'}>
         <form onSubmit={handleSave} className="space-y-4 p-1">
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Batch Name</label>
-            <input className="input-field" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Foundation 2026" />
+            <label className="text-sm font-bold text-white mb-1.5 block">Batch / Class Name</label>
+            <input className="input-field" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="e.g. Foundation 2026 or Class 10" />
           </div>
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Batch Code</label>
-            <input className="input-field" value={form.batchCode} onChange={e => setForm({ ...form, batchCode: e.target.value })} placeholder="e.g. F2026" />
+            <label className="text-sm font-bold text-white mb-1.5 block">Batch / Class Code</label>
+            <input className="input-field" value={form.batchCode} onChange={e => setForm({ ...form, batchCode: e.target.value })} placeholder="e.g. F2026 or C10" />
           </div>
-          <div className="pt-2"><button type="submit" className="btn-primary w-full">Save Batch</button></div>
+          <div className="pt-2"><button type="submit" className="btn-primary w-full">Save Batch / Class</button></div>
         </form>
       </Modal>
     </div>

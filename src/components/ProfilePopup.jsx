@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
@@ -8,28 +8,31 @@ import toast from 'react-hot-toast'
 export default function ProfilePopup() {
   const { user } = useAuth()
   const [show, setShow] = useState(false)
-  const [form, setForm] = useState({ className: '', batch: '', board: 'CBSE', phone: '', school: '', parentName: '', parentPhone: '' })
+  const [form, setForm] = useState({ batchId: '', board: 'CBSE', phone: '', school: '', parentName: '', parentPhone: '' })
   const [saving, setSaving] = useState(false)
   const [options, setOptions] = useState({
-    classes: ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'JEE Dropper', 'NEET Dropper'],
-    boards: ['CBSE', 'ICSE', 'State Board', 'IGCSE', 'IB', 'Other'],
-    batches: ['Morning Batch', 'Evening Batch', 'Weekend Batch', 'Online Batch', 'Crash Course', 'Dropper Batch']
+    boards: ['CBSE', 'ICSE', 'State Board', 'IGCSE', 'IB', 'Other']
   })
+  const [batches, setBatches] = useState([])
 
-  // Fetch dynamic settings
+  // Fetch dynamic settings and batches
   useEffect(() => {
-    const fetchSettings = async () => {
+    const fetchData = async () => {
       try {
         const docRef = doc(db, 'settings', 'profileForm')
         const docSnap = await getDoc(docRef)
-        if (docSnap.exists()) {
-          setOptions(docSnap.data())
+        if (docSnap.exists() && docSnap.data().boards) {
+          setOptions({ boards: docSnap.data().boards })
         }
+        
+        const batchesSnap = await getDocs(collection(db, 'batches'))
+        const batchesList = batchesSnap.docs.map(d => ({ id: d.id, ...d.data() }))
+        setBatches(batchesList)
       } catch (err) {
         console.error("Failed to load profile form settings", err)
       }
     }
-    fetchSettings()
+    fetchData()
   }, [])
 
   useEffect(() => {
@@ -40,8 +43,7 @@ export default function ProfilePopup() {
     
     // Auto-fill existing details
     setForm({
-      className: user.className || '',
-      batch: user.batchName || user.batch || '',
+      batchId: user.batchId || '',
       board: user.board || 'CBSE',
       phone: user.phone || '',
       school: user.school || '',
@@ -56,11 +58,13 @@ export default function ProfilePopup() {
 
   const save = async () => {
     setSaving(true)
-    const isComplete = !!(form.className && form.batch && form.phone)
+    const isComplete = !!(form.batchId && form.phone)
+    const selectedBatch = batches.find(b => b.id === form.batchId)
+    
     try {
       await updateDoc(doc(db, 'students', user.uid), {
-        className: form.className,
-        batchName: form.batch, // using batchName for user-selected string, `batch` bool is used for auth role
+        batchId: form.batchId,
+        batchName: selectedBatch ? selectedBatch.name : '',
         board: form.board,
         phone: form.phone,
         school: form.school,
@@ -106,10 +110,10 @@ export default function ProfilePopup() {
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-300 mb-1 block">Class *</label>
-                  <select className="input-field" value={form.className} onChange={e => setForm({ ...form, className: e.target.value })}>
-                    <option value="">Select class</option>
-                    {options.classes.map(c => <option key={c}>{c}</option>)}
+                  <label className="text-sm font-medium text-slate-300 mb-1 block">Batch / Class *</label>
+                  <select className="input-field" value={form.batchId} onChange={e => setForm({ ...form, batchId: e.target.value })}>
+                    <option value="">Select Batch / Class</option>
+                    {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 </div>
                 <div>
@@ -118,14 +122,6 @@ export default function ProfilePopup() {
                     {options.boards.map(b => <option key={b}>{b}</option>)}
                   </select>
                 </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-1 block">Batch *</label>
-                <select className="input-field" value={form.batch} onChange={e => setForm({ ...form, batch: e.target.value })}>
-                  <option value="">Select batch</option>
-                  {options.batches.map(b => <option key={b}>{b}</option>)}
-                </select>
               </div>
 
               <div>
@@ -155,7 +151,7 @@ export default function ProfilePopup() {
 
             <button onClick={save} disabled={saving}
               className="w-full mt-5 bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all">
-              {saving ? 'Saving...' : (form.className && form.batch && form.phone) ? 'Save & Unlock Access' : 'Save Progress'}
+              {saving ? 'Saving...' : (form.batchId && form.phone) ? 'Save & Unlock Access' : 'Save Progress'}
             </button>
             <p className="text-xs text-slate-500 text-center mt-3">All required (*) fields must be filled to unlock full access</p>
           </div>

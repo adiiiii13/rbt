@@ -14,6 +14,7 @@ export default function ManageBatchStudents() {
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [enteredBatchCode, setEnteredBatchCode] = useState('');
+  const [selectedTab, setSelectedTab] = useState('all');
 
   const getBatchName = (batchId) => {
     const b = batches.find(x => x.id === batchId);
@@ -72,13 +73,28 @@ export default function ManageBatchStudents() {
     }
   };
 
+  const deleteRequest = async (studentId) => {
+    if (!confirm('Delete this approval request? The student will need to re-submit their profile.')) return;
+    try {
+      await updateDocument('students', studentId, { 
+        profileCompleted: false, 
+        batchStatus: 'pending',
+        batchId: null,
+        batchName: null 
+      });
+      toast.success('Request deleted. Student must re-submit profile.');
+    } catch (err) {
+      toast.error('Failed to delete request');
+    }
+  };
+
   if (loadingStudents || loadingBatches) return <div className="p-8"><TableSkeleton /></div>;
 
   // Filter out students who explicitly chose batch login at signup and have completed their profile (or are already approved/revoked)
   const batchStudents = students.filter(s => 
     (s.batchId || s.batchStatus || s.batch) && 
     (s.profileCompleted || s.batchStatus === 'approved' || s.batchStatus === 'revoked')
-  );
+  ).filter(s => selectedTab === 'all' || s.batchId === selectedTab || s.assignedBatchId === selectedTab);
 
   return (
     <div>
@@ -87,6 +103,24 @@ export default function ManageBatchStudents() {
           <h1 className="text-2xl font-bold text-white">Manage Batch Students</h1>
           <p className="text-sm text-slate-400">Review and approve batch login requests</p>
         </div>
+      </div>
+
+      <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <button 
+          onClick={() => setSelectedTab('all')} 
+          className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${selectedTab === 'all' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+        >
+          All
+        </button>
+        {batches.map(b => (
+          <button 
+            key={b.id}
+            onClick={() => setSelectedTab(b.id)} 
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${selectedTab === b.id ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
+          >
+            {b.name}
+          </button>
+        ))}
       </div>
 
       <div className="bg-[#111111] rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
@@ -99,8 +133,8 @@ export default function ManageBatchStudents() {
                 <tr>
                   <th className="text-white font-bold">Student Name</th>
                   <th className="text-white font-bold">Email</th>
-                  <th className="text-white font-bold">Requested Batch</th>
-                  <th className="text-white font-bold">Assigned Batch</th>
+                  <th className="text-white font-bold">Requested Batch / Class</th>
+                  <th className="text-white font-bold">Assigned Batch / Class</th>
                   <th className="text-white font-bold">Profile</th>
                   <th className="text-white font-bold">Status</th>
                   <th className="text-white font-bold">Actions</th>
@@ -144,6 +178,9 @@ export default function ManageBatchStudents() {
                             Approve
                           </button>
                         )}
+                        {s.batchStatus !== 'approved' && (
+                          <button onClick={() => deleteRequest(s.id)} className="text-sm font-bold text-orange-400 cursor-pointer">Delete Request</button>
+                        )}
                         {s.batchStatus !== 'revoked' && (
                           <button onClick={() => revokeStudent(s.id)} className="text-sm font-bold text-red-400 cursor-pointer">Revoke</button>
                         )}
@@ -159,10 +196,10 @@ export default function ManageBatchStudents() {
 
       <Modal isOpen={approvalModal} onClose={() => setApprovalModal(false)} title="Approve Student">
         <div className="space-y-4 p-1">
-          <p className="text-slate-300 text-sm">Assign <strong className="text-white">{selectedStudent?.name}</strong> to a batch.</p>
+          <p className="text-slate-300 text-sm">Assign <strong className="text-white">{selectedStudent?.name}</strong> to a batch / class.</p>
           
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Assign to Batch</label>
+            <label className="text-sm font-bold text-white mb-1.5 block">Assign to Batch / Class</label>
             <select 
               className="input-field w-full"
               value={selectedBatchId}
@@ -176,7 +213,7 @@ export default function ManageBatchStudents() {
           </div>
 
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Confirm Batch Code</label>
+            <label className="text-sm font-bold text-white mb-1.5 block">Confirm Batch / Class Code</label>
             <input 
               type="text"
               placeholder="Enter the code for this batch to confirm"
@@ -211,16 +248,12 @@ export default function ManageBatchStudents() {
 
             <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-4">
               <div>
-                <p className="text-xs text-slate-500 mb-1">Class</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.className || '-'}</p>
+                <p className="text-xs text-slate-500 mb-1">Batch / Class</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.batchName || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">Board</p>
                 <p className="text-sm font-semibold text-white">{selectedStudent.board || '-'}</p>
-              </div>
-              <div>
-                <p className="text-xs text-slate-500 mb-1">Batch Selected</p>
-                <p className="text-sm font-semibold text-white">{selectedStudent.batchName || '-'}</p>
               </div>
               <div>
                 <p className="text-xs text-slate-500 mb-1">School/College</p>
