@@ -38,30 +38,32 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
       const batchItems = []
       const basicItems = []
 
-      if (student.assignedBatchName) {
-        batchItems.push({ id: `batch_${student.assignedBatchId || 'assigned'}`, name: student.assignedBatchName, type: 'Batch' })
-      }
-      
-      if (student.course) {
-        basicItems.push({ id: `course_manual_${student.course}`, name: student.course, type: 'Basic' })
-      }
-      
       const enrolls = await getCollectionWhere('enrollments', 'uid', '==', uid) || []
-      
-      enrolls.forEach(e => {
-         const cData = allCourses?.find(c => c.id === e.courseId)
-         if (cData) {
-            if (cData.courseType === 'batch') {
-               if (!batchItems.find(b => b.name === cData.title)) {
-                 batchItems.push({ id: e.courseId, name: cData.title, type: 'Batch' })
-               }
-            } else {
-               if (!basicItems.find(b => b.name === cData.title)) {
-                 basicItems.push({ id: e.courseId, name: cData.title, type: 'Basic' })
-               }
-            }
+      const enrolledIds = new Set(enrolls.map(e => e.courseId))
+
+      // Populate all courses, marking enrolled ones
+      allCourses?.forEach(c => {
+         const isEnrolled = enrolledIds.has(c.id) || c.title === student.assignedBatchName || c.title === student.course
+         const item = { id: c.id, name: c.title, type: c.courseType === 'batch' ? 'Batch' : 'Basic', isEnrolled }
+         if (c.courseType === 'batch') {
+            batchItems.push(item)
+         } else {
+            basicItems.push(item)
          }
       })
+
+      // Add custom enrolled items that might not exist in allCourses anymore
+      if (student.assignedBatchName && !batchItems.find(b => b.name === student.assignedBatchName)) {
+        batchItems.unshift({ id: `batch_${student.assignedBatchId || 'assigned'}`, name: student.assignedBatchName, type: 'Batch', isEnrolled: true })
+      }
+      
+      if (student.course && !basicItems.find(b => b.name === student.course)) {
+        basicItems.unshift({ id: `course_manual_${student.course}`, name: student.course, type: 'Basic', isEnrolled: true })
+      }
+
+      // Sort so enrolled items appear first
+      batchItems.sort((a, b) => (b.isEnrolled ? 1 : 0) - (a.isEnrolled ? 1 : 0))
+      basicItems.sort((a, b) => (b.isEnrolled ? 1 : 0) - (a.isEnrolled ? 1 : 0))
       
       setStudentEnrolledBatchItems(batchItems)
       setStudentEnrolledBasicItems(basicItems)
@@ -229,12 +231,12 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
         {invoiceTab === 'basic' ? (
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
             {!form.studentUid ? (
-              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">Select a student first to see their enrolled basic courses.</p>
+              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">Select a student first to see available courses.</p>
             ) : studentEnrolledBasicItems.length === 0 ? (
-              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No enrolled basic courses found for this student.</p>
+              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No basic courses found.</p>
             ) : (
               studentEnrolledBasicItems.map(item => (
-                <div key={item.id} className="p-3 border border-slate-700 rounded-lg bg-white/5 space-y-3">
+                <div key={item.id} className={`p-3 border rounded-lg space-y-3 ${item.isEnrolled ? 'border-green-500/30 bg-green-500/5' : 'border-slate-700 bg-white/5'}`}>
                   <div className="flex items-center gap-3">
                     <input 
                       type="checkbox" 
@@ -242,7 +244,10 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
                       checked={basicSelections[item.id]?.selected || false}
                       onChange={(e) => setBasicSelections(prev => ({...prev, [item.id]: {...prev[item.id], selected: e.target.checked}}))}
                     />
-                    <span className="text-sm font-bold text-white">{item.name} <span className="text-xs text-slate-400 font-normal ml-1">(Basic)</span></span>
+                    <span className="text-sm font-bold text-white flex items-center gap-2">
+                      {item.name} <span className="text-xs text-slate-400 font-normal">({item.type})</span>
+                      {item.isEnrolled && <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Enrolled</span>}
+                    </span>
                   </div>
                   {basicSelections[item.id]?.selected && (
                     <div className="space-y-3 pl-7">
@@ -269,12 +274,12 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
         ) : (
           <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
             {!form.studentUid ? (
-               <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">Select a student first to see their enrolled batches/classes.</p>
+               <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">Select a student first to see available batches/classes.</p>
             ) : studentEnrolledBatchItems.length === 0 ? (
-              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No enrolled batches/classes found for this student. Ensure they are assigned a batch in Manage Batch Students or have enrolled.</p>
+              <p className="text-sm text-slate-400 p-4 border border-slate-800 rounded-lg">No batches/classes found.</p>
             ) : (
               studentEnrolledBatchItems.map(item => (
-                <div key={item.id} className="p-3 border border-slate-700 rounded-lg bg-white/5 space-y-3">
+                <div key={item.id} className={`p-3 border rounded-lg space-y-3 ${item.isEnrolled ? 'border-green-500/30 bg-green-500/5' : 'border-slate-700 bg-white/5'}`}>
                   <div className="flex items-center gap-3">
                     <input 
                       type="checkbox" 
@@ -282,7 +287,10 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
                       checked={batchSelections[item.id]?.selected || false}
                       onChange={(e) => setBatchSelections(prev => ({...prev, [item.id]: {...prev[item.id], selected: e.target.checked}}))}
                     />
-                    <span className="text-sm font-bold text-white">{item.name} <span className="text-xs text-slate-400 font-normal ml-1">({item.type})</span></span>
+                    <span className="text-sm font-bold text-white flex items-center gap-2">
+                      {item.name} <span className="text-xs text-slate-400 font-normal">({item.type})</span>
+                      {item.isEnrolled && <span className="text-[10px] bg-green-500/20 text-green-400 px-2 py-0.5 rounded uppercase font-bold tracking-wider">Enrolled</span>}
+                    </span>
                   </div>
                   {batchSelections[item.id]?.selected && (
                     <div className="space-y-3 pl-7">
