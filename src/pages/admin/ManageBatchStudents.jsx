@@ -10,6 +10,7 @@ export default function ManageBatchStudents() {
   const { data: batches, loading: loadingBatches } = useRealtimeCollection('batches');
   
   const [approvalModal, setApprovalModal] = useState(false);
+  const [profileModal, setProfileModal] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [selectedBatchId, setSelectedBatchId] = useState('');
   const [enteredBatchCode, setEnteredBatchCode] = useState('');
@@ -29,6 +30,11 @@ export default function ManageBatchStudents() {
     setSelectedBatchId(student.batchId || '');
     setEnteredBatchCode('');
     setApprovalModal(true);
+  };
+
+  const openProfileModal = (student) => {
+    setSelectedStudent(student);
+    setProfileModal(true);
   };
 
   const confirmApprove = async () => {
@@ -108,9 +114,19 @@ export default function ManageBatchStudents() {
                     <td className="text-blue-400 font-medium">{getBatchName(s.batchId)}</td>
                     <td className="text-emerald-400 font-medium">{s.assignedBatchName || '-'}</td>
                     <td>
-                      <span className={`badge ${s.profileCompleted ? 'badge-green' : 'badge-red'}`}>
-                        {s.profileCompleted ? 'COMPLETE' : 'INCOMPLETE'}
-                      </span>
+                      {s.profileCompleted ? (
+                        <button 
+                          onClick={() => openProfileModal(s)}
+                          className="badge badge-green cursor-pointer hover:bg-green-500/20 transition-colors"
+                          title="View Profile Details"
+                        >
+                          COMPLETE
+                        </button>
+                      ) : (
+                        <span className="badge badge-red">
+                          INCOMPLETE
+                        </span>
+                      )}
                     </td>
                     <td>
                       <span className={`badge ${s.batchStatus === 'approved' ? 'badge-green' : s.batchStatus === 'revoked' ? 'badge-red' : 'badge-amber'}`}>
@@ -177,6 +193,63 @@ export default function ManageBatchStudents() {
             </button>
           </div>
         </div>
+      </Modal>
+
+      <Modal isOpen={profileModal} onClose={() => setProfileModal(false)} title="Student Profile Details">
+        {selectedStudent && (
+          <div className="space-y-4 p-2">
+            <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Name</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.name}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Email</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.email}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 border-b border-slate-800 pb-4">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Class</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.className || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Board</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.board || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Batch Selected</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.batchName || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">School/College</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.school || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Student Phone</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.phone || '-'}</p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Parent Name</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.parentName || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-500 mb-1">Parent Phone</p>
+                <p className="text-sm font-semibold text-white">{selectedStudent.parentPhone || '-'}</p>
+              </div>
+            </div>
+
+            <div className="pt-4 mt-4">
+              <button onClick={() => setProfileModal(false)} className="btn-primary w-full bg-slate-700 hover:bg-slate-600 text-white">
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

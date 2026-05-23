@@ -122,6 +122,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/doubts', label: 'Doubts', icon: <IC.msg size={18} /> },
     { to: '/admin/notifications', label: 'Send Notifications', icon: <IC.bell size={18} /> },
     { to: '/admin/invoices', label: 'Create Invoices', icon: <IC.receipt size={18} /> },
+    { to: '/admin/profile-form', label: 'Profile Form Edits', icon: <IC.file size={18} /> },
     { to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
   ]
 

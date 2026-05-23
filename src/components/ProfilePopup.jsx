@@ -1,19 +1,36 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../context/AuthContext'
-import { doc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
-
-const CLASSES = ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'JEE Dropper', 'NEET Dropper']
-const BATCHES = ['Morning Batch', 'Evening Batch', 'Weekend Batch', 'Online Batch', 'Crash Course', 'Dropper Batch']
-const BOARDS = ['CBSE', 'ICSE', 'State Board', 'IGCSE', 'IB', 'Other']
 
 export default function ProfilePopup() {
   const { user } = useAuth()
   const [show, setShow] = useState(false)
   const [form, setForm] = useState({ className: '', batch: '', board: 'CBSE', phone: '', school: '', parentName: '', parentPhone: '' })
   const [saving, setSaving] = useState(false)
+  const [options, setOptions] = useState({
+    classes: ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'JEE Dropper', 'NEET Dropper'],
+    boards: ['CBSE', 'ICSE', 'State Board', 'IGCSE', 'IB', 'Other'],
+    batches: ['Morning Batch', 'Evening Batch', 'Weekend Batch', 'Online Batch', 'Crash Course', 'Dropper Batch']
+  })
+
+  // Fetch dynamic settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const docRef = doc(db, 'settings', 'profileForm')
+        const docSnap = await getDoc(docRef)
+        if (docSnap.exists()) {
+          setOptions(docSnap.data())
+        }
+      } catch (err) {
+        console.error("Failed to load profile form settings", err)
+      }
+    }
+    fetchSettings()
+  }, [])
 
   useEffect(() => {
     if (!user || user.role !== 'student' || (!user.batch && user.batchStatus !== 'pending')) return
@@ -91,13 +108,13 @@ export default function ProfilePopup() {
                   <label className="text-sm font-medium text-slate-300 mb-1 block">Class *</label>
                   <select className="input-field" value={form.className} onChange={e => setForm({ ...form, className: e.target.value })}>
                     <option value="">Select class</option>
-                    {CLASSES.map(c => <option key={c}>{c}</option>)}
+                    {options.classes.map(c => <option key={c}>{c}</option>)}
                   </select>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-slate-300 mb-1 block">Board</label>
                   <select className="input-field" value={form.board} onChange={e => setForm({ ...form, board: e.target.value })}>
-                    {BOARDS.map(b => <option key={b}>{b}</option>)}
+                    {options.boards.map(b => <option key={b}>{b}</option>)}
                   </select>
                 </div>
               </div>
@@ -106,7 +123,7 @@ export default function ProfilePopup() {
                 <label className="text-sm font-medium text-slate-300 mb-1 block">Batch *</label>
                 <select className="input-field" value={form.batch} onChange={e => setForm({ ...form, batch: e.target.value })}>
                   <option value="">Select batch</option>
-                  {BATCHES.map(b => <option key={b}>{b}</option>)}
+                  {options.batches.map(b => <option key={b}>{b}</option>)}
                 </select>
               </div>
 
