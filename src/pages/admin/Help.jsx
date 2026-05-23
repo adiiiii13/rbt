@@ -10,13 +10,14 @@ const categories = [
       {
         title: 'Manage Courses',
         icon: '📚',
-        what: 'Full course system with pricing variants, video lessons, and thumbnails.',
+        what: 'Full course builder with modules, pricing variants, and free previews.',
         workflow: [
-          'Add Course: Fill out the title, description, and subjects.',
-          'Pricing: Add duration options (e.g. 3-month) and prices.',
-          'Lessons: Paste YouTube URLs. The system automatically grabs the thumbnail.',
+          'Basic Info: Set title, level, and choose whether it is a Basic Course or specific Batch Course.',
+          'Pricing: Add multiple pricing plans (e.g., 3-Months: ₹4999, 6-Months: ₹7999).',
+          'Curriculum: Add Modules (like chapters). Inside each module, add Items (Video, PDF, Link, or Text).',
+          'Previews: Check "Free preview" on any video/PDF so students can view it without paying.',
         ],
-        tips: 'Use "Unlisted" YouTube videos. They will play perfectly on your site but remain hidden from public YouTube search.',
+        tips: 'For Videos, paste an Unlisted YouTube URL and the system auto-grabs the thumbnail. For PDFs, paste a Google Drive link to save storage.',
       },
       {
         title: 'Manage Videos',
