@@ -16,9 +16,8 @@ export default function BasicCourseDetail() {
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [enrollment, setEnrollment] = useState(null);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [currentLesson, setCurrentLesson] = useState(0);
+  const [currentItem, setCurrentItem] = useState(0);
   const [buying, setBuying] = useState(false);
 
   // Load course + check enrollment
@@ -49,15 +48,89 @@ export default function BasicCourseDetail() {
     return () => { alive = false; };
   }, [id, user, navigate]);
 
-  const lessons = useMemo(() => {
-    if (!course?.lessons) return [];
-    return [...course.lessons].sort((a, b) => (a.order || 0) - (b.order || 0));
-  }, [course]);
+  const { modules, flatItems } = useMemo(() => {
+    if (!course) return { modules: [], flatItems: [] }
+    let mods = course.modules || []
+    
+    // Backwards compatibility
+    if (mods.length === 0 && course.lessons?.length > 0) {
+      mods = [{
+        id: 'legacy_module',
+        title: 'Course Content',
+        items: [...course.lessons].sort((a,b) => (a.order||0)-(b.order||0)).map(l => ({
+          ...l, type: 'video', data: l.videoUrl
+        }))
+      }]
+    }
+
+    const sortedMods = [...mods].sort((a,b) => (a.order||0)-(b.order||0))
+    const flat = []
+    
+    sortedMods.forEach((m, mIdx) => {
+      if (m.items) {
+        m.items.sort((a,b) => (a.order||0)-(b.order||0)).forEach((itm, iIdx) => {
+          flat.push({ ...itm, moduleTitle: m.title, moduleIndex: mIdx, itemIndex: iIdx })
+        })
+      }
+    })
+    
+    return { modules: sortedMods, flatItems: flat }
+  }, [course])
 
   const handleBuy = async () => {
     if (!user) { toast.error('Please login first'); navigate('/student-login'); return; }
-    if (!selectedVariant) { toast.error('Select a plan'); return; }
+    
+    const variant = selectedVariant || { months: 12, price: 0 }
+    const isFree = variant.price === 0 || course.isFree
+
+    if (!isFree && !selectedVariant) { toast.error('Select a plan'); return; }
+    
     setBuying(true);
+
+    if (isFree) {
+      try {
+        const { addDoc, serverTimestamp } = await import('firebase/firestore')
+        const { generateInvoiceNumber } = await import('../../lib/invoice')
+        
+        // Create enrollment
+        const enrolRef = await addDoc(collection(db, 'enrollments'), {
+          uid: user.uid,
+          courseId: course.id,
+          courseName: course.title,
+          months: variant.months,
+          amount: variant.price,
+          status: 'active',
+          enrolledAt: serverTimestamp(),
+          studentName: user.name || '',
+          studentEmail: user.email || '',
+        })
+
+        // Auto-create invoice
+        const existing = await getDocs(collection(db, 'invoices'))
+        const invoiceNum = generateInvoiceNumber(existing.size)
+        const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+
+        await addDoc(collection(db, 'invoices'), {
+          invoiceNumber: invoiceNum,
+          studentUid: user.uid,
+          studentName: user.name || '',
+          studentEmail: user.email || '',
+          courseName: course.title,
+          description: `${variant.months}-month plan (Free)`,
+          amount: variant.price,
+          status: 'paid',
+          paidAt: paidAt,
+          issuedDate: paidAt,
+          createdAt: serverTimestamp(),
+        })
+
+        setEnrollment({ id: enrolRef.id, uid: user.uid, courseId: course.id, months: variant.months, amount: variant.price })
+        toast.success('🎉 Enrolled successfully! Start learning now.')
+      } catch (err) { toast.error(err.message) }
+      finally { setBuying(false) }
+      return
+    }
+
     openCheckout({
       amount: selectedVariant.price,
       courseId: course.id,
@@ -115,7 +188,52 @@ export default function BasicCourseDetail() {
 
   // ─── Enrolled: show player ───
   if (enrollment) {
-    if (lessons.length === 0) {
+    const item = flatItems[currentItem];
+    
+    const renderItemContent = (item) => {
+      if (!item) return null;
+      if (item.type === 'video') {
+        return (
+          <div className="bg-black rounded-2xl overflow-hidden mb-4">
+            <HlsPlayer key={item.id} url={item.data} watermark={user?.email || 'RBT'}
+              onEnded={() => currentItem < flatItems.length - 1 && setCurrentItem(currentItem + 1)} />
+          </div>
+        )
+      }
+      if (item.type === 'pdf') {
+        return (
+          <div className="bg-white/5 rounded-2xl p-6 mb-4 border border-white/10 text-center">
+            <div className="w-16 h-16 bg-red-500/20 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">PDF Document</h2>
+            <p className="text-slate-400 mb-6">Click below to view or download this document.</p>
+            <a href={item.data} target="_blank" rel="noreferrer" className="inline-block px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-xl transition-colors">Open PDF</a>
+          </div>
+        )
+      }
+      if (item.type === 'link') {
+        return (
+          <div className="bg-white/5 rounded-2xl p-6 mb-4 border border-white/10 text-center">
+            <div className="w-16 h-16 bg-purple-500/20 text-purple-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+            </div>
+            <h2 className="text-xl font-bold text-white mb-2">External Link</h2>
+            <a href={item.data} target="_blank" rel="noreferrer" className="inline-block px-6 py-3 bg-purple-500 hover:bg-purple-600 text-white font-bold rounded-xl transition-colors">Visit Link</a>
+          </div>
+        )
+      }
+      if (item.type === 'text') {
+        return (
+          <div className="bg-white/5 rounded-2xl p-8 mb-4 border border-white/10 prose prose-invert max-w-none">
+            <div className="whitespace-pre-wrap text-slate-300">{item.data}</div>
+          </div>
+        )
+      }
+      return null
+    }
+
+    if (flatItems.length === 0) {
       return (
         <div>
           <Link to="/basic/courses" className="text-slate-400 hover:text-white text-sm mb-4 inline-block no-underline">← Back to Courses</Link>
@@ -127,65 +245,72 @@ export default function BasicCourseDetail() {
       );
     }
 
-    const lesson = lessons[currentLesson];
     return (
       <div>
         <Link to="/basic/courses" className="text-slate-400 hover:text-white text-sm mb-4 inline-block no-underline">← Back to Courses</Link>
         <div className="grid lg:grid-cols-[1fr_320px] gap-6">
           <div>
-            <div className="bg-black rounded-2xl overflow-hidden mb-4">
-              <HlsPlayer
-                key={lesson.id}
-                url={lesson.videoUrl}
-                watermark={user?.email || 'RBT'}
-                onEnded={() => currentLesson < lessons.length - 1 && setCurrentLesson(currentLesson + 1)}
-              />
-            </div>
-            <h1 className="text-2xl font-bold text-white mb-1">{lesson.title}</h1>
-            <p className="text-sm text-slate-400">Lesson {currentLesson + 1} of {lessons.length} • {course.title}</p>
-            {lesson.description && <p className="text-slate-300 mt-3">{lesson.description}</p>}
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setCurrentLesson(c => Math.max(0, c - 1))}
-                disabled={currentLesson === 0}
-                className="px-5 py-2.5 rounded-lg bg-white/5 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/10 cursor-pointer"
-              >
-                ← Previous
-              </button>
-              <button
-                onClick={() => setCurrentLesson(c => Math.min(lessons.length - 1, c + 1))}
-                disabled={currentLesson === lessons.length - 1}
-                className="px-5 py-2.5 rounded-lg bg-green-brand hover:bg-green-600 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-              >
-                Next Lesson →
-              </button>
-            </div>
+            {item ? (
+              <>
+                {renderItemContent(item)}
+                <h1 className="text-2xl font-bold text-white mb-1">{item.title}</h1>
+                <p className="text-sm text-slate-400">Part {currentItem + 1} of {flatItems.length} • {item.moduleTitle}</p>
+                {item.description && <p className="text-slate-300 mt-3">{item.description}</p>}
+                
+                <div className="flex gap-3 mt-6">
+                  <button
+                    onClick={() => setCurrentItem(c => Math.max(0, c - 1))}
+                    disabled={currentItem === 0}
+                    className="px-5 py-2.5 rounded-lg bg-white/5 text-white disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white/10 cursor-pointer"
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    onClick={() => setCurrentItem(c => Math.min(flatItems.length - 1, c + 1))}
+                    disabled={currentItem === flatItems.length - 1}
+                    className="px-5 py-2.5 rounded-lg bg-green-brand hover:bg-green-600 text-white font-bold disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </>
+            ) : <p className="text-slate-500 text-center py-12">No content available.</p>}
           </div>
 
           <aside className="bg-white/5 border border-white/10 rounded-2xl p-4 h-fit lg:sticky lg:top-4">
             <h3 className="text-white font-bold mb-3">Course Content</h3>
-            <div className="space-y-1 max-h-[70vh] overflow-y-auto">
-              {lessons.map((l, idx) => (
-                <button
-                  key={l.id}
-                  onClick={() => setCurrentLesson(idx)}
-                  className={`w-full text-left p-3 rounded-lg transition-all cursor-pointer ${
-                    idx === currentLesson
-                      ? 'bg-green-brand/20 border border-green-brand text-white'
-                      : 'bg-white/5 text-slate-300 hover:bg-white/10'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="w-6 h-6 rounded-full bg-white/10 text-xs flex items-center justify-center font-bold flex-shrink-0">
-                      {idx + 1}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-medium truncate">{l.title}</div>
-                      {l.duration && <div className="text-xs text-slate-500">{l.duration}</div>}
-                    </div>
+            <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+              {modules.map((m, mIdx) => (
+                <div key={m.id}>
+                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">{mIdx + 1}. {m.title}</h4>
+                  <div className="space-y-1">
+                    {m.items.map((itm) => {
+                      const globalIdx = flatItems.findIndex(x => x.id === itm.id);
+                      const isActive = globalIdx === currentItem;
+                      return (
+                        <button
+                          key={itm.id}
+                          onClick={() => setCurrentItem(globalIdx)}
+                          className={`w-full text-left p-2.5 rounded-lg transition-all cursor-pointer ${
+                            isActive
+                              ? 'bg-green-brand/20 border border-green-brand text-white'
+                              : 'bg-white/5 text-slate-300 hover:bg-white/10 border border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <span className="mt-0.5 opacity-60">
+                              {itm.type === 'video' ? '▶' : itm.type === 'pdf' ? '📄' : itm.type === 'text' ? '📝' : '🔗'}
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <div className="text-sm font-medium leading-snug">{itm.title}</div>
+                              {itm.duration && <div className="text-xs text-slate-500 mt-0.5">{itm.duration}</div>}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
-                </button>
+                </div>
               ))}
             </div>
           </aside>
@@ -206,7 +331,8 @@ export default function BasicCourseDetail() {
           <div className="flex flex-wrap gap-2 mb-4">
             {course.level && <span className="text-xs bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full">{course.level}</span>}
             {course.duration && <span className="text-xs bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full">{course.duration}</span>}
-            {lessons.length > 0 && <span className="text-xs bg-green-brand/20 text-green-brand px-3 py-1 rounded-full">{lessons.length} lessons</span>}
+            {flatItems.length > 0 && <span className="text-xs bg-green-brand/20 text-green-brand px-3 py-1 rounded-full">{flatItems.length} Content Items</span>}
+            {course.isFree && <span className="text-xs bg-green-brand/20 text-green-brand px-3 py-1 rounded-full">Free Course</span>}
           </div>
           <p className="text-slate-300 mb-6 leading-relaxed">{course.description}</p>
 
@@ -221,24 +347,34 @@ export default function BasicCourseDetail() {
             </div>
           )}
 
-          {lessons.length > 0 && (
+          {modules.length > 0 && (
             <div className="mb-6">
               <h3 className="text-white font-bold mb-3">Course Curriculum</h3>
-              <div className="space-y-2">
-                {lessons.map((l, idx) => (
-                  <div key={l.id} className="bg-white/5 border border-white/10 rounded-lg p-3 flex items-center gap-3">
-                    <span className="w-7 h-7 rounded-full bg-white/10 text-xs flex items-center justify-center font-bold text-slate-300">
-                      {idx + 1}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-white text-sm font-medium truncate">{l.title}</div>
-                      {l.duration && <div className="text-xs text-slate-500">{l.duration}</div>}
+              <div className="space-y-4">
+                {modules.map((m, mIdx) => (
+                  <div key={m.id} className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                    <div className="bg-black/20 p-3 border-b border-white/10">
+                      <h4 className="text-sm font-bold text-white">Module {mIdx + 1}: {m.title}</h4>
+                      {m.description && <p className="text-xs text-slate-400 mt-1">{m.description}</p>}
                     </div>
-                    {l.isFree ? (
-                      <span className="text-xs bg-green-brand/20 text-green-brand px-2 py-1 rounded">Free Preview</span>
-                    ) : (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                    )}
+                    <div className="divide-y divide-white/5">
+                      {m.items.map((itm, iIdx) => (
+                        <div key={itm.id} className="p-3 flex items-center gap-3">
+                          <span className="opacity-50 text-xs">
+                            {itm.type === 'video' ? '▶' : itm.type === 'pdf' ? '📄' : itm.type === 'text' ? '📝' : '🔗'}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white text-sm font-medium">{itm.title}</div>
+                            {itm.duration && <div className="text-xs text-slate-500">{itm.duration}</div>}
+                          </div>
+                          {itm.isFree ? (
+                            <span className="text-[10px] bg-green-brand/20 text-green-brand px-2 py-0.5 rounded font-bold uppercase">Free Preview</span>
+                          ) : (
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-slate-500"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          )}
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -249,9 +385,9 @@ export default function BasicCourseDetail() {
         {/* Buy panel */}
         <aside className="lg:sticky lg:top-6 h-fit">
           <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
-            <h3 className="text-white font-bold mb-4">Choose Your Plan</h3>
+            <h3 className="text-white font-bold mb-4">{course.isFree ? 'Get Free Access' : 'Choose Your Plan'}</h3>
 
-            {course.variants?.length > 0 ? (
+            {!course.isFree && course.variants?.length > 0 ? (
               <div className="space-y-3 mb-6">
                 {course.variants.map((v, idx) => (
                   <button
@@ -277,13 +413,15 @@ export default function BasicCourseDetail() {
                   </button>
                 ))}
               </div>
+            ) : course.isFree ? (
+              <p className="text-green-brand text-sm mb-4">This course is free! Enroll to start learning.</p>
             ) : (
               <p className="text-slate-400 text-sm mb-4">No plans configured yet.</p>
             )}
 
             <button
               onClick={handleBuy}
-              disabled={!selectedVariant || buying}
+              disabled={(!course.isFree && !selectedVariant) || buying}
               className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               {buying ? (
@@ -291,6 +429,8 @@ export default function BasicCourseDetail() {
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.4" strokeLinecap="round" /></svg>
                   Processing...
                 </>
+              ) : course.isFree ? (
+                'Free, enroll now'
               ) : selectedVariant ? (
                 <>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>

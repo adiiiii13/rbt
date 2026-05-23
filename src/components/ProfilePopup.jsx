@@ -16,7 +16,7 @@ export default function ProfilePopup() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!user) return
+    if (!user || user.role !== 'student' || !user.batch) return
     // Show if profile not filled
     const hasProfile = user.profileCompleted
     if (!hasProfile) setShow(true)
@@ -31,6 +31,10 @@ export default function ProfilePopup() {
       parentName: user.parentName || '',
       parentPhone: user.parentPhone || '',
     })
+
+    const handleOpen = () => setShow(true)
+    window.addEventListener('openProfilePopup', handleOpen)
+    return () => window.removeEventListener('openProfilePopup', handleOpen)
   }, [user])
 
   const save = async () => {

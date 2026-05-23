@@ -33,8 +33,8 @@ export default function ManageCourses() {
   // Step 2: Pricing
   const [pricing, setPricing] = useState([{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: 'Most Popular' }])
 
-  // Step 3: Lessons
-  const [lessons, setLessons] = useState([])
+  // Step 3: Curriculum (Modules & Items)
+  const [modules, setModules] = useState([])
 
   const [thumbUploading, setThumbUploading] = useState(false)
 
@@ -57,7 +57,7 @@ export default function ManageCourses() {
     setStep(1)
     setBasic({ title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false })
     setPricing([{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: 'Most Popular' }])
-    setLessons([])
+    setModules([])
   }
 
   const openCreate = () => { setEditing(null); reset(); setModal(true) }
@@ -72,7 +72,15 @@ export default function ManageCourses() {
       color: c.color || '#3b82f6', isFree: !!c.isFree,
     })
     setPricing(c.variants?.length ? c.variants : [{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: '' }])
-    setLessons(c.lessons || [])
+    
+    // Convert old lessons array to a default module if needed
+    if (c.modules?.length) {
+      setModules(c.modules)
+    } else if (c.lessons?.length) {
+      setModules([{ id: 'mod_legacy', title: 'Course Content', items: c.lessons.map(l => ({ ...l, type: 'video', data: l.videoUrl })) }])
+    } else {
+      setModules([])
+    }
     setStep(1)
     setModal(true)
   }
@@ -82,26 +90,39 @@ export default function ManageCourses() {
   const addPricing = () => setPricing(p => [...p, { months: 1, price: 1999, originalPrice: 2999, discount: '', note: '' }])
   const removePricing = (i) => setPricing(p => p.filter((_, idx) => idx !== i))
 
-  const addLesson = () => setLessons(l => [...l, { id: `l_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, title: '', videoUrl: '', duration: '', description: '', isFree: false }])
-  const removeLesson = (i) => setLessons(l => l.filter((_, idx) => idx !== i))
-  const moveLesson = (i, dir) => {
-    setLessons(l => {
-      const a = [...l]; const j = i + dir
-      if (j < 0 || j >= a.length) return l
-      ;[a[i], a[j]] = [a[j], a[i]]
-      return a
-    })
-  }
+  const addModule = () => setModules(m => [...m, { id: `mod_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, title: 'New Section', description: '', items: [] }])
+  const removeModule = (mIdx) => setModules(m => m.filter((_, i) => i !== mIdx))
+  const moveModule = (i, dir) => setModules(m => { const a = [...m]; const j = i + dir; if(j<0||j>=a.length) return m; [a[i],a[j]]=[a[j],a[i]]; return a })
+  
+  const addItem = (mIdx, type) => setModules(m => {
+    const a = [...m]
+    a[mIdx].items.push({ id: `itm_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`, type, title: '', description: '', data: '', duration: '', isFree: false })
+    return a
+  })
+  const removeItem = (mIdx, iIdx) => setModules(m => {
+    const a = [...m]; a[mIdx].items = a[mIdx].items.filter((_, i) => i !== iIdx); return a
+  })
+  const moveItem = (mIdx, iIdx, dir) => setModules(m => {
+    const a = [...m]; const items = [...a[mIdx].items]; const j = iIdx + dir
+    if (j<0||j>=items.length) return m; [items[iIdx],items[j]]=[items[j],items[iIdx]]
+    a[mIdx].items = items; return a
+  })
 
   const save = async () => {
     if (!basic.title.trim()) { toast.error('Title required'); return }
     const subjectsArr = basic.subjects.split(',').map(s => s.trim()).filter(Boolean)
-    const autoThumb = !basic.thumbnail ? ytThumb(lessons[0]?.videoUrl) : ''
+    
+    // Auto-thumb from first video item if available
+    let firstVideoUrl = ''
+    for (const m of modules) { const v = m.items.find(i => i.type === 'video'); if (v?.data) { firstVideoUrl = v.data; break } }
+    const autoThumb = !basic.thumbnail ? ytThumb(firstVideoUrl) : ''
+    
     const payload = {
       ...basic, subjects: subjectsArr, thumbnail: basic.thumbnail || autoThumb,
       isFree: basic.isFree,
       variants: pricing.map(v => ({ ...v, months: Number(v.months), price: Number(v.price), originalPrice: Number(v.originalPrice) })),
-      lessons: lessons.map((l, i) => ({ ...l, order: i + 1 })),
+      modules: modules.map((m, i) => ({ ...m, order: i + 1, items: m.items.map((itm, j) => ({ ...itm, order: j + 1 })) })),
+      lessons: [] // Clear old format
     }
     try {
       if (editing) { await updateDocument('courses', editing.id, payload); toast.success('Updated') }
@@ -135,7 +156,7 @@ export default function ManageCourses() {
             { key: 'subjects', label: 'Subjects' },
             { key: 'isFree', label: 'Free' },
             { key: 'variants', label: 'Pricing Plans', format: (v) => Array.isArray(v) ? v.map(x => `${x.months}mo:₹${x.price}`).join(' | ') : '' },
-            { key: 'lessons', label: 'Lesson Count', format: (v) => Array.isArray(v) ? v.length : 0 },
+            { key: 'modules', label: 'Modules Count', format: (v) => Array.isArray(v) ? v.length : 0 },
             { key: 'description', label: 'Description' },
           ]} />
           <button onClick={openCreate} className="btn-primary">+ Add Course</button>
@@ -163,7 +184,7 @@ export default function ManageCourses() {
                   </td>
                   <td><span className="badge badge-navy">{c.level}</span></td>
                   <td className="text-white">{c.isFree ? <span className="text-green-brand">Free</span> : minPrice !== null ? `₹${minPrice}` : '—'}</td>
-                  <td className="text-white">{c.lessons?.length || 0}</td>
+                  <td className="text-white">{c.modules ? c.modules.length : (c.lessons?.length || 0)}</td>
                   <td>
                     <div className="flex gap-2">
                       <button onClick={() => openEdit(c)} className="text-sm text-blue-400 cursor-pointer">Edit</button>
@@ -334,58 +355,142 @@ export default function ManageCourses() {
           </div>
         )}
 
-        {/* STEP 3: Lessons */}
+        {/* STEP 3: Curriculum (Modules & Items) */}
         {step === 3 && (
-          <div className="space-y-4">
-            {lessons.map((l, i) => {
-              const thumb = ytThumb(l.videoUrl)
-              return (
-                <div key={l.id} className="bg-white/5 rounded-xl p-4 border border-slate-700 relative">
-                  <div className="absolute top-2 right-2 flex items-center gap-2">
-                    <button onClick={() => moveLesson(i, -1)} disabled={i === 0} className="text-slate-400 hover:text-white cursor-pointer disabled:opacity-30">↑</button>
-                    <button onClick={() => moveLesson(i, 1)} disabled={i === lessons.length - 1} className="text-slate-400 hover:text-white cursor-pointer disabled:opacity-30">↓</button>
-                    <button onClick={() => removeLesson(i)} className="text-red-400 cursor-pointer">✕</button>
+          <div className="space-y-6">
+            <p className="text-sm text-slate-400">Build your course curriculum. Add modules (sections) and put content (videos, PDFs, text, links) inside them.</p>
+            
+            {modules.map((m, mIdx) => (
+              <div key={m.id} className="bg-white/5 rounded-2xl p-5 border border-slate-700 relative">
+                <div className="absolute top-4 right-4 flex items-center gap-2">
+                  <button onClick={() => moveModule(mIdx, -1)} disabled={mIdx === 0} className="text-slate-400 hover:text-white cursor-pointer disabled:opacity-30">↑</button>
+                  <button onClick={() => moveModule(mIdx, 1)} disabled={mIdx === modules.length - 1} className="text-slate-400 hover:text-white cursor-pointer disabled:opacity-30">↓</button>
+                  <button onClick={() => removeModule(mIdx)} className="text-red-400 cursor-pointer ml-2">✕</button>
+                </div>
+                
+                <h4 className="text-white font-bold mb-3 flex items-center gap-2">
+                  <span className="w-6 h-6 rounded bg-slate-800 text-xs flex items-center justify-center text-slate-400">{mIdx + 1}</span>
+                  Module
+                </h4>
+                
+                <div className="grid grid-cols-1 gap-3 mb-4">
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Module Title *</label>
+                    <input className="input-field text-sm bg-black/20" value={m.title} onChange={e => {
+                      const v = [...modules]; v[mIdx] = { ...v[mIdx], title: e.target.value }; setModules(v)
+                    }} placeholder="e.g. Chapter 1: Introduction" />
                   </div>
-                  <p className="text-xs text-slate-500 mb-2 font-bold">Lesson {i + 1}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-                    <div className="sm:col-span-2">
-                      <label className="text-xs text-slate-400 block mb-1">Title</label>
-                      <input className="input-field text-sm" value={l.title} onChange={e => {
-                        const v = [...lessons]; v[i] = { ...v[i], title: e.target.value }; setLessons(v)
-                      }} />
-                    </div>
-                    <div>
-                      <label className="text-xs text-slate-400 block mb-1">Duration</label>
-                      <input className="input-field text-sm" value={l.duration} onChange={e => {
-                        const v = [...lessons]; v[i] = { ...v[i], duration: e.target.value }; setLessons(v)
-                      }} placeholder="15 min" />
-                    </div>
-                  </div>
-                  <div className="flex gap-3 items-center">
-                    <div className="flex-1">
-                      <label className="text-xs text-slate-400 block mb-1">YouTube URL (paste any link)</label>
-                      <input className="input-field text-sm" value={l.videoUrl} onChange={e => {
-                        const v = [...lessons]; v[i] = { ...v[i], videoUrl: e.target.value }; setLessons(v)
-                      }} placeholder="https://youtube.com/watch?v=..." />
-                    </div>
-                    {thumb && <img src={thumb} alt="" className="w-16 h-10 rounded object-cover mt-4" />}
-                  </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
-                      <input type="checkbox" checked={!!l.isFree} onChange={e => {
-                        const v = [...lessons]; v[i] = { ...v[i], isFree: e.target.checked }; setLessons(v)
-                      }} className="accent-green-brand" />
-                      Free preview
-                    </label>
-                    <span className="text-xs text-slate-500">Tip: Use Unlisted YouTube videos</span>
+                  <div>
+                    <label className="text-xs text-slate-400 block mb-1">Description (Optional)</label>
+                    <input className="input-field text-sm bg-black/20" value={m.description} onChange={e => {
+                      const v = [...modules]; v[mIdx] = { ...v[mIdx], description: e.target.value }; setModules(v)
+                    }} placeholder="What this module covers..." />
                   </div>
                 </div>
-              )
-            })}
-            <button onClick={addLesson} className="w-full py-3 rounded-xl border border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-green-brand transition-all cursor-pointer text-sm">
-              + Add Lesson
+
+                {/* Items within Module */}
+                <div className="ml-4 pl-4 border-l-2 border-slate-700 space-y-4">
+                  {m.items.map((itm, iIdx) => {
+                    const thumb = itm.type === 'video' ? ytThumb(itm.data) : null
+                    return (
+                      <div key={itm.id} className="bg-[#111111] rounded-xl p-4 border border-slate-800 relative">
+                        <div className="absolute top-2 right-2 flex items-center gap-2">
+                          <button onClick={() => moveItem(mIdx, iIdx, -1)} disabled={iIdx === 0} className="text-slate-500 hover:text-white cursor-pointer disabled:opacity-30">↑</button>
+                          <button onClick={() => moveItem(mIdx, iIdx, 1)} disabled={iIdx === m.items.length - 1} className="text-slate-500 hover:text-white cursor-pointer disabled:opacity-30">↓</button>
+                          <button onClick={() => removeItem(mIdx, iIdx)} className="text-red-400 cursor-pointer ml-2">✕</button>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
+                            ${itm.type==='video' ? 'bg-blue-500/20 text-blue-400' : 
+                              itm.type==='pdf' ? 'bg-red-500/20 text-red-400' : 
+                              itm.type==='text' ? 'bg-green-brand/20 text-green-brand' : 'bg-purple-500/20 text-purple-400'}`}>
+                            {itm.type}
+                          </span>
+                          <span className="text-xs text-slate-500 font-bold">Item {iIdx + 1}</span>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+                          <div className="sm:col-span-2">
+                            <label className="text-xs text-slate-400 block mb-1">Title *</label>
+                            <input className="input-field text-sm" value={itm.title} onChange={e => {
+                              const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, title: e.target.value }; setModules(v)
+                            }} placeholder="Content title" />
+                          </div>
+                          <div>
+                            <label className="text-xs text-slate-400 block mb-1">Duration (e.g. 15 min)</label>
+                            <input className="input-field text-sm" value={itm.duration} onChange={e => {
+                              const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, duration: e.target.value }; setModules(v)
+                            }} />
+                          </div>
+                        </div>
+
+                        {itm.type === 'video' && (
+                          <div className="flex gap-3 items-center mb-3">
+                            <div className="flex-1">
+                              <label className="text-xs text-slate-400 block mb-1">YouTube URL</label>
+                              <input className="input-field text-sm" value={itm.data} onChange={e => {
+                                const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, data: e.target.value }; setModules(v)
+                              }} placeholder="https://youtube.com/watch?v=..." />
+                            </div>
+                            {thumb && <img src={thumb} alt="" className="w-16 h-10 rounded object-cover mt-4" />}
+                          </div>
+                        )}
+
+                        {itm.type === 'pdf' && (
+                          <div className="mb-3">
+                            <label className="text-xs text-slate-400 block mb-1">PDF URL / Drive Link</label>
+                            <input className="input-field text-sm" value={itm.data} onChange={e => {
+                              const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, data: e.target.value }; setModules(v)
+                            }} placeholder="https://..." />
+                          </div>
+                        )}
+
+                        {itm.type === 'link' && (
+                          <div className="mb-3">
+                            <label className="text-xs text-slate-400 block mb-1">External Link</label>
+                            <input className="input-field text-sm" value={itm.data} onChange={e => {
+                              const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, data: e.target.value }; setModules(v)
+                            }} placeholder="https://..." />
+                          </div>
+                        )}
+
+                        {itm.type === 'text' && (
+                          <div className="mb-3">
+                            <label className="text-xs text-slate-400 block mb-1">Text Content / Instructions</label>
+                            <textarea className="input-field text-sm resize-none" rows={4} value={itm.data} onChange={e => {
+                              const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, data: e.target.value }; setModules(v)
+                            }} placeholder="Write your instructions or notes here..." />
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between">
+                          <label className="flex items-center gap-2 text-sm text-slate-300 cursor-pointer">
+                            <input type="checkbox" checked={!!itm.isFree} onChange={e => {
+                              const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, isFree: e.target.checked }; setModules(v)
+                            }} className="accent-green-brand" />
+                            Free preview
+                          </label>
+                        </div>
+                      </div>
+                    )
+                  })}
+                  
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <button onClick={() => addItem(mIdx, 'video')} className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition-colors cursor-pointer">+ Video</button>
+                    <button onClick={() => addItem(mIdx, 'pdf')} className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-colors cursor-pointer">+ PDF</button>
+                    <button onClick={() => addItem(mIdx, 'text')} className="px-3 py-1.5 rounded-lg bg-green-brand/10 text-green-brand hover:bg-green-brand/20 text-xs font-bold transition-colors cursor-pointer">+ Text Note</button>
+                    <button onClick={() => addItem(mIdx, 'link')} className="px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-xs font-bold transition-colors cursor-pointer">+ Link</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            <button onClick={addModule} className="w-full py-4 rounded-xl border-2 border-dashed border-slate-600 text-slate-400 hover:text-white hover:border-green-brand hover:bg-green-brand/5 transition-all cursor-pointer font-bold flex flex-col items-center gap-1">
+              <span className="text-xl">+</span>
+              <span>Add Module</span>
             </button>
-            <div className="flex gap-3">
+            <div className="flex gap-3 mt-8">
               <button onClick={() => setStep(2)} className="flex-1 py-2.5 rounded-lg bg-white/5 text-white cursor-pointer">← Back</button>
               <button onClick={() => setStep(4)} className="flex-1 btn-primary">Next: Review →</button>
             </div>
@@ -402,8 +507,8 @@ export default function ManageCourses() {
                 <div className="text-slate-400">Level</div><div className="text-white">{basic.level}</div>
                 <div className="text-slate-400">Duration</div><div className="text-white">{basic.duration}</div>
                 <div className="text-slate-400">Type</div><div className={basic.isFree ? 'text-green-brand' : 'text-white'}>{basic.isFree ? 'Free' : 'Paid'}</div>
-                <div className="text-slate-400">Pricing Plans</div><div className="text-white">{basic.isFree ? '—' : pricing.length}</div>
-                <div className="text-slate-400">Lessons</div><div className="text-white">{lessons.length}</div>
+                <div className="text-slate-400">Modules</div><div className="text-white">{modules.length}</div>
+                <div className="text-slate-400">Total Items</div><div className="text-white">{modules.reduce((acc, m) => acc + m.items.length, 0)}</div>
               </div>
             </div>
 
@@ -419,17 +524,26 @@ export default function ManageCourses() {
               </div>
             )}
 
-            {lessons.length > 0 && (
+            {modules.length > 0 && (
               <div className="bg-white/5 rounded-xl p-4 border border-slate-700">
-                <h3 className="text-white font-bold mb-2">Lessons</h3>
-                {lessons.map((l, i) => (
-                  <div key={l.id} className="flex items-center gap-2 text-sm py-1.5">
-                    <span className="text-slate-500 w-5">{i + 1}.</span>
-                    <span className="text-white flex-1 truncate">{l.title || 'Untitled'}</span>
-                    {l.isFree && <span className="text-green-brand text-xs">Free</span>}
-                    <span className="text-slate-500 text-xs">{l.duration}</span>
-                  </div>
-                ))}
+                <h3 className="text-white font-bold mb-2">Curriculum</h3>
+                <div className="space-y-3">
+                  {modules.map((m, i) => (
+                    <div key={m.id}>
+                      <div className="text-sm font-bold text-slate-300 mb-1">{i + 1}. {m.title || 'Untitled Module'}</div>
+                      <div className="ml-3 pl-3 border-l border-slate-700 space-y-1">
+                        {m.items.map((itm, j) => (
+                          <div key={itm.id} className="flex items-center gap-2 text-sm py-0.5">
+                            <span className="text-slate-500 w-4 text-xs">{j + 1}.</span>
+                            <span className="text-white flex-1 truncate">{itm.title || 'Untitled Item'}</span>
+                            <span className="text-slate-500 text-[10px] uppercase">{itm.type}</span>
+                            {itm.isFree && <span className="text-green-brand text-[10px]">FREE</span>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

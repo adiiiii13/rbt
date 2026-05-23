@@ -381,7 +381,10 @@ export default function DashboardLayout({ type }) {
                 </div>
                 <h2 className="text-3xl font-bold text-white mb-4">Section Locked</h2>
                 <p className="text-slate-400 max-w-md mx-auto mb-8">You need to complete your profile before you can access this section of the dashboard.</p>
-                <button onClick={() => navigate('/student')} className="btn-primary">Return to Dashboard</button>
+                <div className="flex gap-4">
+                  <button onClick={() => window.dispatchEvent(new Event('openProfilePopup'))} className="btn-primary bg-amber-500 hover:bg-amber-600 text-white">Complete Profile</button>
+                  <button onClick={() => navigate('/student')} className="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-xl transition-all">Return to Dashboard</button>
+                </div>
              </div>
            ) : (
              <Outlet />
