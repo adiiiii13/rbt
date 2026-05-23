@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import Modal from '../../components/Modal';
 import { TableSkeleton } from '../../components/ui/Skeleton';
+import ExportButton from '../../components/ExportButton';
 
 export default function ManageBatchStudents() {
   const { data: students, loading: loadingStudents } = useRealtimeCollection('students', { orderField: 'createdAt', orderDir: 'desc' });
@@ -129,6 +130,16 @@ export default function ManageBatchStudents() {
           <h1 className="text-2xl font-bold text-white">Manage Batch Students</h1>
           <p className="text-sm text-slate-400">Review and approve batch login requests</p>
         </div>
+        <ExportButton data={students} filename="batch_students" columns={[
+          { key: 'studentId', label: 'Student ID' },
+          { key: 'name', label: 'Name' },
+          { key: 'email', label: 'Email' },
+          { key: 'phone', label: 'Phone' },
+          { key: 'batchId', label: 'Batch ID' },
+          { key: 'batchStatus', label: 'Batch Status' },
+          { key: 'status', label: 'Status' },
+          { key: 'createdAt', label: 'Created' },
+        ]} />
       </div>
 
       <div className="mb-6 flex gap-2 overflow-x-auto pb-2 scrollbar-hide">

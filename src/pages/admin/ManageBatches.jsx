@@ -6,6 +6,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import Modal from '../../components/Modal';
 import { TableSkeleton } from '../../components/ui/Skeleton';
+import ExportButton from '../../components/ExportButton';
 
 export default function ManageBatches() {
   const { data: batches, loading } = useRealtimeCollection('batches', { orderField: 'createdAt', orderDir: 'desc' });
@@ -96,7 +97,16 @@ export default function ManageBatches() {
           <h1 className="text-2xl font-bold text-white">Manage Batches / Classes</h1>
           <p className="text-sm text-slate-400">{batches.length} batches / classes active</p>
         </div>
-        <button onClick={() => { setForm({ batchCode: '', board: '', className: '', timings: [] }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch / Class</button>
+        <div className="flex gap-2">
+          <ExportButton data={batches} filename="batches" columns={[
+            { key: 'batchCode', label: 'Batch Code' },
+            { key: 'board', label: 'Board' },
+            { key: 'className', label: 'Class' },
+            { key: 'timings', label: 'Timings' },
+            { key: 'createdAt', label: 'Created' },
+          ]} />
+          <button onClick={() => { setForm({ batchCode: '', board: '', className: '', timings: [] }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch / Class</button>
+        </div>
       </div>
 
       <div className="bg-[#111111] rounded-2xl border border-slate-800 shadow-sm overflow-hidden">
