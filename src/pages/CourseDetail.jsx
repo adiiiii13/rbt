@@ -125,8 +125,7 @@ export default function CourseDetail() {
       })
 
       // Auto-create invoice
-      const existing = await getDocs(collection(db, 'invoices'))
-      const invoiceNum = generateInvoiceNumber(existing.size)
+      const invoiceNum = generateInvoiceNumber(enrolRef.id)
       const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
       await addDoc(collection(db, 'invoices'), {

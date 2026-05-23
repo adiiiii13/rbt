@@ -1,5 +1,8 @@
-export function generateInvoiceNumber(count) {
-  return `RBT-INV-${String(count + 1).padStart(4, '0')}`
+export function generateInvoiceNumber(countOrId) {
+  if (typeof countOrId === 'string') {
+    return `RBT-INV-${countOrId.slice(0, 8).toUpperCase()}`
+  }
+  return `RBT-INV-${String(countOrId + 1).padStart(4, '0')}`
 }
 
 export function formatCurrency(amount) {

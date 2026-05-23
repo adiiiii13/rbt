@@ -40,8 +40,7 @@ export default function Payment() {
       user,
       onSuccess: async ({ paymentId, orderId }) => {
         try {
-          const existing = await getCollection('payments');
-          const invoiceNum = generateInvoiceNumber(existing.length);
+          const invoiceNum = generateInvoiceNumber(paymentId);
           const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
           await addDocument('payments', {
             videoId: video.id,
@@ -80,8 +79,7 @@ export default function Payment() {
 
   const handlePaymentSubmit = async (paymentData) => {
     try {
-      const existingPayments = await getCollection('payments')
-      const invoiceNum = generateInvoiceNumber(existingPayments.length)
+      const invoiceNum = generateInvoiceNumber(paymentData.gpayTransactionId || Date.now().toString())
 
       const paidAt = new Date().toLocaleDateString('en-IN', {
         day: '2-digit', month: 'short', year: 'numeric'

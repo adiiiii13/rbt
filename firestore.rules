@@ -14,9 +14,6 @@ service cloud.firestore {
     function isAdmin() {
       return isSignedIn() && (request.auth.token.role == 'admin' || isAdminEmail());
     }
-    function isStudent() {
-      return isSignedIn() && request.auth.token.role == 'student';
-    }
     function isOwner(uid) {
       return isSignedIn() && request.auth.uid == uid;
     }
@@ -33,42 +30,30 @@ service cloud.firestore {
     match /testimonials/{doc} { allow read: if true; allow write: if isAdmin(); }
     match /gallery/{doc}      { allow read: if true; allow write: if isAdmin(); }
     match /notices/{doc}      { allow read: if true; allow write: if isAdmin(); }
-
-    // PDFs: public read; admin write
-    match /pdfs/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Mock Tests: public read; admin write
-    match /mockTests/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
+    match /pdfs/{doc}         { allow read: if true; allow write: if isAdmin(); }
+    match /mockTests/{doc}    { allow read: if true; allow write: if isAdmin(); }
+    match /studyMaterial/{doc}{ allow read: if true; allow write: if isAdmin(); }
+    match /batches/{doc}      { allow read: if true; allow write: if isAdmin(); }
+    match /offers/{doc}       { allow read: if true; allow write: if isAdmin(); }
+    match /settings/{doc}     { allow read: if true; allow write: if isAdmin(); }
 
     // Mock Attempts: student create own; admin read all; student read own
     match /mockAttempts/{doc} {
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow update, delete: if isAdmin();
     }
 
-    // Study Material: public read; admin write
-    match /studyMaterial/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Notifications: admin write; student read own
+    // Notifications: admin write; student read own; student create auto-notifications
     match /notifications/{doc} {
-      allow create: if isAdmin();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentUid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow update, delete: if isAdmin();
     }
 
     // Doubts: student create own; admin read all; student read own; admin update for reply
     match /doubts/{doc} {
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentUid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow update: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow delete: if isAdmin();
@@ -109,7 +94,7 @@ service cloud.firestore {
 
     // Payments: student create own; admin read/update all; student read own
     match /payments/{doc} {
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.uid == request.auth.uid || 
         resource.data.studentId == request.auth.uid ||
@@ -120,36 +105,31 @@ service cloud.firestore {
 
     // Enrollments: student read own; admin full access
     match /enrollments/{doc} {
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow update, delete: if isAdmin();
     }
 
-    // Invoices: read for owner student + admin; admin writes
+    // Invoices: read/create for owner student + admin; admin writes
     match /invoices/{doc} {
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentUid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.studentUid == request.auth.uid ||
         resource.data.studentEmail == request.auth.token.email
       ));
-      allow write: if isAdmin();
+      allow update, delete: if isAdmin();
     }
 
     // Razorpay Orders: owner read/create; admin full
     match /razorpayOrders/{doc} {
-      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow update, delete: if isAdmin();
     }
 
-    // Offers: public read; admin write
-    match /offers/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
     // Course-specific doubts: student create own; admin read all; student read own; admin update for answer
     match /courseDoubts/{doc} {
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentUid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow update: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow delete: if isAdmin();
@@ -157,7 +137,7 @@ service cloud.firestore {
 
     // Course-specific inquiries
     match /courseInquiries/{doc} {
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentUid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow update: if isAdmin();
       allow delete: if isAdmin();
@@ -165,7 +145,7 @@ service cloud.firestore {
 
     // Course-specific issue reports
     match /courseReports/{doc} {
-      allow create: if isSignedIn();
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentUid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.studentUid == request.auth.uid);
       allow update: if isAdmin();
       allow delete: if isAdmin();
@@ -179,18 +159,6 @@ service cloud.firestore {
     // Deleted IDs tracking: admin only
     match /_deleted/{doc} {
       allow read, write: if isAdmin();
-    }
-
-    // Batches: public read; admin write
-    match /batches/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Settings: public read; admin write
-    match /settings/{doc} {
-      allow read: if true;
-      allow write: if isAdmin();
     }
 
     // Default deny
