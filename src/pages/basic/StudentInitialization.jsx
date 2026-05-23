@@ -1,10 +1,35 @@
+import { useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
+import { doc, getDoc } from 'firebase/firestore'
+import { db } from '../../lib/firebase'
 import toast from 'react-hot-toast'
 
 export default function StudentInitialization() {
   const { user } = useAuth()
   const navigate = useNavigate()
+
+  // Polling to check for approval status changes
+  useEffect(() => {
+    if (!user || user.batchStatus !== 'pending') return;
+    
+    const interval = setInterval(async () => {
+      try {
+        const snap = await getDoc(doc(db, 'students', user.uid));
+        if (snap.exists()) {
+          const data = snap.data();
+          if (data.batchStatus === 'approved' || data.batchStatus === 'revoked') {
+            toast.success('Your batch status has been updated!');
+            setTimeout(() => window.location.reload(), 1500);
+          }
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   // Profile not completed => force completion
   if (!user?.profileCompleted) {

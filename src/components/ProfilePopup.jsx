@@ -71,6 +71,7 @@ export default function ProfilePopup() {
       })
       if (isComplete) {
         toast.success('Profile completed! All sections unlocked.')
+        setTimeout(() => window.location.reload(), 1000)
       } else {
         toast.success('Progress saved!')
       }
