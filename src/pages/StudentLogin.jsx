@@ -15,6 +15,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [upgradeConfirm, setUpgradeConfirm] = useState(false); // New state for confirmation
   const { loginWithGoogle, loginWithBatchCode, loginStudent } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,7 +52,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   };
 
   // Google login for batch students (needs code)
-  const handleBatchGoogleLogin = async () => {
+  const handleBatchGoogleLogin = async (confirmUpgrade = false) => {
     setError('');
     const targetBatch = batches.find(b => b.id === selectedBatchId);
     if (!targetBatch) {
@@ -64,7 +65,13 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
     }
     setIsLoading(true);
     try {
-      const result = await loginWithBatchCode(selectedBatchId);
+      const result = await loginWithBatchCode(selectedBatchId, confirmUpgrade);
+      
+      if (result.requireConfirmation) {
+        setUpgradeConfirm(true);
+        return;
+      }
+      
       if (result.success) {
         if (onClose) onClose();
         navigate('/student', { replace: true });
@@ -192,34 +199,62 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
           {/* BATCH LOGIN */}
           {mode === 'batch' && (
             <motion.div key="batch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4 relative z-10">
-              <button onClick={() => setMode(null)} className="text-slate-400 text-sm hover:text-white transition-colors mb-2 flex items-center gap-1 cursor-pointer">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
-                Back
-              </button>
-              <h3 className="text-white font-bold text-lg">Batch Student Login</h3>
-              <p className="text-slate-400 text-sm">Select your batch and enter your batch code.</p>
+              
+              {!upgradeConfirm ? (
+                <>
+                  <button onClick={() => setMode(null)} className="text-slate-400 text-sm hover:text-white transition-colors mb-2 flex items-center gap-1 cursor-pointer">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
+                    Back
+                  </button>
+                  <h3 className="text-white font-bold text-lg">Batch Student Login</h3>
+                  <p className="text-slate-400 text-sm">Select your batch and enter your batch code.</p>
 
-              <div>
-                <label className="text-sm font-medium text-slate-300 mb-2 block">Select Batch</label>
-                <select className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm mb-4" value={selectedBatchId} onChange={(e) => setSelectedBatchId(e.target.value)}>
-                  {batches.map(b => (
-                    <option key={b.id} value={b.id} className="bg-[#111111]">{b.name}</option>
-                  ))}
-                </select>
+                  <div>
+                    <label className="text-sm font-medium text-slate-300 mb-2 block">Select Batch</label>
+                    <select className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm mb-4" value={selectedBatchId} onChange={(e) => setSelectedBatchId(e.target.value)}>
+                      {batches.map(b => (
+                        <option key={b.id} value={b.id} className="bg-[#111111]">{b.name}</option>
+                      ))}
+                    </select>
 
-                <label className="text-sm font-medium text-slate-300 mb-2 block">Batch Code</label>
-                <input className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all tracking-widest font-mono text-center text-lg" placeholder="XXXX" value={batchCode} onChange={(e) => setBatchCode(e.target.value)} maxLength={10} />
-              </div>
+                    <label className="text-sm font-medium text-slate-300 mb-2 block">Batch Code</label>
+                    <input className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all tracking-widest font-mono text-center text-lg" placeholder="XXXX" value={batchCode} onChange={(e) => setBatchCode(e.target.value)} maxLength={10} />
+                  </div>
 
-              <button onClick={handleBatchGoogleLogin} disabled={isLoading || !batchCode || !selectedBatchId} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
-                {isLoading ? (
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                ) : (
-                  <GoogleIcon />
-                )}
-                Sign in with Google
-              </button>
-              <p className="text-xs text-slate-500 text-center">Full dashboard: courses, videos, PDFs, notices, counselling, invoices</p>
+                  <button onClick={() => handleBatchGoogleLogin(false)} disabled={isLoading || !batchCode || !selectedBatchId} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
+                    {isLoading ? (
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    ) : (
+                      <GoogleIcon />
+                    )}
+                    Sign in with Google
+                  </button>
+                  <p className="text-xs text-slate-500 text-center">Full dashboard: courses, videos, PDFs, notices, counselling, invoices</p>
+                </>
+              ) : (
+                <div className="bg-white/5 border border-white/10 p-6 rounded-2xl text-center space-y-4">
+                  <div className="w-16 h-16 bg-blue-500/20 text-blue-400 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                  </div>
+                  <h3 className="text-white font-bold text-xl">Account Upgrade</h3>
+                  <p className="text-slate-300 text-sm leading-relaxed">
+                    You are currently a <strong className="text-white">Basic User</strong>. 
+                    By continuing with this batch login, you are upgrading your account to the 
+                    <strong className="text-green-brand"> Batch Level</strong>.
+                  </p>
+                  <p className="text-xs text-slate-500 pb-2">
+                    Note: You can still log in as a basic user anytime if you want, no issues.
+                  </p>
+                  <div className="flex gap-3">
+                    <button onClick={() => setUpgradeConfirm(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-semibold py-3 px-4 rounded-xl transition-colors text-sm">
+                      Cancel
+                    </button>
+                    <button onClick={() => handleBatchGoogleLogin(true)} disabled={isLoading} className="flex-1 bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-colors text-sm disabled:opacity-50 flex items-center justify-center">
+                      {isLoading ? 'Upgrading...' : 'Confirm Upgrade'}
+                    </button>
+                  </div>
+                </div>
+              )}
             </motion.div>
           )}
 

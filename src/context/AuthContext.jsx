@@ -248,32 +248,46 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const loginWithBatchCode = async (batchId) => {
+  const loginWithBatchCode = async (batchId, confirmUpgrade = false) => {
     isAuthActionInProgress.current = true;
     try {
-      const provider = new GoogleAuthProvider()
-      const cred = await signInWithPopup(auth, provider)
+      let credUser = auth.currentUser;
+      if (!credUser) {
+        const provider = new GoogleAuthProvider()
+        const cred = await signInWithPopup(auth, provider)
+        credUser = cred.user;
+      }
 
-      const studentRef = doc(db, 'students', cred.user.uid)
+      const studentRef = doc(db, 'students', credUser.uid)
       const snap = await getDoc(studentRef)
+
+      if (snap.exists() && !snap.data().batchId && batchId && !confirmUpgrade) {
+        // Stop here and ask for confirmation
+        return { 
+          success: false, 
+          requireConfirmation: true, 
+          message: 'You are a basic user/student. By batch login, you are upgrading your email or account to the batch level.' 
+        }
+      }
+
       if (!snap.exists()) {
         await setDoc(studentRef, {
-          name: cred.user.displayName || 'Student',
-          email: cred.user.email,
-          photoURL: cred.user.photoURL || null,
+          name: credUser.displayName || 'Student',
+          email: credUser.email,
+          photoURL: credUser.photoURL || null,
           role: 'student',
           batchId: batchId || null,
           batchStatus: 'pending',
           batch: false,  // false until admin approves
           status: 'active',
-          studentId: 'RBT26B-' + cred.user.uid.substring(0, 6).toUpperCase(),
+          studentId: 'RBT26B-' + credUser.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
         })
       } else {
         const data = snap.data();
         const updates = {
-          name: cred.user.displayName || data.name,
-          photoURL: cred.user.photoURL || data.photoURL || null,
+          name: credUser.displayName || data.name,
+          photoURL: credUser.photoURL || data.photoURL || null,
         };
         if (!data.batchId && batchId) {
             updates.batchId = batchId;
@@ -281,12 +295,12 @@ export function AuthProvider({ children }) {
             updates.batch = false;
         }
         if (!data.studentId || !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
-          updates.studentId = 'RBT26B-' + cred.user.uid.substring(0, 6).toUpperCase();
+          updates.studentId = 'RBT26B-' + credUser.uid.substring(0, 6).toUpperCase();
         }
         await updateDoc(studentRef, updates);
       }
 
-      const userData = await buildUserFromToken(cred.user)
+      const userData = await buildUserFromToken(credUser)
       if (!snap.exists() || (snap.exists() && !snap.data().batchId && batchId)) {
         userData.batch = false;
         userData.batchStatus = 'pending';

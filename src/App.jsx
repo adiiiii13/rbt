@@ -90,8 +90,8 @@ function ProtectedRoute({ children, role, batch }) {
   }
   if (role && user.role !== role) return <Navigate to="/" replace />
 
-  // Force pending batch students to the initialization page
-  if (user.role === 'student' && user.batchStatus === 'pending' && location.pathname !== '/student-initialization') {
+  // Force pending batch students to the initialization page (unless they are accessing the basic dashboard)
+  if (user.role === 'student' && user.batchStatus === 'pending' && location.pathname !== '/student-initialization' && !location.pathname.startsWith('/basic')) {
     return <Navigate to="/student-initialization" replace />
   }
 
