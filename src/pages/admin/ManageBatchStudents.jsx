@@ -62,8 +62,11 @@ export default function ManageBatchStudents() {
 
   if (loadingStudents || loadingBatches) return <div className="p-8"><TableSkeleton /></div>;
 
-  // Filter out students who explicitly chose batch login at signup
-  const batchStudents = students.filter(s => s.batchId || s.batchStatus || s.batch);
+  // Filter out students who explicitly chose batch login at signup and have completed their profile (or are already approved/revoked)
+  const batchStudents = students.filter(s => 
+    (s.batchId || s.batchStatus || s.batch) && 
+    (s.profileCompleted || s.batchStatus === 'approved' || s.batchStatus === 'revoked')
+  );
 
   return (
     <div>
