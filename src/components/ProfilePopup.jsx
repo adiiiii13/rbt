@@ -16,7 +16,7 @@ export default function ProfilePopup() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!user || user.role !== 'student' || !user.batch) return
+    if (!user || user.role !== 'student' || (!user.batch && user.batchStatus !== 'pending')) return
     // Show if profile not filled
     const hasProfile = user.profileCompleted
     if (!hasProfile) setShow(true)

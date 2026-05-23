@@ -125,7 +125,11 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
   ]
 
-  const links = type === 'admin' ? adminLinks : type === 'basic' ? basicLinks : studentLinks
+  const initializationLinks = [
+    { to: '/student-initialization', label: 'Initialization', icon: <IC.users size={18} />, end: true }
+  ]
+
+  const links = type === 'admin' ? adminLinks : type === 'basic' ? basicLinks : type === 'initialization' ? initializationLinks : studentLinks
 
   const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchQuery.toLowerCase()))
 
@@ -290,7 +294,7 @@ export default function DashboardLayout({ type }) {
             </button>
             <div className="hidden sm:block">
               <h2 className="text-base font-semibold text-white">
-                {type === 'admin' ? 'Admin Panel' : type === 'basic' ? 'Basic Portal' : 'Student Portal'}
+                {type === 'admin' ? 'Admin Panel' : type === 'basic' ? 'Basic Portal' : type === 'initialization' ? 'Batch Enrollment' : 'Student Portal'}
               </h2>
               <p className="text-xs text-slate-400">
                 {user?.name || 'User'}

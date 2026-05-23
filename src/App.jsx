@@ -54,6 +54,7 @@ const BasicDashboard = lazy(() => import('./pages/basic/Dashboard'))
 const BasicCourses = lazy(() => import('./pages/basic/Courses'))
 const BasicCourseDetail = lazy(() => import('./pages/basic/CourseDetail'))
 const BasicPayment = lazy(() => import('./pages/basic/Payment'))
+const StudentInitialization = lazy(() => import('./pages/basic/StudentInitialization'))
 
 // Admin Pages (lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -88,8 +89,19 @@ function ProtectedRoute({ children, role, batch }) {
     return <Navigate to={dest} replace state={{ from: location.pathname + location.search }} />
   }
   if (role && user.role !== role) return <Navigate to="/" replace />
+
+  // Force pending batch students to the initialization page
+  if (user.role === 'student' && user.batchStatus === 'pending' && location.pathname !== '/student-initialization') {
+    return <Navigate to="/student-initialization" replace />
+  }
+
   // Batch dashboard requires batch: true
-  if (batch && !user.batch) return <Navigate to="/basic" replace />
+  if (batch && !user.batch) {
+    if (user.batchStatus === 'pending') {
+      return <Navigate to="/student-initialization" replace />
+    }
+    return <Navigate to="/basic" replace />
+  }
   return children
 }
 
@@ -97,7 +109,7 @@ function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
     // Don't auto-scroll in dashboard (admin/student/basic)
-    const inDashboard = pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/basic')
+    const inDashboard = pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/basic') || pathname.startsWith('/student-initialization')
     if (!inDashboard) {
       window.scrollTo(0, 0)
     }
@@ -153,7 +165,7 @@ function AppContent() {
             animate={{ opacity: 1 }}
             transition={{ duration: 0.5 }}
           >
-            {!location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !/^\/(?:student\/|basic\/)?test-papers\/mock\/[^/]+/.test(location.pathname) && (
+            {!location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !location.pathname.startsWith('/student-initialization') && !/^\/(?:student\/|basic\/)?test-papers\/mock\/[^/]+/.test(location.pathname) && (
               <Navbar
                 onOpenLogin={() => setShowAutoLogin(true)}
                 onOpenSignup={() => setShowSignupModal(true)}
@@ -184,6 +196,11 @@ function AppContent() {
                   <Route path="/terms" element={<><TermsOfService /><Footer /></>} />
                   <Route path="/student-login" element={<StudentLogin />} />
                   <Route path="/admin-login" element={<AdminLogin />} />
+
+                  {/* Student Initialization holding page */}
+                  <Route path="/student-initialization" element={<ProtectedRoute role="student"><DashboardLayout type="initialization" /></ProtectedRoute>}>
+                    <Route index element={<StudentInitialization />} />
+                  </Route>
 
                   {/* Student Routes (Batch — full access) */}
                   <Route path="/student" element={<ProtectedRoute role="student" batch><DashboardLayout type="student" /></ProtectedRoute>}>
@@ -279,11 +296,11 @@ function AppContent() {
             </AnimatePresence>
 
             {/* Offer popup - shows on public pages only */}
-            {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !location.pathname.includes('login') && (
+            {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !location.pathname.startsWith('/student-initialization') && !location.pathname.includes('login') && (
               <OfferPopup />
             )}
             {/* Profile popup for batch students who haven't filled profile */}
-            {!initialLoading && user && user.role === 'student' && user.batch && !user.profileCompleted && (
+            {!initialLoading && user && user.role === 'student' && (user.batch || user.batchStatus === 'pending') && !user.profileCompleted && (
               <ProfilePopup />
             )}
           </motion.div>
