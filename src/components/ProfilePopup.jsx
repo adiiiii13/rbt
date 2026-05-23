@@ -18,32 +18,42 @@ export default function ProfilePopup() {
   useEffect(() => {
     if (!user) return
     // Show if profile not filled
-    const hasProfile = user.className && user.batch
+    const hasProfile = user.profileCompleted
     if (!hasProfile) setShow(true)
+    
+    // Auto-fill existing details
+    setForm({
+      className: user.className || '',
+      batch: user.batchName || user.batch || '',
+      board: user.board || 'CBSE',
+      phone: user.phone || '',
+      school: user.school || '',
+      parentName: user.parentName || '',
+      parentPhone: user.parentPhone || '',
+    })
   }, [user])
 
   const save = async () => {
-    if (!form.className || !form.batch || !form.phone) {
-      toast.error('Class, Batch and Phone are required')
-      return
-    }
     setSaving(true)
+    const isComplete = !!(form.className && form.batch && form.phone)
     try {
       await updateDoc(doc(db, 'students', user.uid), {
         className: form.className,
-        batch: form.batch,
+        batchName: form.batch, // using batchName for user-selected string, `batch` bool is used for auth role
         board: form.board,
         phone: form.phone,
         school: form.school,
         parentName: form.parentName,
         parentPhone: form.parentPhone,
-        profileCompleted: true,
-        profileCompletedAt: new Date().toISOString(),
+        profileCompleted: isComplete,
+        ...(isComplete ? { profileCompletedAt: new Date().toISOString() } : {})
       })
-      toast.success('Profile saved!')
+      if (isComplete) {
+        toast.success('Profile completed! All sections unlocked.')
+      } else {
+        toast.success('Progress saved!')
+      }
       setShow(false)
-      // Force reload so user data updates
-      window.location.reload()
     } catch (err) { toast.error(err.message) }
     finally { setSaving(false) }
   }
@@ -53,19 +63,22 @@ export default function ProfilePopup() {
   return (
     <AnimatePresence>
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
+        className="fixed inset-0 z-300 flex items-center justify-center bg-black/80 backdrop-blur-sm px-4">
         <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }}
           className="w-full max-w-lg bg-[#111111] rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
-          <div className="h-2 bg-gradient-to-r from-green-brand to-blue-500" />
+          <div className="h-2 bg-linear-to-r from-green-brand to-blue-500" />
           <div className="p-6">
-            <div className="flex items-center gap-3 mb-5">
+            <div className="flex items-center gap-3 mb-5 relative">
               <div className="w-12 h-12 rounded-xl bg-green-brand/15 flex items-center justify-center text-green-brand">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
               </div>
               <div>
                 <h2 className="text-xl font-bold text-white">Complete Your Profile</h2>
-                <p className="text-sm text-slate-400">Required to receive targeted notices and schedule</p>
+                <p className="text-sm text-slate-400">Required to unlock full dashboard access</p>
               </div>
+              <button onClick={() => setShow(false)} className="absolute right-0 top-0 text-slate-500 hover:text-white transition-colors">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </button>
             </div>
 
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
@@ -118,11 +131,11 @@ export default function ProfilePopup() {
               </div>
             </div>
 
-            <button onClick={save} disabled={saving || !form.className || !form.batch || !form.phone}
+            <button onClick={save} disabled={saving}
               className="w-full mt-5 bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all">
-              {saving ? 'Saving...' : 'Save Profile'}
+              {saving ? 'Saving...' : (form.className && form.batch && form.phone) ? 'Save & Unlock Access' : 'Save Progress'}
             </button>
-            <p className="text-xs text-slate-500 text-center mt-3">This helps us send you relevant notices and schedule updates</p>
+            <p className="text-xs text-slate-500 text-center mt-3">All required (*) fields must be filled to unlock full access</p>
           </div>
         </motion.div>
       </motion.div>

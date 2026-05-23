@@ -100,16 +100,20 @@ export default function ManageStudents() {
     setBusy(true);
     try {
       if (editing) {
-        // Edit: update Firestore doc directly
-        await updateDocument('students', editing.id, {
-          studentId: form.studentId,
-          name: form.name,
-          email: form.email,
-          phone: form.phone,
-          course: form.course,
-          class: form.class,
+        // Edit: update Cloud Function to update Auth and Firestore
+        const updateFn = httpsCallable(functions, 'updateStudent');
+        const result = await updateFn({
+          uid: editing.id,
+          studentId: form.studentId.toUpperCase(),
+          name: form.name.trim(),
+          email: form.email || '',
+          phone: form.phone || '',
+          course: form.course || '',
+          password: form.password || undefined,
         });
-        toast.success('Student updated');
+        if (result.data.ok || result.data.success) {
+          toast.success('Student updated securely');
+        }
       } else {
         // Create: use Cloud Function (creates Firebase Auth account)
         if (!form.password || form.password.length < 8) {
@@ -126,7 +130,7 @@ export default function ManageStudents() {
           course: form.course || '',
           password: form.password,
         });
-        if (result.data.success) {
+        if (result.data.ok || result.data.success) {
           toast.success('Student account created — can login now');
         }
       }
@@ -147,7 +151,8 @@ export default function ManageStudents() {
 
   const enable = async (s) => {
     try {
-      await updateDocument('students', s.id, { status: 'active' });
+      const fn = httpsCallable(functions, 'disableStudent');
+      await fn({ uid: s.id, disabled: false });
       toast.success('Student enabled');
     } catch (err) { toast.error(err.message); }
   };
@@ -291,13 +296,11 @@ export default function ManageStudents() {
               <input className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.course} onChange={e => setForm({ ...form, course: e.target.value })} placeholder="Physics Pro" />
             </div>
           </div>
-          {!editing && (
-            <div>
-              <label className="text-sm font-bold text-white mb-1.5 block">Password *</label>
-              <input type="password" className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min 8 characters" />
-              <p className="text-xs text-slate-500 mt-1">Student will login with this password</p>
-            </div>
-          )}
+          <div>
+            <label className="text-sm font-bold text-white mb-1.5 block">Password {editing ? '(Leave blank to keep current)' : '*'}</label>
+            <input type="password" className="w-full bg-white/5 border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:border-green-brand focus:ring-0 transition-all outline-none" value={form.password} onChange={e => setForm({ ...form, password: e.target.value })} placeholder="Min 8 characters" />
+            <p className="text-xs text-slate-500 mt-1">{editing ? 'Only fill this if you want to explicitly reset their password.' : 'Student will login with this password'}</p>
+          </div>
           <button onClick={save} disabled={busy} className="btn-primary w-full shadow-lg mt-2 disabled:opacity-60">
             {busy ? 'Saving...' : editing ? 'Update Student' : 'Create Student Account'}
           </button>

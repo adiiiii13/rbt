@@ -1,7 +1,7 @@
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react'
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
-import { updateDocument } from '../../lib/firebaseHelpers'
+import { updateDocument, deleteDocument } from '../../lib/firebaseHelpers'
 import toast from 'react-hot-toast'
 import Modal from '../../components/Modal'
 import ExportButton from '../../components/ExportButton'
@@ -20,6 +20,14 @@ export default function ManageDoubts() {
       toast.success('Reply sent')
       setReply('')
       setSelected(null)
+    } catch (err) { toast.error(err.message) }
+  }
+
+  const remove = async (id) => {
+    if (!confirm('Delete this doubt permanently?')) return;
+    try {
+      await deleteDocument('doubts', id);
+      toast.success('Doubt deleted');
     } catch (err) { toast.error(err.message) }
   }
 
@@ -55,9 +63,12 @@ export default function ManageDoubts() {
                   {d.subject && <span className="badge badge-navy text-xs">{d.subject}</span>}
                   <span className={`badge ${statusColors[d.status]}`}>{d.status}</span>
                 </div>
-                {d.status === 'pending' && (
-                  <button onClick={() => { setSelected(d); setReply('') }} className="text-sm text-green-brand font-bold cursor-pointer">Reply</button>
-                )}
+                <div className="flex items-center gap-3">
+                  {d.status === 'pending' && (
+                    <button onClick={() => { setSelected(d); setReply('') }} className="text-sm text-green-brand font-bold cursor-pointer">Reply</button>
+                  )}
+                  <button onClick={() => remove(d.id)} className="text-sm text-red-500 font-bold cursor-pointer">Delete</button>
+                </div>
               </div>
               {d.text && <p className="text-sm text-slate-300 mb-2">{d.text}</p>}
               {d.imageUrl && (

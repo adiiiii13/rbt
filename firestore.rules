@@ -21,6 +21,11 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    // GLOBAL ADMIN OVERRIDE - Admin has absolute power over everything
+    match /{document=**} {
+      allow read, write: if isAdmin();
+    }
+
     // Public read content; admin write only
     match /courses/{doc}      { allow read: if true; allow write: if isAdmin(); }
     match /videos/{doc}       { allow read: if true; allow write: if isAdmin(); }
@@ -163,6 +168,12 @@ service cloud.firestore {
     // Deleted IDs tracking: admin only
     match /_deleted/{doc} {
       allow read, write: if isAdmin();
+    }
+
+    // Batches: public read; admin write
+    match /batches/{doc} {
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     // Default deny

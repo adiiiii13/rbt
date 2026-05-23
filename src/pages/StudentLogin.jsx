@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-
-const BATCH_CODE = '2026';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 
 export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const [mode, setMode] = useState(null); // null = choose, 'batch', 'basic'
+  const [batches, setBatches] = useState([]);
+  const [selectedBatchId, setSelectedBatchId] = useState('');
   const [batchCode, setBatchCode] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -16,6 +18,16 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const { loginWithGoogle, loginWithBatchCode, loginStudent } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  useEffect(() => {
+    if (mode === 'batch') {
+      getDocs(collection(db, 'batches')).then(snap => {
+        const b = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setBatches(b);
+        if (b.length > 0) setSelectedBatchId(b[0].id);
+      }).catch(err => console.error("Failed to load batches", err));
+    }
+  }, [mode]);
 
   // For email/password login
   const handleEmailLogin = async (e) => {
@@ -41,13 +53,18 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   // Google login for batch students (needs code)
   const handleBatchGoogleLogin = async () => {
     setError('');
-    if (batchCode !== BATCH_CODE) {
+    const targetBatch = batches.find(b => b.id === selectedBatchId);
+    if (!targetBatch) {
+      setError('Please select a valid batch.');
+      return;
+    }
+    if (batchCode !== targetBatch.batchCode) {
       setError('Invalid batch code. Contact admin for correct code.');
       return;
     }
     setIsLoading(true);
     try {
-      const result = await loginWithBatchCode();
+      const result = await loginWithBatchCode(selectedBatchId);
       if (result.success) {
         if (onClose) onClose();
         navigate('/student', { replace: true });
@@ -93,18 +110,18 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="relative z-10 w-full max-w-md">
       <div className="bg-[#0d1117] backdrop-blur-xl p-8 rounded-2xl border border-white/10 relative overflow-hidden shadow-2xl">
         {isPopup && (
-          <button onClick={onClose} className="absolute top-4 right-4 z-[210] w-8 h-8 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer">
+          <button onClick={onClose} className="absolute top-4 right-4 z-210 w-8 h-8 rounded-md bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
           </button>
         )}
 
-        <div className="absolute top-0 right-0 w-32 h-32 bg-green-brand/20 rounded-full blur-[40px] pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px] pointer-events-none" />
+        <div className="absolute top-0 right-0 w-32 h-32 bg-green-brand/20 rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
         <div className="text-center mb-8 relative z-10">
           <Link to="/" onClick={() => { if (onClose) onClose(); }} className="inline-flex items-center gap-3 no-underline mb-6 group">
             <div className="relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-green-brand to-emerald-400 rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
+              <div className="absolute -inset-1 bg-linear-to-r from-green-brand to-emerald-400 rounded-xl blur opacity-10 group-hover:opacity-20 transition duration-500"></div>
               <img src="/Images/RBT Logo.jpeg" alt="RBT Mission Learning" width="48" height="48" className="relative w-12 h-12 rounded-xl object-cover shadow-lg" />
             </div>
             <div className="text-left">
@@ -155,9 +172,9 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
 
               {/* Email/Password login for batch students */}
               <div className="relative flex items-center py-2">
-                <div className="flex-grow border-t border-white/10"></div>
-                <span className="flex-shrink-0 mx-4 text-slate-500 text-sm">or login with email</span>
-                <div className="flex-grow border-t border-white/10"></div>
+                <div className="grow border-t border-white/10"></div>
+                <span className="shrink-0 mx-4 text-slate-500 text-sm">or login with email</span>
+                <div className="grow border-t border-white/10"></div>
               </div>
               <form onSubmit={handleEmailLogin} className="space-y-3">
                 <input required type="email" autoComplete="email" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -180,14 +197,21 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
                 Back
               </button>
               <h3 className="text-white font-bold text-lg">Batch Student Login</h3>
-              <p className="text-slate-400 text-sm">Enter your batch code, then sign in with Google.</p>
+              <p className="text-slate-400 text-sm">Select your batch and enter your batch code.</p>
 
               <div>
+                <label className="text-sm font-medium text-slate-300 mb-2 block">Select Batch</label>
+                <select className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm mb-4" value={selectedBatchId} onChange={(e) => setSelectedBatchId(e.target.value)}>
+                  {batches.map(b => (
+                    <option key={b.id} value={b.id} className="bg-[#111111]">{b.name}</option>
+                  ))}
+                </select>
+
                 <label className="text-sm font-medium text-slate-300 mb-2 block">Batch Code</label>
-                <input className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all tracking-widest font-mono text-center text-lg" placeholder="XXXX" value={batchCode} onChange={(e) => setBatchCode(e.target.value)} maxLength={6} />
+                <input className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all tracking-widest font-mono text-center text-lg" placeholder="XXXX" value={batchCode} onChange={(e) => setBatchCode(e.target.value)} maxLength={10} />
               </div>
 
-              <button onClick={handleBatchGoogleLogin} disabled={isLoading || !batchCode} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
+              <button onClick={handleBatchGoogleLogin} disabled={isLoading || !batchCode || !selectedBatchId} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
                 {isLoading ? (
                   <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 ) : (
@@ -239,7 +263,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
 
   if (isPopup) {
     return (
-      <motion.div initial={{ opacity: 0, backdropFilter: "blur(0px)" }} animate={{ opacity: 1, backdropFilter: "blur(10px)" }} exit={{ opacity: 0, backdropFilter: "blur(0px)" }} className="fixed inset-0 z-[200] flex items-center justify-center px-4 bg-black/80" onClick={onClose}>
+      <motion.div initial={{ opacity: 0, backdropFilter: "blur(0px)" }} animate={{ opacity: 1, backdropFilter: "blur(10px)" }} exit={{ opacity: 0, backdropFilter: "blur(0px)" }} className="fixed inset-0 z-200 flex items-center justify-center px-4 bg-black/80" onClick={onClose}>
         <div onClick={(e) => e.stopPropagation()} className="w-full max-w-md">{loginContent}</div>
       </motion.div>
     );
@@ -248,8 +272,8 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   return (
     <div className="min-h-screen bg-[#050B14] flex items-center justify-center px-4 py-24 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-10%] right-[-5%] w-[500px] h-[500px] bg-green-brand/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-[-10%] left-[-5%] w-[300px] h-[300px] bg-blue-500/5 rounded-full blur-[80px]" />
+        <div className="absolute top-[-10%] right-[-5%] w-125 h-125 bg-green-brand/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-[-10%] left-[-5%] w-75 h-75 bg-blue-500/5 rounded-full blur-[80px]" />
       </div>
       {loginContent}
     </div>

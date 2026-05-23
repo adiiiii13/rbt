@@ -20,7 +20,9 @@ const razorpayKeySecret = process.env.RAZORPAY_KEY_SECRET
 
 function assertAdmin(ctxAuth) {
   if (!ctxAuth) throw new HttpsError('unauthenticated', 'Sign in required')
-  if (ctxAuth.token.role !== 'admin') throw new HttpsError('permission-denied', 'Admin only')
+  const isAdminClaim = ctxAuth.token.role === 'admin'
+  const isAdminEmail = ctxAuth.token.email && ctxAuth.token.email.endsWith('@rbtmission.com')
+  if (!isAdminClaim && !isAdminEmail) throw new HttpsError('permission-denied', 'Admin only')
 }
 
 function assertAuthenticated(ctxAuth) {
@@ -65,6 +67,36 @@ export const createStudent = onCall(async (request) => {
     createdAt: FieldValue.serverTimestamp(),
   })
   return { ok: true, uid: userRecord.uid }
+})
+
+// Update student account: Firebase Auth user + Firestore profile
+export const updateStudent = onCall(async (request) => {
+  assertAdmin(request.auth)
+  const { uid, studentId, name, email, phone, course, password } = request.data || {}
+  if (!uid || !studentId || !name) {
+    throw new HttpsError('invalid-argument', 'uid, studentId, name required')
+  }
+  const loginEmail = email || `${String(studentId).toLowerCase()}@students.rbtmission.com`
+  
+  const updateData = {
+    email: loginEmail,
+    displayName: name,
+  }
+  if (password && password.length >= 8) {
+    updateData.password = password
+  }
+  
+  await auth.updateUser(uid, updateData)
+  
+  await db.collection('students').doc(uid).update({
+    studentId,
+    name,
+    email: loginEmail,
+    phone: phone || null,
+    course: course || null,
+  })
+  
+  return { ok: true }
 })
 
 export const disableStudent = onCall(async (request) => {

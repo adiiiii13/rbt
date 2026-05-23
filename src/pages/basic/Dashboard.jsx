@@ -45,6 +45,21 @@ export default function BasicDashboard() {
 
   return (
     <div>
+      {user?.batchStatus === 'pending' && (
+        <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl relative overflow-hidden">
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <h3 className="text-amber-400 font-bold mb-1">Batch Request Pending</h3>
+              <p className="text-sm text-amber-200/80">Your request to join the batch is waiting for Admin approval. You will get full access once approved.</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+          </div>
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+        </div>
+      )}
+
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Welcome, {user?.name || 'Student'}</h1>
         <p className="text-slate-400 text-sm">
@@ -55,17 +70,17 @@ export default function BasicDashboard() {
 
       {/* Quick stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
-        <div className="bg-gradient-to-br from-blue-500/10 to-blue-600/5 rounded-2xl p-5 border border-blue-500/20">
+        <div className="bg-linear-to-br from-blue-500/10 to-blue-600/5 rounded-2xl p-5 border border-blue-500/20">
           <div className="text-blue-400 mb-3"><BookOpenIcon size={22} /></div>
           <p className="text-2xl font-bold text-white mb-0.5">{courses.length}</p>
           <p className="text-xs text-slate-400">Courses</p>
         </div>
-        <div className="bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 rounded-2xl p-5 border border-emerald-500/20">
+        <div className="bg-linear-to-br from-emerald-500/10 to-emerald-600/5 rounded-2xl p-5 border border-emerald-500/20">
           <div className="text-emerald-400 mb-3"><PlayCircleIcon size={22} /></div>
           <p className="text-2xl font-bold text-white mb-0.5">{freeVideos.length}</p>
           <p className="text-xs text-slate-400">Free Videos</p>
         </div>
-        <div className="bg-gradient-to-br from-amber-500/10 to-amber-600/5 rounded-2xl p-5 border border-amber-500/20">
+        <div className="bg-linear-to-br from-amber-500/10 to-amber-600/5 rounded-2xl p-5 border border-amber-500/20">
           <div className="text-amber-400 mb-3"><FileTextIcon size={22} /></div>
           <p className="text-2xl font-bold text-white mb-0.5">{freePdfs.length}</p>
           <p className="text-xs text-slate-400">Test Papers</p>
@@ -153,7 +168,7 @@ export default function BasicDashboard() {
       </div>
 
       {/* Upgrade CTA */}
-      <div className="bg-gradient-to-br from-green-brand/10 to-green-dark/5 rounded-2xl p-6 border border-green-brand/20 text-center">
+      <div className="bg-linear-to-br from-green-brand/10 to-green-dark/5 rounded-2xl p-6 border border-green-brand/20 text-center">
         <h3 className="text-white font-bold mb-2">Want Full Access?</h3>
         <p className="text-sm text-slate-400 mb-3">Get counselling, notices, achievements, invoices and more with Batch Student access.</p>
         <p className="text-xs text-slate-500">Contact admin to enroll in a batch.</p>

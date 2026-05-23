@@ -11,8 +11,6 @@ export default function StudentDoubts() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
 
-  useEffect(() => { if (user) loadDoubts() }, [user])
-
   const loadDoubts = async () => {
     setLoading(true)
     try {
@@ -21,6 +19,8 @@ export default function StudentDoubts() {
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { if (user) loadDoubts() }, [user])
 
   const statusColors = { pending: 'badge-gold', answered: 'badge-green' }
 

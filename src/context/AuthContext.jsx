@@ -8,7 +8,7 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword
 } from 'firebase/auth'
-import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
 
 const AuthContext = createContext(null)
@@ -70,6 +70,7 @@ export function AuthProvider({ children }) {
   const isAuthActionInProgress = useRef(false)
 
   useEffect(() => {
+    let docUnsub = null;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (isAuthActionInProgress.current) return;
@@ -77,8 +78,21 @@ export function AuthProvider({ children }) {
           const userData = await buildUserFromToken(firebaseUser)
           if (isAuthActionInProgress.current) return;
           setUser(userData)
+
+          if (userData.role !== 'admin') {
+            docUnsub = onSnapshot(doc(db, 'students', firebaseUser.uid), (docSnap) => {
+              if (!docSnap.exists() && !isAuthActionInProgress.current) {
+                signOut(auth);
+                setUser(null);
+              } else if (docSnap.exists() && !isAuthActionInProgress.current) {
+                const data = docSnap.data();
+                setUser(prev => prev ? { ...prev, ...data } : prev);
+              }
+            });
+          }
         } else {
           setUser(null)
+          if (docUnsub) docUnsub()
         }
       } catch (err) {
         console.error('[auth] state error', err)
@@ -89,7 +103,10 @@ export function AuthProvider({ children }) {
         }
       }
     })
-    return () => unsubscribe()
+    return () => {
+      unsubscribe();
+      if (docUnsub) docUnsub();
+    }
   }, [])
 
   const loginStudent = async (idOrEmail, password) => {
@@ -231,7 +248,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const loginWithBatchCode = async () => {
+  const loginWithBatchCode = async (batchId) => {
     isAuthActionInProgress.current = true;
     try {
       const provider = new GoogleAuthProvider()
@@ -245,7 +262,9 @@ export function AuthProvider({ children }) {
           email: cred.user.email,
           photoURL: cred.user.photoURL || null,
           role: 'student',
-          batch: true,
+          batchId: batchId || null,
+          batchStatus: 'pending',
+          batch: false,  // false until admin approves
           status: 'active',
           studentId: 'RBT26B-' + cred.user.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
@@ -255,9 +274,12 @@ export function AuthProvider({ children }) {
         const updates = {
           name: cred.user.displayName || data.name,
           photoURL: cred.user.photoURL || data.photoURL || null,
-          batch: true,
         };
-        // Migrate old-format studentId (missing G/E/B letter) to new format
+        if (!data.batchId && batchId) {
+            updates.batchId = batchId;
+            updates.batchStatus = 'pending';
+            updates.batch = false;
+        }
         if (!data.studentId || !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
           updates.studentId = 'RBT26B-' + cred.user.uid.substring(0, 6).toUpperCase();
         }
@@ -265,7 +287,10 @@ export function AuthProvider({ children }) {
       }
 
       const userData = await buildUserFromToken(cred.user)
-      userData.batch = true
+      if (!snap.exists() || (snap.exists() && !snap.data().batchId && batchId)) {
+        userData.batch = false;
+        userData.batchStatus = 'pending';
+      }
       setUser(userData)
       return { success: true, user: userData }
     } catch (err) {

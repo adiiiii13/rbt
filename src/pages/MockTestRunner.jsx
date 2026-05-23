@@ -178,7 +178,7 @@ export default function MockTestRunner() {
     setPhase('exam');
   };
 
-  const handleSubmit = async ({ cheating = false, timeOut = false, violationsOverride = null } = {}) => {
+  async function handleSubmit({ cheating = false, timeOut = false, violationsOverride = null } = {}) {
     if (submittedRef.current) return;
     submittedRef.current = true;
     setSubmitting(true);
@@ -353,7 +353,7 @@ export default function MockTestRunner() {
                 ← Back
               </button>
               <button onClick={startExam} disabled={!agreed}
-                className="flex-[2] bg-red-500 hover:bg-red-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl text-lg">
+                className="flex-2 bg-red-500 hover:bg-red-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl text-lg">
                 I Agree — Start Exam
               </button>
             </div>
@@ -443,7 +443,7 @@ export default function MockTestRunner() {
   return (
     <div className="min-h-screen bg-slate-100 select-none">
       {/* Top header — NTA-style */}
-      <header className="bg-[#0a1628] text-white px-4 py-2 flex items-center justify-between shadow-md">
+      <header className="bg-navy text-white px-4 py-2 flex items-center justify-between shadow-md">
         <div className="flex items-center gap-3 min-w-0">
           <img src="/Images/RBT Logo.jpeg" alt="" className="w-9 h-9 rounded object-cover" />
           <div className="min-w-0">
@@ -627,7 +627,7 @@ function Stat({ label, value, color }) {
 function Rule({ num, text, warning }) {
   return (
     <div className={`flex gap-3 p-3 rounded-lg ${warning ? 'bg-red-500/10 border border-red-500/30' : 'bg-white/5'}`}>
-      <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+      <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
         warning ? 'bg-red-500 text-white' : 'bg-white/10 text-slate-300'
       }`}>{num}</span>
       <p className={`text-sm ${warning ? 'text-red-300 font-medium' : 'text-slate-300'}`}>{text}</p>

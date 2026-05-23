@@ -17,8 +17,6 @@ export default function StudentCounselling() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
 
-  useEffect(() => { if (user) loadBookings() }, [user])
-
   const loadBookings = async () => {
     setLoading(true)
     try {
@@ -27,6 +25,8 @@ export default function StudentCounselling() {
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { if (user) loadBookings() }, [user])
 
   const statusColors = { pending: 'badge-gold', approved: 'badge-green', completed: 'badge-navy', rejected: 'badge-red' }
 
@@ -90,7 +90,7 @@ export default function StudentCounselling() {
         )}
       </div>
 
-      <div className="bg-gradient-to-br from-green-brand to-green-dark rounded-2xl p-6 text-white">
+      <div className="bg-linear-to-br from-green-brand to-green-dark rounded-2xl p-6 text-white">
         <h3 className="font-bold mb-2 flex items-center gap-2"><HeadsetIcon size={18} /> About Counselling</h3>
         <p className="text-sm text-white/90 mb-3">Our counselling sessions are conducted via Google Meet. Both student and parent can join.</p>
         <ul className="text-sm text-white/80 space-y-1.5">

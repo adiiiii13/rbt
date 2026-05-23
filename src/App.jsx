@@ -75,6 +75,8 @@ const ManageStudyMaterial = lazy(() => import('./pages/admin/ManageStudyMaterial
 const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
 const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications'))
 const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
+const ManageBatches = lazy(() => import('./pages/admin/ManageBatches'))
+const ManageBatchStudents = lazy(() => import('./pages/admin/ManageBatchStudents'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role, batch }) {
@@ -229,6 +231,8 @@ function AppContent() {
                     <Route path="testimonials" element={<ManageTestimonials />} />
                     <Route path="achievements" element={<ManageAchievements />} />
                     <Route path="students" element={<ManageStudents />} />
+                    <Route path="batches" element={<ManageBatches />} />
+                    <Route path="batch-students" element={<ManageBatchStudents />} />
                     <Route path="notices" element={<ManageNotices />} />
                     <Route path="gallery" element={<ManageGallery />} />
                     <Route path="payments" element={<ManagePayments />} />
@@ -279,7 +283,7 @@ function AppContent() {
               <OfferPopup />
             )}
             {/* Profile popup for batch students who haven't filled profile */}
-            {!initialLoading && user && user.role === 'student' && user.batch && !user.className && (
+            {!initialLoading && user && user.role === 'student' && user.batch && !user.profileCompleted && (
               <ProfilePopup />
             )}
           </motion.div>

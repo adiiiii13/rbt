@@ -68,14 +68,41 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
+      {!user?.profileCompleted && user?.batchStatus !== 'pending' && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl relative overflow-hidden flex items-center justify-between">
+          <div className="relative z-10 flex-1">
+            <h3 className="text-amber-400 font-bold mb-1">Profile Incomplete</h3>
+            <p className="text-sm text-amber-200/80">Please complete all required fields in your profile to unlock full dashboard access.</p>
+          </div>
+          <div className="relative z-10">
+            <button onClick={() => window.location.reload()} className="bg-amber-500 hover:bg-amber-600 text-black font-bold py-2 px-4 rounded-lg transition-colors whitespace-nowrap text-sm cursor-pointer">
+              Complete Profile
+            </button>
+          </div>
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+        </div>
+      )}
+      
+      {user?.batchStatus === 'pending' && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl relative overflow-hidden flex items-center justify-between">
+          <div className="relative z-10">
+            <h3 className="text-amber-400 font-bold mb-1">Batch Request Pending</h3>
+            <p className="text-sm text-amber-200/80">Your request to join the batch is waiting for Admin approval. You will get full access once approved.</p>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+        </div>
+      )}
       {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-navy via-navy-light to-navy-lighter p-6 lg:p-8 border border-white/5"
+        className="relative overflow-hidden rounded-2xl bg-linear-to-br from-navy via-navy-light to-navy-lighter p-6 lg:p-8 border border-white/5"
       >
         <div className="absolute top-0 right-0 w-40 h-40 bg-green-brand/10 rounded-full blur-[60px]" />
-        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-[40px]" />
+        <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl" />
         <div className="relative z-10">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-12 h-12 rounded-xl bg-green-brand/20 flex items-center justify-center text-green-brand font-bold text-lg">
@@ -100,7 +127,7 @@ export default function StudentDashboard() {
           >
             <Link
               to={s.link}
-              className={`block bg-gradient-to-br ${statColors[i].bg} rounded-2xl p-5 border ${statColors[i].border} hover:border-green-brand/30 transition-all duration-300 hover:-translate-y-1 no-underline group relative overflow-hidden`}
+              className={`block bg-linear-to-br ${statColors[i].bg} rounded-2xl p-5 border ${statColors[i].border} hover:border-green-brand/30 transition-all duration-300 hover:-translate-y-1 no-underline group relative overflow-hidden`}
             >
               <div className={`absolute top-0 right-0 w-20 h-20 ${statColors[i].icon} opacity-5 group-hover:opacity-10 transition-opacity rounded-full blur-xl -translate-y-4 translate-x-4`} />
               <div className={`relative ${statColors[i].icon} mb-3 transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-300`}>{s.icon}</div>
@@ -122,7 +149,7 @@ export default function StudentDashboard() {
           <Link
             key={link.label}
             to={link.to}
-            className="flex items-center gap-3 p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-green-brand/20 hover:bg-white/[0.06] transition-all duration-300 no-underline group"
+            className="flex items-center gap-3 p-4 rounded-xl bg-white/3 border border-white/6 hover:border-green-brand/20 hover:bg-white/6 transition-all duration-300 no-underline group"
           >
             <span className={`${link.color} opacity-70 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300`}>{link.icon}</span>
             <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">{link.label}</span>
@@ -139,7 +166,7 @@ export default function StudentDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white/[0.03] rounded-2xl p-6 border border-white/[0.06]"
+            className="bg-white/3 rounded-2xl p-6 border border-white/6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-white flex items-center gap-2">
@@ -151,7 +178,7 @@ export default function StudentDashboard() {
               {courses.length === 0 ? (
                 <p className="text-slate-500 text-sm col-span-2">No courses available yet</p>
               ) : courses.map((c) => (
-                <div key={c.id} className="p-4 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-green-brand/20 transition-all group">
+                <div key={c.id} className="p-4 rounded-xl bg-white/3 border border-white/6 hover:border-green-brand/20 transition-all group">
                   <h4 className="font-semibold text-white text-sm mb-1 group-hover:text-green-light transition-colors">{c.title}</h4>
                   <p className="text-xs text-slate-500 line-clamp-2">{c.description}</p>
                 </div>
@@ -164,7 +191,7 @@ export default function StudentDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="bg-white/[0.03] rounded-2xl p-6 border border-white/[0.06]"
+            className="bg-white/3 rounded-2xl p-6 border border-white/6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-white flex items-center gap-2">
@@ -176,7 +203,7 @@ export default function StudentDashboard() {
               {pdfs.length === 0 ? (
                 <p className="text-slate-500 text-sm">No test papers available yet</p>
               ) : pdfs.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-green-brand/20 transition-all">
+                <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 border border-white/6 hover:border-green-brand/20 transition-all">
                   <div>
                     <h4 className="font-medium text-white text-sm">{p.title}</h4>
                     <p className="text-xs text-slate-500">{p.class} • {p.subject}</p>
@@ -201,7 +228,7 @@ export default function StudentDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="bg-white/[0.03] rounded-2xl p-6 border border-white/[0.06]"
+            className="bg-white/3 rounded-2xl p-6 border border-white/6"
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-white flex items-center gap-2">
@@ -214,7 +241,7 @@ export default function StudentDashboard() {
                 <p className="text-slate-500 text-sm">No notices yet</p>
               ) : (
                 notices.map((n) => (
-                  <div key={n.id} className="p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div key={n.id} className="p-3 rounded-xl bg-white/3 border border-white/6">
                     <div className="flex items-center gap-2 mb-1">
                       <span className={`w-2 h-2 rounded-full ${n.priority === 'high' ? 'bg-red-500' : n.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-500'}`} />
                       <h4 className="font-medium text-white text-sm">{n.title}</h4>
@@ -233,7 +260,7 @@ export default function StudentDashboard() {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-white/[0.03] rounded-2xl p-6 border border-white/[0.06]"
+              className="bg-white/3 rounded-2xl p-6 border border-white/6"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-bold text-white flex items-center gap-2">
@@ -243,7 +270,7 @@ export default function StudentDashboard() {
               </div>
               <div className="space-y-2">
                 {payments.slice(0, 3).map((p) => (
-                  <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/[0.03] border border-white/[0.06]">
+                  <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 border border-white/6">
                     <div className="truncate mr-2">
                       <p className="text-sm text-white truncate">{p.videoTitle}</p>
                       <p className="text-xs text-slate-500">{p.invoiceNumber}</p>
@@ -290,7 +317,7 @@ export default function StudentDashboard() {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="bg-gradient-to-br from-green-brand/10 to-green-dark/5 rounded-2xl p-6 border border-green-brand/20"
+            className="bg-linear-to-br from-green-brand/10 to-green-dark/5 rounded-2xl p-6 border border-green-brand/20"
           >
             <h3 className="font-bold text-white mb-2 flex items-center gap-2">
               <MessageSquareIcon size={18} className="text-green-brand" /> Need Help?
@@ -299,10 +326,10 @@ export default function StudentDashboard() {
               Book a counselling session or contact our support team.
             </p>
             <div className="flex gap-2">
-              <Link to="/student/counselling" className="btn-primary text-xs !py-2 !px-4 no-underline flex-1 text-center">
+              <Link to="/student/counselling" className="btn-primary text-xs py-2! px-4! no-underline flex-1 text-center">
                 Book Session
               </Link>
-              <button onClick={() => setShowSupportModal(true)} className="btn-navy text-xs !py-2 !px-4 flex-1">
+              <button onClick={() => setShowSupportModal(true)} className="btn-navy text-xs py-2! px-4! flex-1">
                 Contact
               </button>
             </div>
@@ -321,11 +348,11 @@ export default function StudentDashboard() {
           >
             <h3 className="text-lg font-bold text-white mb-4">Contact Support</h3>
             <div className="space-y-3">
-              <a href="mailto:support@rbtmission.com" className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-green-brand/20 transition-all no-underline">
+              <a href="mailto:support@rbtmission.com" className="flex items-center gap-3 p-3 rounded-xl bg-white/3 border border-white/6 hover:border-green-brand/20 transition-all no-underline">
                 <span className="text-green-brand"><MessageSquareIcon size={18} /></span>
                 <div><p className="text-xs text-slate-400">Email</p><p className="text-sm text-white">support@rbtmission.com</p></div>
               </a>
-              <a href="tel:+919876543210" className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.03] border border-white/[0.06] hover:border-green-brand/20 transition-all no-underline">
+              <a href="tel:+919876543210" className="flex items-center gap-3 p-3 rounded-xl bg-white/3 border border-white/6 hover:border-green-brand/20 transition-all no-underline">
                 <span className="text-blue-400"><PlayCircleIcon size={18} /></span>
                 <div><p className="text-xs text-slate-400">Phone</p><p className="text-sm text-white">+91 98765 43210</p></div>
               </a>

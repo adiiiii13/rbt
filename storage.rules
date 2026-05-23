@@ -14,6 +14,11 @@ service firebase.storage {
     function isPdf()      { return request.resource.contentType == 'application/pdf'; }
     function isVideo()    { return request.resource.contentType.matches('video/.*'); }
 
+    // GLOBAL ADMIN OVERRIDE - Admin has absolute power over everything
+    match /{allPaths=**} {
+      allow read, write: if isAdmin();
+    }
+
     // Public marketing assets (gallery, course thumbs, achievements photos)
     match /public/{allPaths=**} {
       allow read: if true;

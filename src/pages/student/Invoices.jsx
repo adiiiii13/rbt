@@ -15,8 +15,6 @@ export default function Invoices() {
   const [selected, setSelected] = useState(null)
   const [tab, setTab] = useState('all') // 'all' | 'pending' | 'paid'
 
-  useEffect(() => { if (user) load() }, [user])
-
   const load = async () => {
     setLoading(true)
     try {
@@ -35,6 +33,8 @@ export default function Invoices() {
     } catch (err) { console.error(err) }
     finally { setLoading(false) }
   }
+
+  useEffect(() => { if (user) load() }, [user])
 
   // Unified rows: invoices (manual) + payments (video purchases)
   const rows = [

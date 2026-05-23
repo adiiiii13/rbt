@@ -111,6 +111,8 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
     { to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
     { to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
+    { to: '/admin/batches', label: 'Batches', icon: <IC.book size={18} /> },
+    { to: '/admin/batch-students', label: 'Batch Students', icon: <IC.users size={18} /> },
     { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
     { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
@@ -166,20 +168,30 @@ export default function DashboardLayout({ type }) {
     setupFCM()
   }, [user])
 
-  const isSidebarExpanded = !isCollapsed
+  const isProfileLocked = user && user.role === 'student' && user.batch && !user.profileCompleted;
+
+  const handleLinkClick = (e, link) => {
+    if (isProfileLocked && link.to !== '/student' && type === 'student') {
+      e.preventDefault();
+      toast.error('Please complete your profile to unlock this section', { icon: '🔒' });
+    }
+    if (!isSidebarExpanded) {
+      setSidebarOpen(false);
+    }
+  }
 
   return (
     <div className="flex h-screen bg-[#f1f5f9] overflow-hidden">
       
       {/* Spacer for fixed desktop sidebar */}
-      <div className={`hidden lg:block shrink-0 transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-[80px]' : 'w-[260px]'}`}></div>
+      <div className={`hidden lg:block shrink-0 transition-[width] duration-300 ease-in-out ${isCollapsed ? 'w-20' : 'w-65'}`}></div>
       
       {/* Fixed Desktop Sidebar */}
       <aside 
         className={`hidden lg:flex flex-col fixed top-0 bottom-0 left-0 bg-navy text-white z-50 transition-[width] duration-300 ease-in-out overflow-hidden border-r border-white/10 ${
-        isSidebarExpanded ? 'w-[260px]' : 'w-[80px]'
+        isSidebarExpanded ? 'w-65' : 'w-20'
       }`}>
-        <div className={`p-5 border-b border-white/10 flex ${isSidebarExpanded ? 'flex-row items-center justify-between min-w-[260px]' : 'flex-col items-center gap-4 min-w-[80px]'} transition-all duration-300`}>
+        <div className={`p-5 border-b border-white/10 flex ${isSidebarExpanded ? 'flex-row items-center justify-between min-w-65' : 'flex-col items-center gap-4 min-w-20'} transition-all duration-300`}>
           <div className="flex items-center gap-3">
             <img src="/Images/RBT Logo.jpeg" alt="RBT Mission Learning" className="w-9 h-9 rounded-lg object-cover shrink-0" />
             <div className={`transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
@@ -200,24 +212,29 @@ export default function DashboardLayout({ type }) {
           onScroll={handleSidebarScroll}
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-2 sidebar-scroll"
         >
-          {links.map((link) => (
+          {links.map((link) => {
+            const isLockedRoute = isProfileLocked && link.to !== '/student' && type === 'student';
+            return (
             <NavLink
               key={link.to}
               to={link.to}
               end={link.end}
+              onClick={(e) => handleLinkClick(e, link)}
               className={({ isActive }) =>
-                `sidebar-link group ${isActive ? 'active' : ''} border border-white/10 shrink-0 ${isSidebarExpanded ? 'min-w-[228px]' : 'w-12 h-12 flex items-center justify-center p-0 mx-auto'}`
+                `sidebar-link group ${isActive ? 'active' : ''} ${isLockedRoute ? 'opacity-50 grayscale cursor-not-allowed' : ''} border border-white/10 shrink-0 ${isSidebarExpanded ? 'min-w-57' : 'w-12 h-12 flex items-center justify-center p-0 mx-auto'}`
               }
             >
-              <span className={`sidebar-icon-wrap shrink-0 ${!isSidebarExpanded ? 'mr-0' : ''}`}>{link.icon}</span>
+              <span className={`sidebar-icon-wrap shrink-0 ${!isSidebarExpanded ? 'mr-0' : ''}`}>
+                {isLockedRoute ? <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> : link.icon}
+              </span>
               <span className={`transition-opacity duration-300 truncate ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
                 {link.label}
               </span>
             </NavLink>
-          ))}
+          )})}
         </nav>
 
-        <div className={`p-4 border-t border-white/10 ${isSidebarExpanded ? 'min-w-[260px]' : 'min-w-[80px]'}`}>
+        <div className={`p-4 border-t border-white/10 ${isSidebarExpanded ? 'min-w-65' : 'min-w-20'}`}>
           <div className={`flex items-center ${isSidebarExpanded ? 'gap-3 mb-4 px-2' : 'justify-center mb-4'} transition-all duration-300`}>
             <div className="w-9 h-9 rounded-full bg-green-brand/20 flex items-center justify-center text-green-light font-bold text-sm overflow-hidden shrink-0">
               {user?.photoURL ? (
@@ -261,7 +278,7 @@ export default function DashboardLayout({ type }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Top Bar */}
-        <header className="h-16 bg-[#0a1628] border-b border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 z-40">
+        <header className="h-16 bg-navy border-b border-slate-800 flex items-center justify-between px-4 lg:px-8 shrink-0 z-40">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -285,7 +302,7 @@ export default function DashboardLayout({ type }) {
             
             {/* Global Search Bar */}
             <div className="relative z-50">
-              <div className="flex items-center bg-slate-800/80 rounded-lg px-3 py-1.5 border border-slate-700 w-[180px] sm:w-[240px] focus-within:border-green-brand focus-within:bg-slate-800 transition-all">
+              <div className="flex items-center bg-slate-800/80 rounded-lg px-3 py-1.5 border border-slate-700 w-45 sm:w-60 focus-within:border-green-brand focus-within:bg-slate-800 transition-all">
                 <IC.search size={14} className="text-slate-400 mr-2 shrink-0" />
                 <input 
                   type="text" 
@@ -308,9 +325,9 @@ export default function DashboardLayout({ type }) {
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
-                    className="absolute top-full right-0 lg:left-0 mt-2 w-[240px] sm:w-[300px] bg-[#1a1a1a] border border-slate-700 rounded-xl shadow-2xl overflow-hidden"
+                    className="absolute top-full right-0 lg:left-0 mt-2 w-60 sm:w-75 bg-[#1a1a1a] border border-slate-700 rounded-xl shadow-2xl overflow-hidden"
                   >
-                    <div className="max-h-[300px] overflow-y-auto">
+                    <div className="max-h-75 overflow-y-auto">
                       {filteredLinks.length > 0 ? (
                         filteredLinks.map(link => (
                           <button
@@ -357,27 +374,41 @@ export default function DashboardLayout({ type }) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
           >
-            <Outlet />
+           {isProfileLocked && pathname !== '/student' && type === 'student' ? (
+             <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
+                <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mb-6">
+                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <h2 className="text-3xl font-bold text-white mb-4">Section Locked</h2>
+                <p className="text-slate-400 max-w-md mx-auto mb-8">You need to complete your profile before you can access this section of the dashboard.</p>
+                <button onClick={() => navigate('/student')} className="btn-primary">Return to Dashboard</button>
+             </div>
+           ) : (
+             <Outlet />
+           )}
           </motion.div>
         </main>
 
         {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden flex items-center justify-around bg-[#0a1628] border-t border-slate-800 py-2 shrink-0 overflow-x-auto">
-          {links.slice(0, type === 'admin' ? 8 : 7).map((link) => (
+        <nav className="lg:hidden flex items-center justify-around bg-navy border-t border-slate-800 py-2 shrink-0 overflow-x-auto">
+          {links.slice(0, type === 'admin' ? 8 : 7).map((link) => {
+            const isLockedRoute = isProfileLocked && link.to !== '/student' && type === 'student';
+            return (
             <NavLink
               key={link.to}
               to={link.to}
               end={link.end}
+              onClick={(e) => handleLinkClick(e, link)}
               className={({ isActive }) =>
                 `flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg text-xs no-underline transition-colors shrink-0 ${
                   isActive ? 'text-green-brand' : 'text-slate-400'
-                }`
+                } ${isLockedRoute ? 'opacity-50 grayscale cursor-not-allowed' : ''}`
               }
             >
-              {link.icon}
+              {isLockedRoute ? <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> : link.icon}
               <span className="font-medium">{link.label.split(' ').pop()}</span>
             </NavLink>
-          ))}
+          )})}
         </nav>
       </div>
 
@@ -397,7 +428,7 @@ export default function DashboardLayout({ type }) {
               animate={{ x: 0 }}
               exit={{ x: -280 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 bottom-0 w-[280px] bg-navy text-white z-50 flex flex-col lg:hidden"
+              className="fixed left-0 top-0 bottom-0 w-70 bg-navy text-white z-50 flex flex-col lg:hidden"
             >
               <div className="p-5 border-b border-white/10 flex items-center justify-between">
                 <div className="flex items-center gap-3">
