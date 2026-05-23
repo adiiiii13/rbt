@@ -109,13 +109,25 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const loginStudent = async (idOrEmail, password, isBatch = false) => {
+  const loginStudent = async (idOrEmail, password, isBatch = false, batchCode = '') => {
     isAuthActionInProgress.current = true;
     try {
       const email = idOrEmail.includes('@')
         ? idOrEmail
         : `${idOrEmail.toLowerCase()}@students.rbtmission.com`
       const cred = await signInWithEmailAndPassword(auth, email, password)
+
+      if (isBatch) {
+        const snap = await getDoc(doc(db, 'students', cred.user.uid));
+        const data = snap.exists() ? snap.data() : null;
+        if (data && data.batchStatus === 'approved') {
+          if (!batchCode || data.batchCode !== batchCode) {
+            await signOut(auth);
+            return { success: false, message: 'Invalid Batch Code. Access Denied.' };
+          }
+        }
+      }
+
       const userData = await buildUserFromToken(cred.user)
       if (userData.role !== 'student') {
         await signOut(auth)
@@ -173,7 +185,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const loginWithGoogle = async (isBatch = false) => {
+  const loginWithGoogle = async (isBatch = false, batchCode = '') => {
     isAuthActionInProgress.current = true;
     try {
       const provider = new GoogleAuthProvider()
@@ -181,6 +193,15 @@ export function AuthProvider({ children }) {
       
       const studentRef = doc(db, 'students', cred.user.uid)
       const snap = await getDoc(studentRef)
+      const data = snap.exists() ? snap.data() : null;
+
+      if (isBatch && data && data.batchStatus === 'approved') {
+        if (!batchCode || data.batchCode !== batchCode) {
+          await signOut(auth);
+          return { success: false, message: 'Invalid Batch Code. Access Denied.' };
+        }
+      }
+
       if (!snap.exists()) {
         await setDoc(studentRef, {
           name: cred.user.displayName || 'Student',

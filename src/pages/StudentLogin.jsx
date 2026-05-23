@@ -12,6 +12,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [batchCode, setBatchCode] = useState(''); // New state for Batch Code
   const [upgradeConfirm, setUpgradeConfirm] = useState(false); // New state for confirmation
   const { loginWithGoogle, loginStudent } = useAuth();
   const navigate = useNavigate();
@@ -20,10 +21,14 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   // For email/password login
   const handleEmailLogin = async (e, isBatch = false) => {
     e.preventDefault();
+    if (isBatch && !batchCode.trim()) {
+      setError('Batch Code is required for Batch Login');
+      return;
+    }
     setError('');
     setIsLoading(true);
     try {
-      const result = await loginStudent(email, password, isBatch);
+      const result = await loginStudent(email, password, isBatch, batchCode.trim());
       if (result.success) {
         if (onClose) onClose();
         const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
@@ -40,10 +45,14 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
 
   // Google login
   const handleGoogleLogin = async (isBatch = false) => {
+    if (isBatch && !batchCode.trim()) {
+      setError('Batch Code is required for Batch Login');
+      return;
+    }
     setError('');
     setIsLoading(true);
     try {
-      const result = await loginWithGoogle(isBatch);
+      const result = await loginWithGoogle(isBatch, batchCode.trim());
       
       if (result.success) {
         if (onClose) onClose();
@@ -142,7 +151,11 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
                 Back
               </button>
               <h3 className="text-white font-bold text-lg">Batch Student Login</h3>
-              <p className="text-slate-400 text-sm mb-4">Log in to access your batch dashboard.</p>
+              <p className="text-slate-400 text-sm mb-4">Enter your Batch Code and log in.</p>
+
+              <div>
+                <input required type="text" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand focus:ring-1 focus:ring-green-brand transition-all text-sm mb-3" placeholder="Batch Code (Required)" value={batchCode} onChange={(e) => setBatchCode(e.target.value)} />
+              </div>
 
               <button onClick={() => handleGoogleLogin(true)} disabled={isLoading} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
                 {isLoading ? (
