@@ -109,21 +109,28 @@ service cloud.firestore {
 
     // Payments: student create own; admin read/update all; student read own
     match /payments/{doc} {
-      allow create: if isStudent();
-      allow read: if isAdmin() || isStudent();
+      allow create: if isSignedIn();
+      allow read: if isAdmin() || (isSignedIn() && (
+        resource.data.uid == request.auth.uid || 
+        resource.data.studentId == request.auth.uid ||
+        resource.data.studentId == get(/databases/$(database)/documents/students/$(request.auth.uid)).data.studentId
+      ));
       allow update, delete: if isAdmin();
     }
 
     // Enrollments: student read own; admin full access
     match /enrollments/{doc} {
-      allow create: if isStudent() && request.resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow update, delete: if isAdmin();
     }
 
     // Invoices: read for owner student + admin; admin writes
     match /invoices/{doc} {
-      allow read: if isAdmin() || isStudent();
+      allow read: if isAdmin() || (isSignedIn() && (
+        resource.data.studentUid == request.auth.uid ||
+        resource.data.studentEmail == request.auth.token.email
+      ));
       allow write: if isAdmin();
     }
 
