@@ -8,7 +8,7 @@ const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: Gradu
 
 export default function BasicCourses() {
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
-  const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
+  const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => !c.courseType || c.courseType === 'basic');
 
   return (
     <div>

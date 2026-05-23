@@ -22,7 +22,7 @@ const LEVELS = [
 
 export default function Courses() {
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
-  const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
+  const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => !c.courseType || c.courseType === 'basic');
   const [activeLevel, setActiveLevel] = useState('all');
 
   const filtered = activeLevel === 'all'

@@ -2,12 +2,16 @@ import { Link } from 'react-router-dom';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultCourses } from '../../data/courses';
 import { BookOpenIcon, FlaskIcon, GraduationCapIcon, RocketIcon, HeartPulseIcon, UsersIcon } from '../../components/Icons';
+import { useAuth } from '../../context/AuthContext';
 
 const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: GraduationCapIcon, Rocket: RocketIcon, HeartPulse: HeartPulseIcon };
 
 export default function StudentCourses() {
+  const { user } = useAuth();
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
-  const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
+  const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => 
+    !c.courseType || c.courseType === 'basic' || (c.courseType === 'batch' && c.batchId === user?.batchId)
+  );
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">

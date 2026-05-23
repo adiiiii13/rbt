@@ -28,7 +28,7 @@ export default function ManageCourses() {
   const [step, setStep] = useState(1) // 1-4
 
   // Step 1: Basic
-  const [basic, setBasic] = useState({ title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false })
+  const [basic, setBasic] = useState({ title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false, courseType: 'basic', batchId: '' })
 
   // Step 2: Pricing
   const [pricing, setPricing] = useState([{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: 'Most Popular' }])
@@ -37,6 +37,7 @@ export default function ManageCourses() {
   const [modules, setModules] = useState([])
 
   const [thumbUploading, setThumbUploading] = useState(false)
+  const { data: batches } = useRealtimeCollection('batches')
 
   const handleThumbUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -55,7 +56,7 @@ export default function ManageCourses() {
 
   const reset = () => {
     setStep(1)
-    setBasic({ title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false })
+    setBasic({ title: '', description: '', subjects: '', level: 'Foundation', duration: '12 Months', thumbnail: '', image: 'BookOpen', color: '#3b82f6', isFree: false, courseType: 'basic', batchId: '' })
     setPricing([{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: 'Most Popular' }])
     setModules([])
   }
@@ -70,6 +71,7 @@ export default function ManageCourses() {
       level: c.level || 'Foundation', duration: c.duration || '12 Months',
       thumbnail: c.thumbnail || '', image: c.image || 'BookOpen',
       color: c.color || '#3b82f6', isFree: !!c.isFree,
+      courseType: c.courseType || 'basic', batchId: c.batchId || '',
     })
     setPricing(c.variants?.length ? c.variants : [{ months: 3, price: 4999, originalPrice: 7999, discount: '37% OFF', note: '' }])
     
@@ -112,6 +114,11 @@ export default function ManageCourses() {
     if (!basic.title.trim()) { toast.error('Title required'); return }
     const subjectsArr = basic.subjects.split(',').map(s => s.trim()).filter(Boolean)
     
+    if (basic.courseType === 'batch' && !basic.batchId) {
+      toast.error('Please select a batch for this specific batch course');
+      return;
+    }
+    
     // Auto-thumb from first video item if available
     let firstVideoUrl = ''
     for (const m of modules) { const v = m.items.find(i => i.type === 'video'); if (v?.data) { firstVideoUrl = v.data; break } }
@@ -120,6 +127,8 @@ export default function ManageCourses() {
     const payload = {
       ...basic, subjects: subjectsArr, thumbnail: basic.thumbnail || autoThumb,
       isFree: basic.isFree,
+      courseType: basic.courseType || 'basic',
+      batchId: basic.courseType === 'batch' ? basic.batchId : null,
       variants: pricing.map(v => ({ ...v, months: Number(v.months), price: Number(v.price), originalPrice: Number(v.originalPrice) })),
       modules: modules.map((m, i) => ({ ...m, order: i + 1, items: m.items.map((itm, j) => ({ ...itm, order: j + 1 })) })),
       lessons: [] // Clear old format
@@ -235,6 +244,28 @@ export default function ManageCourses() {
               <div>
                 <label className="text-sm text-slate-300 font-medium mb-1 block">Duration</label>
                 <input className="input-field" value={basic.duration} onChange={e => setBasic({ ...basic, duration: e.target.value })} placeholder="e.g. 12 Months" />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm text-slate-300 font-medium mb-1 block">Course Audience</label>
+                <select className="input-field" value={basic.courseType || 'basic'} onChange={e => setBasic({ ...basic, courseType: e.target.value })}>
+                  <option value="basic">Basic Users Course</option>
+                  <option value="batch">Specific Batch Course</option>
+                </select>
+              </div>
+              <div>
+                {basic.courseType === 'batch' && (
+                  <>
+                    <label className="text-sm text-slate-300 font-medium mb-1 block">Select Batch *</label>
+                    <select className="input-field" value={basic.batchId || ''} onChange={e => setBasic({ ...basic, batchId: e.target.value })}>
+                      <option value="">-- Choose Batch --</option>
+                      {batches?.map(b => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </>
+                )}
               </div>
             </div>
             <div>
