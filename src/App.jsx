@@ -92,14 +92,14 @@ function ProtectedRoute({ children, role, batch }) {
   }
   if (role && user.role !== role) return <Navigate to="/" replace />
 
-  // Force pending batch students to the initialization page (unless they are accessing the basic dashboard)
-  if (user.role === 'student' && user.batchStatus === 'pending' && location.pathname !== '/student-initialization' && !location.pathname.startsWith('/basic')) {
+  // Force pending batch students, and approved students who haven't paid yet, to the initialization page (unless they are accessing the basic dashboard)
+  if (user.role === 'student' && (user.batchStatus === 'pending' || (user.batchStatus === 'approved' && !user.batch)) && location.pathname !== '/student-initialization' && !location.pathname.startsWith('/basic')) {
     return <Navigate to="/student-initialization" replace />
   }
 
   // Batch dashboard requires batch: true
   if (batch && !user.batch) {
-    if (user.batchStatus === 'pending') {
+    if (user.batchStatus === 'pending' || user.batchStatus === 'approved') {
       return <Navigate to="/student-initialization" replace />
     }
     return <Navigate to="/basic" replace />

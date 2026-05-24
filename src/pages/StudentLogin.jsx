@@ -14,7 +14,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const [password, setPassword] = useState('');
   const [batchCode, setBatchCode] = useState(''); // New state for Batch Code
   const [upgradeConfirm, setUpgradeConfirm] = useState(false); // New state for confirmation
-  const { loginWithGoogle, loginStudent } = useAuth();
+  const { loginWithGoogle, loginStudent, upgradeToBatch } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -33,6 +33,8 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
         if (onClose) onClose();
         const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
         navigate(dest, { replace: true });
+      } else if (result.requireUpgrade) {
+        setUpgradeConfirm(true);
       } else {
         setError(result.message);
       }
@@ -58,6 +60,8 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
         if (onClose) onClose();
         const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
         navigate(dest, { replace: true });
+      } else if (result.requireUpgrade) {
+        setUpgradeConfirm(true);
       } else {
         setError(result.message);
       }
@@ -65,6 +69,24 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
       setError('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleConfirmUpgrade = async (confirm) => {
+    if (confirm) {
+      setIsLoading(true);
+      const res = await upgradeToBatch();
+      setIsLoading(false);
+      if (res.success) {
+        if (onClose) onClose();
+        navigate('/student-initialization', { replace: true });
+      } else {
+        setError(res.message);
+        setUpgradeConfirm(false);
+      }
+    } else {
+      if (onClose) onClose();
+      navigate('/basic', { replace: true });
     }
   };
 
@@ -112,8 +134,29 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
         )}
 
         <AnimatePresence mode="wait">
+          {/* UPGRADE CONFIRMATION */}
+          {upgradeConfirm && (
+            <motion.div key="upgrade" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 relative z-10 text-center">
+              <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
+              </div>
+              <h3 className="text-white font-bold text-xl mb-2">Upgrade Account?</h3>
+              <p className="text-slate-400 text-sm mb-6">
+                You are currently a Basic User. Would you like to request access to Batch Courses? This requires admin approval.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => handleConfirmUpgrade(false)} disabled={isLoading} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium cursor-pointer">
+                  No, stay Basic
+                </button>
+                <button onClick={() => handleConfirmUpgrade(true)} disabled={isLoading} className="flex-1 px-4 py-3 bg-green-brand hover:bg-green-600 text-white rounded-xl transition-colors font-medium cursor-pointer">
+                  {isLoading ? 'Upgrading...' : 'Yes, Upgrade'}
+                </button>
+              </div>
+            </motion.div>
+          )}
+
           {/* MODE SELECT */}
-          {!mode && (
+          {!upgradeConfirm && !mode && (
             <motion.div key="select" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4 relative z-10">
               <button onClick={() => setMode('batch')} className="w-full bg-green-brand/10 hover:bg-green-brand/20 border border-green-brand/30 text-white font-semibold py-4 px-6 rounded-xl transition-all flex items-center justify-between cursor-pointer group">
                 <div className="flex items-center gap-3">
@@ -144,7 +187,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
           )}
 
           {/* BATCH LOGIN */}
-          {mode === 'batch' && (
+          {!upgradeConfirm && mode === 'batch' && (
             <motion.div key="batch" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4 relative z-10">
               <button onClick={() => setMode(null)} className="text-slate-400 text-sm hover:text-white transition-colors mb-2 flex items-center gap-1 cursor-pointer">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>
@@ -187,7 +230,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
           )}
 
           {/* BASIC LOGIN */}
-          {mode === 'basic' && (
+          {!upgradeConfirm && mode === 'basic' && (
             <motion.div key="basic" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-4 relative z-10">
               <button onClick={() => setMode(null)} className="text-slate-400 text-sm hover:text-white transition-colors mb-2 flex items-center gap-1 cursor-pointer">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 19-7-7 7-7"/><path d="M19 12H5"/></svg>

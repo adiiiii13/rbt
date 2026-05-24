@@ -86,7 +86,14 @@ export function AuthProvider({ children }) {
                 setUser(null);
               } else if (docSnap.exists() && !isAuthActionInProgress.current) {
                 const data = docSnap.data();
-                setUser(prev => prev ? { ...prev, ...data } : prev);
+                if (data.forceLogout) {
+                  updateDoc(doc(db, 'students', firebaseUser.uid), { forceLogout: false }).then(() => {
+                    signOut(auth);
+                    setUser(null);
+                  });
+                } else {
+                  setUser(prev => prev ? { ...prev, ...data } : prev);
+                }
               }
             });
           }
@@ -143,9 +150,9 @@ export function AuthProvider({ children }) {
       }
 
       // Upgrade to batch if requested
-      if (isBatch && !userData.batchStatus && !userData.batch) {
-        updates.batchStatus = 'pending';
-        userData.batchStatus = 'pending';
+      if (isBatch && (!userData.batchStatus || userData.batchStatus === 'none') && !userData.batch) {
+        setUser(userData);
+        return { success: false, requireUpgrade: true, user: userData };
       }
 
       if (Object.keys(updates).length > 0) {
@@ -226,11 +233,11 @@ export function AuthProvider({ children }) {
         }
         
         // Upgrade to batch if requested
-        if (isBatch && !data.batchStatus && !data.batch) {
-          updates.batchStatus = 'pending';
+        if (isBatch && (!data.batchStatus || data.batchStatus === 'none') && !data.batch) {
+          // We will handle upgrade later, don't update here
+        } else if (Object.keys(updates).length > 0) {
+          await updateDoc(studentRef, updates);
         }
-
-        if (Object.keys(updates).length > 0) await updateDoc(studentRef, updates);
       }
       
       const userData = await buildUserFromToken(cred.user)
@@ -239,9 +246,9 @@ export function AuthProvider({ children }) {
         return { success: false, message: 'Not a student account' }
       }
       
-      // Manually set batch status locally if we just upgraded it
-      if (isBatch && !userData.batchStatus && !userData.batch) {
-         userData.batchStatus = 'pending';
+      if (isBatch && (!userData.batchStatus || userData.batchStatus === 'none') && !userData.batch) {
+        setUser(userData);
+        return { success: false, requireUpgrade: true, user: userData };
       }
 
       setUser(userData)
@@ -294,6 +301,21 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const upgradeToBatch = async () => {
+    if (!user) return { success: false, message: 'No user logged in' };
+    isAuthActionInProgress.current = true;
+    try {
+      const studentRef = doc(db, 'students', user.uid);
+      await updateDoc(studentRef, { batchStatus: 'pending' });
+      setUser(prev => ({ ...prev, batchStatus: 'pending' }));
+      return { success: true };
+    } catch (err) {
+      return { success: false, message: err.message };
+    } finally {
+      isAuthActionInProgress.current = false;
+    }
+  };
+
   const logout = async () => {
     isAuthActionInProgress.current = true;
     try {
@@ -308,7 +330,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, signupStudent, resetPassword, logout }}
+      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, signupStudent, resetPassword, logout, upgradeToBatch }}
     >
       {children}
     </AuthContext.Provider>

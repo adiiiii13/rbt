@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 import { doc, getDoc } from 'firebase/firestore'
@@ -8,28 +8,95 @@ import toast from 'react-hot-toast'
 export default function StudentInitialization() {
   const { user } = useAuth()
   const navigate = useNavigate()
+  const [batchDetails, setBatchDetails] = useState(null)
+  const [loadingBatch, setLoadingBatch] = useState(false)
+  const [buying, setBuying] = useState(false)
 
   // Polling to check for approval status changes
   useEffect(() => {
-    if (!user || user.batchStatus !== 'pending') return;
+    let alive = true;
+    if (!user) return;
     
-    const interval = setInterval(async () => {
-      try {
-        const snap = await getDoc(doc(db, 'students', user.uid));
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.batchStatus === 'approved' || data.batchStatus === 'revoked') {
-            toast.success('Your batch status has been updated!');
-            setTimeout(() => window.location.reload(), 1500);
+    if (user.batchStatus === 'pending') {
+      const interval = setInterval(async () => {
+        try {
+          const snap = await getDoc(doc(db, 'students', user.uid));
+          if (snap.exists() && alive) {
+            const data = snap.data();
+            if (data.batchStatus === 'approved' || data.batchStatus === 'revoked') {
+              if (data.batchStatus === 'approved' && !data.batch) {
+                // Approved but unpaid. Refresh data manually or reload
+                setTimeout(() => window.location.reload(), 500);
+              } else {
+                toast.success('Your batch status has been updated!');
+                setTimeout(() => window.location.reload(), 1500);
+              }
+            }
           }
+        } catch (err) {
+          console.error('Polling error:', err);
         }
-      } catch (err) {
-        console.error('Polling error:', err);
-      }
-    }, 5000); // Check every 5 seconds
+      }, 5000); // Check every 5 seconds
+      return () => {
+        alive = false;
+        clearInterval(interval);
+      };
+    }
 
-    return () => clearInterval(interval);
+    if (user.batchStatus === 'approved' && user.assignedBatchId) {
+      setLoadingBatch(true);
+      getDoc(doc(db, 'batches', user.assignedBatchId)).then(snap => {
+        if (!alive) return;
+        if (snap.exists()) setBatchDetails({ id: snap.id, ...snap.data() });
+        setLoadingBatch(false);
+      });
+    }
+
+    return () => { alive = false; };
   }, [user]);
+
+  const handlePayBatchFee = async () => {
+    if (!batchDetails) return;
+    setBuying(true);
+    try {
+      const { openCheckout } = await import('../../lib/razorpay');
+      const { updateDoc } = await import('firebase/firestore');
+      
+      openCheckout({
+        amount: batchDetails.price,
+        courseId: batchDetails.id, 
+        courseTitle: `Batch: ${batchDetails.name || batchDetails.className || 'Access'}`,
+        name: 'RBT Mission Learning',
+        description: `Batch Access Fee for ${batchDetails.name || batchDetails.className}`,
+        variantMonths: 12,
+        variantPrice: batchDetails.price,
+        user,
+        onSuccess: async (result) => {
+          try {
+            await updateDoc(doc(db, 'students', user.uid), {
+              hasPaidBatchFee: true,
+              batch: true, // Grants full access
+              batchPaymentId: result.paymentId,
+              batchPaymentAmount: batchDetails.price
+            });
+            toast.success('Payment successful! Welcome to the Batch.');
+            setTimeout(() => window.location.reload(), 1500);
+          } catch (err) {
+            toast.error('Payment succeeded but failed to update status. Please contact support.');
+          } finally {
+            setBuying(false);
+          }
+        },
+        onFailure: (err) => {
+          toast.error(err.message || 'Payment failed');
+          setBuying(false);
+        }
+      });
+    } catch (err) {
+      toast.error('Failed to initialize payment gateway.');
+      setBuying(false);
+    }
+  };
 
   // Profile not completed => force completion
   if (!user?.profileCompleted) {
@@ -125,13 +192,37 @@ export default function StudentInitialization() {
                 </div>
               </div>
 
-              <button 
-                onClick={() => navigate('/student')}
-                className="btn-primary w-full mt-auto py-3 text-lg flex items-center justify-center gap-2"
-              >
-                Go to Batch Dashboard
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-              </button>
+              {loadingBatch ? (
+                <div className="animate-pulse bg-white/5 h-12 rounded-xl w-full mt-auto"></div>
+              ) : batchDetails && (batchDetails.isFree !== false || user.hasPaidBatchFee || user.batch) ? (
+                <button 
+                  onClick={() => navigate('/student')}
+                  className="btn-primary w-full mt-auto py-3 text-lg flex items-center justify-center gap-2"
+                >
+                  Go to Batch Dashboard
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </button>
+              ) : batchDetails && batchDetails.isFree === false && !user.hasPaidBatchFee ? (
+                <div className="mt-auto">
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 mb-4">
+                    <p className="text-amber-500 text-sm font-bold flex items-center gap-2 mb-2">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                      Payment Required
+                    </p>
+                    <p className="text-slate-300 text-sm">
+                      This batch requires a one-time fee of <strong className="text-white">₹{batchDetails.price}</strong> to gain full access.
+                    </p>
+                    {batchDetails.discount && <p className="text-amber-400 text-xs mt-1 font-bold">{batchDetails.discount}</p>}
+                  </div>
+                  <button 
+                    onClick={handlePayBatchFee}
+                    disabled={buying}
+                    className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3 text-lg rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    {buying ? 'Processing...' : `Pay ₹${batchDetails.price} via Razorpay`}
+                  </button>
+                </div>
+              ) : null}
             </div>
           )}
 

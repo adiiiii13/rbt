@@ -11,7 +11,7 @@ import ExportButton from '../../components/ExportButton';
 export default function ManageBatches() {
   const { data: batches, loading } = useRealtimeCollection('batches', { orderField: 'createdAt', orderDir: 'desc' });
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ batchCode: '', board: '', className: '', timings: [] });
+  const [form, setForm] = useState({ batchCode: '', board: '', className: '', timings: [], isFree: true, price: '', originalPrice: '', discount: '' });
   const [options, setOptions] = useState({ boards: [], classes: [], timings: [] });
 
   useEffect(() => {
@@ -53,7 +53,11 @@ export default function ManageBatches() {
       batchCode: form.batchCode,
       board: form.board || '',
       className: form.className || '',
-      timings: form.timings || []
+      timings: form.timings || [],
+      isFree: form.isFree ?? true,
+      price: form.isFree ? 0 : Number(form.price) || 0,
+      originalPrice: form.isFree ? 0 : Number(form.originalPrice) || 0,
+      discount: form.isFree ? '' : (form.discount || '')
     };
 
     try {
@@ -73,8 +77,22 @@ export default function ManageBatches() {
   const remove = async (id) => {
     if (!confirm('Delete this batch / class?')) return;
     try {
+      const { getCollectionWhere } = await import('../../lib/firebaseHelpers');
+      const studentsInBatch = await getCollectionWhere('students', 'assignedBatchId', '==', id);
+      
+      for (const student of studentsInBatch) {
+        await updateDocument('students', student.id, { 
+          forceLogout: true, 
+          batchStatus: 'none', 
+          batch: false, 
+          assignedBatchId: null, 
+          assignedBatchName: null, 
+          assignedBatchCode: null 
+        });
+      }
+
       await deleteDocument('batches', id);
-      toast.success('Batch / Class deleted');
+      toast.success('Batch / Class deleted and students logged out');
     } catch (err) {
       toast.error('Failed to delete batch / class');
     }
@@ -83,7 +101,11 @@ export default function ManageBatches() {
   const openEdit = (b) => {
     setForm({
       ...b,
-      timings: b.timings || (b.timing ? [b.timing] : [])
+      timings: b.timings || (b.timing ? [b.timing] : []),
+      isFree: b.isFree ?? true,
+      price: b.price || '',
+      originalPrice: b.originalPrice || '',
+      discount: b.discount || ''
     });
     setModal(true);
   };
@@ -105,7 +127,7 @@ export default function ManageBatches() {
             { key: 'timings', label: 'Timings' },
             { key: 'createdAt', label: 'Created' },
           ]} />
-          <button onClick={() => { setForm({ batchCode: '', board: '', className: '', timings: [] }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch / Class</button>
+          <button onClick={() => { setForm({ batchCode: '', board: '', className: '', timings: [], isFree: true, price: '', originalPrice: '', discount: '' }); setModal(true); }} className="btn-primary shadow-lg">+ Create Batch / Class</button>
         </div>
       </div>
 
@@ -118,6 +140,7 @@ export default function ManageBatches() {
                 <th className="text-white font-bold">Code</th>
                 <th className="text-white font-bold">Board</th>
                 <th className="text-white font-bold">Timings</th>
+                <th className="text-white font-bold">Fees</th>
                 <th className="text-white font-bold">Actions</th>
               </tr>
             </thead>
@@ -136,6 +159,16 @@ export default function ManageBatches() {
                         : <span className="text-slate-500">-</span>
                       }
                     </div>
+                  </td>
+                  <td>
+                    {b.isFree !== false ? (
+                      <span className="text-[11px] bg-green-brand/20 text-green-brand px-2 py-0.5 rounded-full font-bold">Free</span>
+                    ) : (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-sm font-bold text-white">₹{b.price}</span>
+                        {b.discount && <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1 py-0.5 rounded w-fit">{b.discount}</span>}
+                      </div>
+                    )}
                   </td>
                   <td>
                     <div className="flex gap-3">
@@ -192,6 +225,29 @@ export default function ManageBatches() {
             )}
             <p className="text-[10px] text-slate-500 mt-1.5">Selected timings will be visible to students next to this batch/class.</p>
           </div>
+          <div>
+            <label className="flex items-center gap-3 cursor-pointer group mb-2">
+              <input type="checkbox" checked={form.isFree} onChange={e => setForm({ ...form, isFree: e.target.checked })} className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-green-brand focus:ring-green-brand/30" />
+              <span className="text-sm font-bold text-white group-hover:text-green-brand transition-colors">Is this Batch Free?</span>
+            </label>
+          </div>
+
+          {!form.isFree && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-bold text-white mb-1.5 block">Price (₹)</label>
+                <input type="number" className="input-field w-full" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="e.g. 999" />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-white mb-1.5 block">Original Price (₹)</label>
+                <input type="number" className="input-field w-full" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: e.target.value })} placeholder="e.g. 1999" />
+              </div>
+              <div className="col-span-2">
+                <label className="text-sm font-bold text-white mb-1.5 block">Discount Label (Optional)</label>
+                <input type="text" className="input-field w-full" value={form.discount} onChange={e => setForm({ ...form, discount: e.target.value })} placeholder="e.g. 50% OFF" />
+              </div>
+            </div>
+          )}
           <div className="pt-2"><button type="submit" className="btn-primary w-full">Save Batch / Class</button></div>
         </form>
       </Modal>

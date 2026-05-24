@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultCourses } from '../../data/courses';
 import { BookOpenIcon, FlaskIcon, GraduationCapIcon, RocketIcon, HeartPulseIcon, UsersIcon } from '../../components/Icons';
@@ -7,8 +8,14 @@ import { motion } from 'framer-motion';
 const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: GraduationCapIcon, Rocket: RocketIcon, HeartPulse: HeartPulseIcon };
 
 export default function BasicCourses() {
+  const [activeTab, setActiveTab] = useState('all');
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
-  const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => !c.courseType || c.courseType === 'basic');
+  const allCourses = (coursesRaw?.length ? coursesRaw : defaultCourses);
+  const courses = allCourses.filter(c => {
+    if (activeTab === 'basic') return !c.courseType || c.courseType === 'basic';
+    if (activeTab === 'batch') return c.courseType === 'batch';
+    return true; // 'all'
+  });
 
   return (
     <div>
@@ -20,6 +27,27 @@ export default function BasicCourses() {
           <h1 className="text-2xl font-bold text-white mb-1">My Courses</h1>
           <p className="text-slate-400 text-sm">Browse all available courses</p>
         </div>
+      </div>
+
+      <div className="flex items-center gap-4 border-b border-slate-800 mb-6">
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'all' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
+        >
+          All Courses
+        </button>
+        <button
+          onClick={() => setActiveTab('basic')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'basic' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
+        >
+          Basic Courses
+        </button>
+        <button
+          onClick={() => setActiveTab('batch')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'batch' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
+        >
+          Batch Courses
+        </button>
       </div>
 
       {loading ? (
@@ -69,6 +97,9 @@ export default function BasicCourses() {
                   <h3 className="font-bold text-white mb-1 group-hover:text-green-brand transition-colors">{c.title}</h3>
                   <p className="text-sm text-slate-400 mb-3 line-clamp-2">{c.description}</p>
                   <div className="flex flex-wrap gap-1 mb-3">
+                    {c.courseType === 'batch' && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wider">Batch Course</span>
+                    )}
                     {(c.subjects || []).map(s => (
                       <span key={s} className="text-[10px] font-bold px-2 py-0.5 rounded bg-white/5 text-slate-400 uppercase tracking-wider">{s}</span>
                     ))}

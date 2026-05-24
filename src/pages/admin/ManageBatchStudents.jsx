@@ -76,11 +76,12 @@ export default function ManageBatchStudents() {
     }
 
     try {
+      const isFree = batch.isFree !== false;
       await updateDocument('students', selectedStudent.id, { 
         batchStatus: 'approved', 
-        batch: true,
+        batch: isFree,
         assignedBatchId: batch.id,
-        assignedBatchName: batch.name,
+        assignedBatchName: batch.name || batch.className || '',
         assignedBatchCode: batch.batchCode
       });
       toast.success('Student approved and assigned to batch');

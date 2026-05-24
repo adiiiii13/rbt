@@ -113,6 +113,11 @@ export default function StudentDashboard() {
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-white">Welcome back, {user?.name || 'Student'}</h1>
               <p className="text-slate-400 text-sm">{user?.course || 'Enrolled Student'} • {user?.studentId || user?.id || ''}</p>
+              {user?.assignedBatchName && (
+                <p className="text-emerald-400 text-sm font-medium mt-1">
+                  Batch / Class: {user.assignedBatchName} {user.assignedBatchCode ? `(${user.assignedBatchCode})` : ''}
+                </p>
+              )}
             </div>
           </div>
         </div>
