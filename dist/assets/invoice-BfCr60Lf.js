@@ -1,1 +1,0 @@
-function e(e){return typeof e==`string`?`RBT-INV-${e.slice(0,8).toUpperCase()}`:`RBT-INV-${String(e+1).padStart(4,`0`)}`}function t(e){let t=Number(e);return isNaN(t)?`₹0`:new Intl.NumberFormat(`en-IN`,{style:`currency`,currency:`INR`}).format(t)}export{t as formatCurrency,e as generateInvoiceNumber};

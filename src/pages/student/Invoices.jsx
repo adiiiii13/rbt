@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import { getCollectionWhere, updateDocument, addDocument } from '../../lib/firebaseHelpers'
-import { formatCurrency } from '../../lib/invoice'
+import { formatCurrency, formatDateTime } from '../../lib/invoice'
 import { openInvoiceCheckout } from '../../lib/razorpay'
 import InvoiceView from '../../components/InvoiceView'
 import Modal from '../../components/Modal'
@@ -47,18 +47,18 @@ export default function Invoices() {
       title: i.courseName,
       subtitle: i.description || '',
       amount: i.amount,
-      date: i.issuedDate || i.paidAt || i.dueDate || '—',
+      date: formatDateTime(i.issuedDate || i.paidAt || i.dueDate || '—'),
       status: i.status,
       raw: i,
     })),
-    ...payments.map(p => ({
+    ...payments.filter(p => !p.invoiceNumber && p.type !== 'razorpay_invoice_webhook' && p.type !== 'razorpay_invoice').map(p => ({
       id: p.id,
       kind: 'payment',
       invoiceNumber: p.invoiceNumber,
       title: p.videoTitle,
       subtitle: p.method === 'razorpay' ? 'Razorpay' : 'UPI',
       amount: p.amount,
-      date: p.paidAt,
+      date: formatDateTime(p.paidAt || p.createdAt || '—'),
       status: p.status,
       raw: p,
     })),
@@ -72,7 +72,7 @@ export default function Invoices() {
     if (r.kind === 'invoice') {
       const i = r.raw
       setSelected({
-        invoiceNumber: i.invoiceNumber, date: i.issuedDate || i.paidAt || '—',
+        invoiceNumber: i.invoiceNumber, date: r.date,
         studentName: i.studentName, studentEmail: i.studentEmail,
         courseTitle: i.courseName, description: i.description,
         amount: i.amount, transactionId: i.id,
@@ -80,7 +80,7 @@ export default function Invoices() {
       })
     } else {
       const p = r.raw
-      setSelected({ ...p, upiId: p.method === 'razorpay' ? 'razorpay' : (import.meta.env.VITE_UPI_ID || 'rbtmission@upi') })
+      setSelected({ ...p, date: r.date, upiId: p.method === 'razorpay' ? 'razorpay' : (import.meta.env.VITE_UPI_ID || 'rbtmission@upi') })
     }
   }
 
