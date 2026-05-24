@@ -33,6 +33,7 @@ const StudentSignup = lazy(() => import('./pages/StudentSignup'))
 const AdminLogin = lazy(() => import('./pages/AdminLogin'))
 const NotFound = lazy(() => import('./pages/NotFound'))
 const WatchVideo = lazy(() => import('./pages/WatchVideo'))
+const ApplyTeacher = lazy(() => import('./pages/ApplyTeacher'))
 
 // Student Pages (lazy)
 const StudentDashboard = lazy(() => import('./pages/student/Dashboard'))
@@ -80,6 +81,7 @@ const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
 const ManageBatches = lazy(() => import('./pages/admin/ManageBatches'))
 const ManageBatchStudents = lazy(() => import('./pages/admin/ManageBatchStudents'))
 const ManageProfileForm = lazy(() => import('./pages/admin/ManageProfileForm'))
+const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role, batch }) {
@@ -179,6 +181,7 @@ function AppContent() {
                   {/* Public Routes */}
                   <Route path="/" element={<><Home onOpenLogin={() => setShowAutoLogin(true)} /><Footer /></>} />
                   <Route path="/about" element={<><About /><Footer /></>} />
+                  <Route path="/apply-teacher" element={<><ApplyTeacher /><Footer /></>} />
                   <Route path="/courses" element={<><Courses /><Footer /></>} />
                   <Route path="/courses/:id" element={<><CourseDetail /><Footer /></>} />
                   <Route path="/videos" element={<Navigate to="/student-login" replace state={{ from: '/student/videos' }} />} />
@@ -263,6 +266,7 @@ function AppContent() {
                     <Route path="notifications" element={<ManageNotifications />} />
                     <Route path="invoices" element={<ManageInvoices />} />
                     <Route path="profile-form" element={<ManageProfileForm />} />
+                    <Route path="teachers" element={<ManageTeachers />} />
                     <Route path="help" element={<AdminHelp />} />
                   </Route>
 

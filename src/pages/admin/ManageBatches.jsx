@@ -61,7 +61,7 @@ export default function ManageBatches() {
         if (form.isFree) return '';
         const p = Number(form.price) || 0;
         const op = Number(form.originalPrice) || 0;
-        if (op > p && p > 0) return `${Math.round(((op - p) / op) * 100)}% OFF`;
+        if (op > p && p > 0) return `${Math.min(99, Math.round(((op - p) / op) * 100))}% OFF`;
         return '';
       })()
     };
@@ -241,7 +241,7 @@ export default function ManageBatches() {
           {!form.isFree && (() => {
             const p = Number(form.price) || 0;
             const op = Number(form.originalPrice) || 0;
-            const discountPct = (op > p && p > 0) ? Math.round(((op - p) / op) * 100) : 0;
+            const discountPct = (op > p && p > 0) ? Math.min(99, Math.round(((op - p) / op) * 100)) : 0;
             const savings = (op > p && p > 0) ? op - p : 0;
             return (
               <div className="space-y-4">

@@ -46,6 +46,7 @@ export default function Navbar({ onOpenLogin, onOpenSignup }) {
     { to: '/achievements', label: 'Achievements' },
     { to: '/counselling', label: 'Counselling' },
     { to: '/contact', label: 'Contact' },
+    { to: '/apply-teacher', label: 'Apply as Teacher' },
   ];
 
   const handleLogout = () => {
@@ -137,6 +138,23 @@ export default function Navbar({ onOpenLogin, onOpenSignup }) {
                         {link.label}
                       </Link>
                     ))}
+                    {!user && (
+                      <>
+                        <div className="border-t border-slate-800 my-1" />
+                        <button
+                          onClick={() => { setMoreOpen(false); onOpenLogin(); }}
+                          className="w-full text-left block px-4 py-2.5 text-sm font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                        >
+                          Login
+                        </button>
+                        <button
+                          onClick={() => { setMoreOpen(false); onOpenSignup(); }}
+                          className="w-full text-left block px-4 py-2.5 text-sm font-medium text-green-brand hover:text-green-400 hover:bg-green-brand/10 transition-all cursor-pointer"
+                        >
+                          Sign Up
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>

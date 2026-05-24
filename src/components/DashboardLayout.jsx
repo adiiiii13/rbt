@@ -113,6 +113,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
     { to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
     { to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
+    { to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
     { to: '/admin/batches', label: 'Batches', icon: <IC.book size={18} /> },
     { to: '/admin/batch-students', label: 'Batch Students', icon: <IC.users size={18} /> },
     { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
