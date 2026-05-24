@@ -57,7 +57,13 @@ export default function ManageBatches() {
       isFree: form.isFree ?? true,
       price: form.isFree ? 0 : Number(form.price) || 0,
       originalPrice: form.isFree ? 0 : Number(form.originalPrice) || 0,
-      discount: form.isFree ? '' : (form.discount || '')
+      discount: (() => {
+        if (form.isFree) return '';
+        const p = Number(form.price) || 0;
+        const op = Number(form.originalPrice) || 0;
+        if (op > p && p > 0) return `${Math.round(((op - p) / op) * 100)}% OFF`;
+        return '';
+      })()
     };
 
     try {
@@ -232,22 +238,39 @@ export default function ManageBatches() {
             </label>
           </div>
 
-          {!form.isFree && (
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-bold text-white mb-1.5 block">Price (₹)</label>
-                <input type="number" className="input-field w-full" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="e.g. 999" />
+          {!form.isFree && (() => {
+            const p = Number(form.price) || 0;
+            const op = Number(form.originalPrice) || 0;
+            const discountPct = (op > p && p > 0) ? Math.round(((op - p) / op) * 100) : 0;
+            const savings = (op > p && p > 0) ? op - p : 0;
+            return (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-bold text-white mb-1.5 block">Price (₹) *</label>
+                    <input type="number" min="0" className="input-field w-full" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })} placeholder="e.g. 999" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-white mb-1.5 block">Original Price (₹)</label>
+                    <input type="number" min="0" className="input-field w-full" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: e.target.value })} placeholder="e.g. 1999" />
+                    <p className="text-[10px] text-slate-500 mt-1">Strikethrough price shown to students.</p>
+                  </div>
+                </div>
+                {discountPct > 0 && (
+                  <div className="bg-green-500/10 border border-green-500/20 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="bg-green-brand/20 text-green-brand text-xs font-black px-2.5 py-1 rounded-full">{discountPct}% OFF</span>
+                      <span className="text-slate-300 text-sm">Students save <strong className="text-white">₹{savings.toLocaleString('en-IN')}</strong></span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-slate-500 line-through text-sm">₹{op.toLocaleString('en-IN')}</span>
+                      <span className="text-white font-bold text-sm ml-2">₹{p.toLocaleString('en-IN')}</span>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="text-sm font-bold text-white mb-1.5 block">Original Price (₹)</label>
-                <input type="number" className="input-field w-full" value={form.originalPrice} onChange={e => setForm({ ...form, originalPrice: e.target.value })} placeholder="e.g. 1999" />
-              </div>
-              <div className="col-span-2">
-                <label className="text-sm font-bold text-white mb-1.5 block">Discount Label (Optional)</label>
-                <input type="text" className="input-field w-full" value={form.discount} onChange={e => setForm({ ...form, discount: e.target.value })} placeholder="e.g. 50% OFF" />
-              </div>
-            </div>
-          )}
+            );
+          })()}
           <div className="pt-2"><button type="submit" className="btn-primary w-full">Save Batch / Class</button></div>
         </form>
       </Modal>
