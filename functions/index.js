@@ -504,6 +504,125 @@ export const verifyRazorpayPayment = onCall(async (request) => {
   }
 )
 
+// ─── Razorpay Invoice Payment ───────────────────────────────────────────────
+
+export const createInvoiceRazorpayOrder = onCall(async (request) => {
+  assertAuthenticated(request.auth)
+  const { invoiceId } = request.data || {}
+  if (!invoiceId) throw new HttpsError('invalid-argument', 'invoiceId required')
+
+  const invoiceDoc = await db.collection('invoices').doc(invoiceId).get()
+  if (!invoiceDoc.exists) throw new HttpsError('not-found', 'Invoice not found')
+  const invoice = invoiceDoc.data()
+
+  if (invoice.status === 'paid' || invoice.status === 'verified') {
+    throw new HttpsError('failed-precondition', 'Invoice already paid')
+  }
+
+  const rzp = new Razorpay({ key_id: razorpayKeyId, key_secret: razorpayKeySecret })
+  let order
+  try {
+    order = await rzp.orders.create({
+      amount: Math.round(invoice.amount * 100),
+      currency: 'INR',
+      receipt: `inv_${invoiceId}_${Date.now()}`.slice(0, 40),
+      notes: {
+        type: 'invoice',
+        invoiceId,
+        uid: request.auth.uid,
+        courseTitle: invoice.courseName || '',
+      },
+    })
+  } catch (err) {
+    console.error('Razorpay invoice order creation failed:', err)
+    throw new HttpsError('internal', 'Failed to create invoice payment order')
+  }
+
+  await db.collection('razorpayOrders').doc(order.id).set({
+    orderId: order.id,
+    uid: request.auth.uid,
+    type: 'invoice',
+    invoiceId,
+    amount: invoice.amount,
+    amountPaise: order.amount,
+    currency: order.currency,
+    status: 'created',
+    createdAt: FieldValue.serverTimestamp(),
+  })
+
+  return { orderId: order.id, amount: order.amount, currency: order.currency, key: razorpayKeyId, invoice }
+})
+
+export const verifyInvoiceRazorpayPayment = onCall(async (request) => {
+  assertAuthenticated(request.auth)
+  const {
+    razorpay_order_id,
+    razorpay_payment_id,
+    razorpay_signature,
+    invoiceId,
+  } = request.data || {}
+
+  if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !invoiceId) {
+    throw new HttpsError('invalid-argument', 'Missing payment verification fields')
+  }
+
+  const body = razorpay_order_id + '|' + razorpay_payment_id
+  const expectedSignature = crypto
+    .createHmac('sha256', razorpayKeySecret)
+    .update(body)
+    .digest('hex')
+
+  if (expectedSignature !== razorpay_signature) {
+    await db.collection('razorpayOrders').doc(razorpay_order_id).update({
+      status: 'signature_mismatch',
+      failedAt: FieldValue.serverTimestamp(),
+    })
+    throw new HttpsError('permission-denied', 'Payment verification failed — signature mismatch')
+  }
+
+  const uid = request.auth.uid
+
+  await db.collection('razorpayOrders').doc(razorpay_order_id).update({
+    status: 'paid',
+    paymentId: razorpay_payment_id,
+    signature: razorpay_signature,
+    paidAt: FieldValue.serverTimestamp(),
+  })
+
+  const invoiceDoc = await db.collection('invoices').doc(invoiceId).get()
+  const invoice = invoiceDoc.exists ? invoiceDoc.data() : null
+
+  if (invoice && invoice.status !== 'paid' && invoice.status !== 'verified') {
+    await db.collection('invoices').doc(invoiceId).update({
+      status: 'paid',
+      paidAt: new Date().toISOString(),
+      paymentId: razorpay_payment_id
+    })
+
+    const studentDoc = await db.collection('students').doc(uid).get()
+    const studentData = studentDoc.exists ? studentDoc.data() : {}
+
+    await db.collection('payments').add({
+      type: 'razorpay_invoice',
+      studentId: studentData.studentId || uid,
+      studentUid: uid,
+      studentName: studentData.name || invoice.studentName || 'Student',
+      studentEmail: studentData.email || invoice.studentEmail || '',
+      invoiceNumber: invoice.invoiceNumber || '',
+      courseTitle: invoice.courseName || '',
+      amount: invoice.amount || 0,
+      method: 'razorpay',
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      status: 'verified',
+      paidAt: new Date().toISOString(),
+      createdAt: FieldValue.serverTimestamp()
+    })
+  }
+
+  return { success: true }
+})
+
 // Architecture Placeholder: Video Transcoder Webhook
 // This listens to raw video uploads in Firebase Storage and would trigger Google Cloud Transcoder.
 // export const onVideoUploaded = onDocumentCreated('videos/{id}', async (event) => {
@@ -572,9 +691,41 @@ export const razorpayWebhook = onRequest(async (req, res) => {
 
       const uid = notes.uid
       const courseId = notes.courseId
+      const type = notes.type
       const amount = paymentEntity.amount / 100 // paise to rupees
 
-      if (uid && courseId) {
+      if (type === 'invoice') {
+        const invoiceId = notes.invoiceId
+        if (invoiceId) {
+          const invoiceDoc = await db.collection('invoices').doc(invoiceId).get()
+          const invoice = invoiceDoc.exists ? invoiceDoc.data() : null
+          if (invoice && invoice.status !== 'paid' && invoice.status !== 'verified') {
+            await db.collection('invoices').doc(invoiceId).update({
+              status: 'paid',
+              paidAt: new Date().toISOString(),
+              paymentId: paymentId
+            })
+            const studentDoc = await db.collection('students').doc(uid).get()
+            const studentData = studentDoc.exists ? studentDoc.data() : {}
+            await db.collection('payments').add({
+              type: 'razorpay_invoice_webhook',
+              studentId: studentData.studentId || uid,
+              studentUid: uid,
+              studentName: studentData.name || invoice.studentName || 'Student',
+              studentEmail: studentData.email || invoice.studentEmail || '',
+              invoiceNumber: invoice.invoiceNumber || '',
+              courseTitle: invoice.courseName || '',
+              amount: invoice.amount || 0,
+              method: 'razorpay',
+              paymentId: paymentId,
+              orderId: orderId,
+              status: 'verified',
+              paidAt: new Date().toISOString(),
+              createdAt: FieldValue.serverTimestamp()
+            })
+          }
+        }
+      } else if (uid && courseId) {
         const studentDoc = await db.collection('students').doc(uid).get()
         const studentData = studentDoc.exists ? studentDoc.data() : {}
 
@@ -609,6 +760,22 @@ export const razorpayWebhook = onRequest(async (req, res) => {
           paidAt: FieldValue.serverTimestamp(),
           createdAt: FieldValue.serverTimestamp(),
         })
+      }
+    } else if (event === 'payment.failed') {
+      const paymentEntity = req.body.payload.payment.entity
+      const orderId = paymentEntity.order_id
+      
+      if (orderId) {
+        const orderRef = db.collection('razorpayOrders').doc(orderId)
+        try {
+          await orderRef.update({
+            status: 'failed',
+            failedAt: FieldValue.serverTimestamp(),
+            errorDescription: paymentEntity.error_description || 'Payment failed via webhook'
+          })
+        } catch (e) {
+          console.error('Failed to update order status to failed:', e)
+        }
       }
     }
 

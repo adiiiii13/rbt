@@ -3,7 +3,7 @@ import { useAuth } from '../../context/AuthContext'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import { getCollectionWhere, updateDocument, addDocument } from '../../lib/firebaseHelpers'
 import { formatCurrency } from '../../lib/invoice'
-import { openRazorpayClient } from '../../lib/razorpayClient'
+import { openInvoiceCheckout } from '../../lib/razorpay'
 import InvoiceView from '../../components/InvoiceView'
 import Modal from '../../components/Modal'
 import { EyeIcon, ReceiptIcon } from '../../components/Icons'
@@ -88,41 +88,12 @@ export default function Invoices() {
   const totalPending = rows.filter(r => r.status === 'pending').reduce((s, r) => s + (r.amount || 0), 0)
 
   const handlePay = (r) => {
-    openRazorpayClient({
-      amount: r.amount,
-      name: r.title,
-      description: r.subtitle || 'Invoice Payment',
+    openInvoiceCheckout({
+      invoiceId: r.id,
       user: user,
       onSuccess: async (res) => {
-        try {
-          // Update invoice status
-          await updateDocument('invoices', r.id, {
-            status: 'paid',
-            paidAt: new Date().toISOString(),
-            paymentId: res.paymentId
-          })
-          
-          // Create payments record
-          await addDocument('payments', {
-            type: 'razorpay_invoice',
-            studentId: user.studentId || user.id,
-            studentUid: user.uid || user.id,
-            studentName: user.name,
-            studentEmail: user.email,
-            invoiceNumber: r.invoiceNumber,
-            courseTitle: r.title,
-            amount: r.amount,
-            method: 'razorpay',
-            paymentId: res.paymentId,
-            status: 'verified', // Manual invoices paid via razorpay are auto-verified
-            paidAt: new Date().toISOString()
-          })
-          
-          toast.success('Payment successful!')
-          load() // reload to show updated status
-        } catch (e) {
-          toast.error('Payment verified but failed to update status.')
-        }
+        toast.success('Payment successful!')
+        load() // reload to show updated status
       },
       onFailure: (err) => toast.error(err.message || 'Payment failed')
     })

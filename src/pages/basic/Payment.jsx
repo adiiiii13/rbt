@@ -8,7 +8,7 @@ import { motion } from 'framer-motion';
 
 // Added for invoice payment and view
 import { getCollectionWhere, updateDocument, addDocument } from '../../lib/firebaseHelpers';
-import { openRazorpayClient } from '../../lib/razorpayClient';
+import { openInvoiceCheckout } from '../../lib/razorpay';
 import InvoiceView from '../../components/InvoiceView';
 import Modal from '../../components/Modal';
 import toast from 'react-hot-toast';
@@ -76,37 +76,12 @@ export default function BasicPayment() {
   }, [user]);
 
   const handlePayInvoice = (r) => {
-    openRazorpayClient({
-      amount: r.amount,
-      name: r.courseName || r.title || 'Invoice Payment',
-      description: r.description || 'Invoice Payment',
+    openInvoiceCheckout({
+      invoiceId: r.id,
       user: user,
       onSuccess: async (res) => {
-        try {
-          await updateDocument('invoices', r.id, {
-            status: 'paid',
-            paidAt: new Date().toISOString(),
-            paymentId: res.paymentId
-          });
-          await addDocument('payments', {
-            type: 'razorpay_invoice',
-            studentId: user.studentId || user.id,
-            studentUid: user.uid || user.id,
-            studentName: user.name,
-            studentEmail: user.email,
-            invoiceNumber: r.invoiceNumber,
-            courseTitle: r.courseName || r.title || 'Invoice Payment',
-            amount: r.amount,
-            method: 'razorpay',
-            paymentId: res.paymentId,
-            status: 'verified',
-            paidAt: new Date().toISOString()
-          });
-          toast.success('Payment successful!');
-          setInvoices(prev => prev.map(i => i.id === r.id ? { ...i, status: 'paid', paidAt: new Date().toISOString() } : i));
-        } catch (e) {
-          toast.error('Payment verified but failed to update status.');
-        }
+        toast.success('Payment successful!');
+        setInvoices(prev => prev.map(i => i.id === r.id ? { ...i, status: 'paid', paidAt: new Date().toISOString() } : i));
       },
       onFailure: (err) => toast.error(err.message || 'Payment failed')
     });

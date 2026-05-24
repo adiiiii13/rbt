@@ -121,7 +121,7 @@ export function AuthProvider({ children }) {
         const snap = await getDoc(doc(db, 'students', cred.user.uid));
         const data = snap.exists() ? snap.data() : null;
         if (data && data.batchStatus === 'approved') {
-          if (!batchCode || data.batchCode !== batchCode) {
+          if (!batchCode || data.assignedBatchCode !== batchCode) {
             await signOut(auth);
             return { success: false, message: 'Invalid Batch Code. Access Denied.' };
           }
@@ -196,7 +196,7 @@ export function AuthProvider({ children }) {
       const data = snap.exists() ? snap.data() : null;
 
       if (isBatch && data && data.batchStatus === 'approved') {
-        if (!batchCode || data.batchCode !== batchCode) {
+        if (!batchCode || data.assignedBatchCode !== batchCode) {
           await signOut(auth);
           return { success: false, message: 'Invalid Batch Code. Access Denied.' };
         }

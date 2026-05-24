@@ -16,8 +16,8 @@ function loadScript() {
   });
 }
 
-// Replace via VITE_RAZORPAY_KEY env if available; fallback to test key
-const KEY = import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_REPLACE_ME';
+// Replace via VITE_RAZORPAY_KEY_ID env if available; fallback to test key
+const KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_REPLACE_ME';
 
 export async function openRazorpayClient({ amount, name, description, user, onSuccess, onFailure }) {
   const ok = await loadScript();
