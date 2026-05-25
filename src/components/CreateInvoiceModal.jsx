@@ -44,7 +44,7 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
       // Populate all courses, marking enrolled ones
       allCourses?.forEach(c => {
          const isEnrolled = enrolledIds.has(c.id) || c.title === student.assignedBatchName || c.title === student.course
-         const item = { id: c.id, name: c.title, type: c.courseType === 'batch' ? 'Batch' : 'Basic', isEnrolled }
+         const item = { id: c.id, name: c.title, type: c.courseType === 'batch' ? 'Batch' : 'Basic', isEnrolled, isFree: c.isFree }
          if (c.courseType === 'batch') {
             batchItems.push(item)
          } else {
@@ -54,11 +54,11 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
 
       // Add custom enrolled items that might not exist in allCourses anymore
       if (student.assignedBatchName && !batchItems.find(b => b.name === student.assignedBatchName)) {
-        batchItems.unshift({ id: `batch_${student.assignedBatchId || 'assigned'}`, name: student.assignedBatchName, type: 'Batch', isEnrolled: true })
+        batchItems.unshift({ id: `batch_${student.assignedBatchId || 'assigned'}`, name: student.assignedBatchName, type: 'Batch', isEnrolled: true, isFree: false })
       }
       
       if (student.course && !basicItems.find(b => b.name === student.course)) {
-        basicItems.unshift({ id: `course_manual_${student.course}`, name: student.course, type: 'Basic', isEnrolled: true })
+        basicItems.unshift({ id: `course_manual_${student.course}`, name: student.course, type: 'Basic', isEnrolled: true, isFree: false })
       }
 
       // Sort so enrolled items appear first
@@ -70,13 +70,13 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
       
       const bSelections = {}
       batchItems.forEach(i => {
-        bSelections[i.id] = { selected: false, amount: '', dueDate: '', description: '' }
+        bSelections[i.id] = { selected: false, amount: i.isFree ? 0 : '', dueDate: '', description: '' }
       })
       setBatchSelections(bSelections)
 
       const basicSels = {}
       basicItems.forEach(i => {
-        basicSels[i.id] = { selected: false, amount: '', dueDate: '', description: '' }
+        basicSels[i.id] = { selected: false, amount: i.isFree ? 0 : '', dueDate: '', description: '' }
       })
       setBasicSelections(basicSels)
     } catch (err) {

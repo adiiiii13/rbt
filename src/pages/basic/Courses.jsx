@@ -109,7 +109,9 @@ export default function BasicCourses() {
                     <span className="inline-flex items-center gap-1 text-slate-400"><UsersIcon size={14} /> {c.students || 0}</span>
                   </div>
                   <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
-                    {startingPrice !== null ? (
+                    {c.isFree ? (
+                      <span className="text-green-brand font-bold text-sm">Free</span>
+                    ) : startingPrice !== null ? (
                       <span className="text-green-brand font-bold text-sm">From ₹{startingPrice}</span>
                     ) : (
                       <span className="text-slate-500 text-xs">Details</span>
