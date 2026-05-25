@@ -31,6 +31,7 @@ const emptyForm = {
   duration: 30,
   marksPerQuestion: 4,
   negativeMarks: 1,
+  isFree: true,
   price: 0,
   questions: [],
   testType: 'single', // 'single', 'live'
@@ -42,6 +43,7 @@ const emptyForm = {
   defaultQuestionType: 'mcq-single', // 'mcq-single', 'mcq-multi', 'text', 'custom'
   visibility: 'public', // 'public' | 'batch' | 'course'
   visibilityCourseIds: [],
+  visibilityBatchIds: [],
   expiryType: 'lifetime', // 'lifetime' | 'date'
   expiryDate: '',
 };
@@ -64,11 +66,13 @@ const emptySeriesForm = {
   title: '',
   description: '',
   category: 'jee-main',
+  isFree: true,
   price: 0,
   thumbnail: '',
   testIds: [],
   visibility: 'public',
   visibilityCourseIds: [],
+  visibilityBatchIds: [],
   expiryType: 'lifetime',
   expiryDate: '',
 };
@@ -115,6 +119,7 @@ export default function ManageMockTests() {
   const { data: tests, loading: testsLoading } = useRealtimeCollection('mockTests', { fallback: [] });
   const { data: series, loading: seriesLoading } = useRealtimeCollection('testSeries', { fallback: [] });
   const { data: courses } = useRealtimeCollection('courses', { fallback: [] });
+  const { data: batches } = useRealtimeCollection('batches', { fallback: [] });
 
   // Test State
   const [modal, setModal] = useState(false);
@@ -166,18 +171,20 @@ export default function ManageMockTests() {
       category: t.category || 'jee-main',
       difficulty: t.difficulty || 'Medium',
       duration: t.duration || 30,
-      marksPerQuestion: t.marksPerQuestion ?? 4,
-      negativeMarks: t.negativeMarks ?? 1,
-      price: t.price ?? 0,
+      marksPerQuestion: t.marksPerQuestion || 4,
+      negativeMarks: t.negativeMarks || 1,
+      isFree: t.price ? false : true,
+      price: t.price || 0,
       testType: t.testType || 'single',
       liveStartTime: t.liveStartTime || '',
       liveEndTime: t.liveEndTime || '',
       resultMode: t.resultMode || 'instant',
       resultPublishDate: t.resultPublishDate || '',
-      allowRetakes: t.allowRetakes || false,
+      allowRetakes: !!t.allowRetakes,
       defaultQuestionType: t.defaultQuestionType || 'mcq-single',
       visibility: t.visibility || 'public',
       visibilityCourseIds: t.visibilityCourseIds || [],
+      visibilityBatchIds: t.visibilityBatchIds || [],
       expiryType: t.expiryType || 'lifetime',
       expiryDate: t.expiryDate || '',
       questions: (t.questions || []).map(q => ({
@@ -256,6 +263,9 @@ export default function ManageMockTests() {
     if (form.visibility === 'course' && form.visibilityCourseIds.length === 0) {
       toast.error('Select at least one course for course-specific visibility'); return;
     }
+    if (form.visibility === 'batch' && form.visibilityBatchIds.length === 0) {
+      toast.error('Select at least one batch for batch-specific visibility'); return;
+    }
     if (form.expiryType === 'date' && !form.expiryDate) {
       toast.error('Set an expiry date or choose Lifetime'); return;
     }
@@ -267,10 +277,23 @@ export default function ManageMockTests() {
     }
     const payload = {
       ...form,
-      duration: Number(form.duration) || 30,
-      marksPerQuestion: Number(form.marksPerQuestion) || 4,
-      negativeMarks: Number(form.negativeMarks) || 0,
-      price: Number(form.price) || 0,
+      duration: Number(form.duration),
+      marksPerQuestion: Number(form.marksPerQuestion),
+      negativeMarks: Number(form.negativeMarks),
+      price: form.isFree ? 0 : (Number(form.price) || 0),
+      questions: form.questions,
+      testType: form.testType,
+      liveStartTime: form.liveStartTime,
+      liveEndTime: form.liveEndTime,
+      resultMode: form.resultMode,
+      resultPublishDate: form.resultPublishDate,
+      allowRetakes: form.allowRetakes,
+      defaultQuestionType: form.defaultQuestionType,
+      visibility: form.visibility,
+      visibilityCourseIds: form.visibility === 'course' ? form.visibilityCourseIds : [],
+      visibilityBatchIds: form.visibility === 'batch' ? form.visibilityBatchIds : [],
+      expiryType: form.expiryType,
+      expiryDate: form.expiryDate,
       totalQuestions: form.questions.length,
       maxMarks: form.questions.reduce((s, q) => s + (Number(q.marks) || Number(form.marksPerQuestion) || 4), 0),
     };
@@ -302,11 +325,13 @@ export default function ManageMockTests() {
       title: s.title || '',
       description: s.description || '',
       category: s.category || 'jee-main',
-      price: s.price ?? 0,
+      isFree: s.price ? false : true,
+      price: s.price || 0,
       thumbnail: s.thumbnail || '',
       testIds: s.testIds || [],
       visibility: s.visibility || 'public',
       visibilityCourseIds: s.visibilityCourseIds || [],
+      visibilityBatchIds: s.visibilityBatchIds || [],
       expiryType: s.expiryType || 'lifetime',
       expiryDate: s.expiryDate || '',
     });
@@ -321,7 +346,7 @@ export default function ManageMockTests() {
     }
     const payload = {
       ...sForm,
-      price: Number(sForm.price) || 0,
+      price: sForm.isFree ? 0 : (Number(sForm.price) || 0),
     };
     try {
       if (editingSeries) {
@@ -524,9 +549,19 @@ export default function ManageMockTests() {
               className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
               {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.label}</option>)}
             </select>
-            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
-              placeholder="₹ Price (0=free)" title="Price"
-              className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+            
+            <div className="flex gap-2 items-center bg-black/40 border border-white/10 rounded-lg px-2 col-span-2 md:col-span-1">
+              <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer">
+                <input type="checkbox" checked={!form.isFree} onChange={e => setForm({ ...form, isFree: !e.target.checked })}
+                  className="w-4 h-4 accent-green-brand" />
+                Paid
+              </label>
+              {!form.isFree && (
+                <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
+                  placeholder="₹" title="Price"
+                  className="w-20 bg-black/40 border border-white/10 rounded px-2 py-1 text-white text-sm" />
+              )}
+            </div>
             
             <select value={form.testType} onChange={e => setForm({ ...form, testType: e.target.value })}
               className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" title="Test Type">
@@ -619,6 +654,12 @@ export default function ManageMockTests() {
                   <label className="text-[10px] text-slate-400 block mb-1">Expiry Date</label>
                   <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })}
                     className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                </div>
+              )}
+              {form.visibility === 'batch' && (
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-slate-400 block mb-1">Link to Batches</label>
+                  <CoursePicker selectedIds={form.visibilityBatchIds} onChange={ids => setForm({ ...form, visibilityBatchIds: ids })} courses={batches.map(b => ({id: b.id, title: b.name, level: 'Batch'}))} />
                 </div>
               )}
               {form.visibility === 'course' && (
@@ -851,9 +892,19 @@ export default function ManageMockTests() {
               </select>
             </div>
             <div>
-              <label className="text-xs text-slate-400 block mb-1">Price (₹)</label>
-              <input type="number" value={sForm.price} onChange={e => setSForm({ ...sForm, price: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              <label className="text-xs text-slate-400 block mb-1">Pricing</label>
+              <div className="flex gap-2 items-center bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input type="checkbox" checked={!sForm.isFree} onChange={e => setSForm({ ...sForm, isFree: !e.target.checked })}
+                    className="w-4 h-4 accent-green-brand" />
+                  Paid
+                </label>
+                {!sForm.isFree && (
+                  <input type="number" value={sForm.price} onChange={e => setSForm({ ...sForm, price: e.target.value })}
+                    placeholder="₹"
+                    className="w-20 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-white text-sm" />
+                )}
+              </div>
             </div>
           </div>
           
@@ -900,6 +951,12 @@ export default function ManageMockTests() {
                   <label className="text-[10px] text-slate-400 block mb-1">Expiry Date</label>
                   <input type="date" value={sForm.expiryDate} onChange={e => setSForm({ ...sForm, expiryDate: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                </div>
+              )}
+              {sForm.visibility === 'batch' && (
+                <div className="col-span-2">
+                  <label className="text-[10px] text-slate-400 block mb-1">Link to Batches</label>
+                  <CoursePicker selectedIds={sForm.visibilityBatchIds} onChange={ids => setSForm({ ...sForm, visibilityBatchIds: ids })} courses={batches.map(b => ({id: b.id, title: b.name, level: 'Batch'}))} />
                 </div>
               )}
               {sForm.visibility === 'course' && (
