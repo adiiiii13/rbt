@@ -23,8 +23,7 @@ const emptyForm = {
 }
 
 export default function ManageNotices() {
-  const { data: noticesRaw, loading } = useRealtimeCollection('notices', { fallback: [] })
-  const notices = noticesRaw?.length ? noticesRaw : defaultNotices
+  const { data: notices, loading } = useRealtimeCollection('notices', { fallback: [] })
   const { data: students } = useRealtimeCollection('students', { fallback: [] })
   const { data: batchesList } = useRealtimeCollection('batches', { fallback: [] })
   const [modal, setModal] = useState(false)

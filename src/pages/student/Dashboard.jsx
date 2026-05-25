@@ -49,13 +49,41 @@ export default function StudentDashboard() {
     });
   }
   const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
-  const allNotices = (allNoticesRaw?.length ? allNoticesRaw : defaultNotices).filter(n => {
-    if (!n.audience || n.audience === 'all' || n.audience === undefined) return true
-    if (n.audience === 'class') return n.targetClass === (user?.className || user?.class || '')
-    if (n.audience === 'batch') return n.targetBatch === (user?.assignedBatchId || user?.batchId || '')
-    if (n.audience === 'specific') return (n.targetStudentIds || []).includes(user?.uid || user?.id || '')
-    return true
-  })
+  const allNotices = useMemo(() => {
+    // If we have NO data from Firestore, show default notices for demo purposes
+    if (!allNoticesRaw || (allNoticesRaw.length === 0)) {
+      return defaultNotices || []
+    }
+
+    const uid = user?.uid || user?.id || ''
+    const userClass = user?.className || user?.class || ''
+    const userBatchId = user?.assignedBatchId || user?.batchId || ''
+
+    return allNoticesRaw.filter(n => {
+      // 1. All/None audience -> Show to everyone
+      if (!n.audience || n.audience === 'all' || n.audience === undefined) return true
+      
+      // 2. Class target -> Match student's class
+      if (n.audience === 'class') {
+        if (!userClass) return false
+        return n.targetClass === userClass
+      }
+      
+      // 3. Batch target -> Match student's batch
+      if (n.audience === 'batch') {
+        if (!userBatchId) return false
+        return n.targetBatch === userBatchId
+      }
+      
+      // 4. Specific student target
+      if (n.audience === 'specific') {
+        return (n.targetStudentIds || []).includes(uid)
+      }
+
+      return true
+    })
+  }, [allNoticesRaw, user])
+
   const courses = allCourses.slice(0, 4)
   const pdfs = allPdfs.slice(0, 3)
   const notices = allNotices.slice(0, 3)
