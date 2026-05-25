@@ -30,8 +30,8 @@ export default function StudentDetail() {
   const [payments, setPayments] = useState([]);
 
   // Collections for grant dropdowns
-  const { data: allCourses } = useRealtimeCollection('courses', 'createdAt');
-  const { data: allBatches } = useRealtimeCollection('batches', 'createdAt');
+  const { data: allCourses } = useRealtimeCollection('courses', { orderField: 'createdAt' });
+  const { data: allBatches } = useRealtimeCollection('batches', { orderField: 'createdAt' });
   const { data: allMockTests } = useRealtimeCollection('mockTests', { fallback: [] });
   const { data: allPdfs } = useRealtimeCollection('pdfs', { fallback: [] });
 

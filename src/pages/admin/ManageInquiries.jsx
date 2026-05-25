@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import ExportButton from '../../components/ExportButton'
 
 export default function ManageInquiries() {
-  const { data: inquiries, loading } = useRealtimeCollection('inquiries', 'createdAt', [])
+  const { data: inquiries, loading } = useRealtimeCollection('inquiries', { orderField: 'createdAt', fallback: [] })
   const [selected, setSelected] = useState(null)
 
   const markRead = async (id) => {

@@ -36,7 +36,8 @@ export default function AllCourses() {
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
   const { data: batches } = useRealtimeCollection('batches', { fallback: [] });
   const { data: enrollments } = useRealtimeCollection('enrollments', {
-    where: user?.uid ? [['uid', '==', user.uid]] : []
+    where: user?.uid ? [['uid', '==', user.uid]] : [],
+    orderField: 'enrolledAt'
   });
 
   const enrolledIds = new Set((enrollments || []).map(e => e.courseId));

@@ -18,9 +18,9 @@ const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', c
 
 export default function ManageStudents() {
   const navigate = useNavigate();
-  const { data: students, loading } = useRealtimeCollection('students', 'createdAt');
-  const { data: courses } = useRealtimeCollection('courses', 'createdAt');
-  const { data: allEnrollments } = useRealtimeCollection('enrollments', 'enrolledAt');
+  const { data: students, loading } = useRealtimeCollection('students', { orderField: 'createdAt' });
+  const { data: courses } = useRealtimeCollection('courses', { orderField: 'createdAt' });
+  const { data: allEnrollments } = useRealtimeCollection('enrollments', { orderField: 'enrolledAt' });
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null);
