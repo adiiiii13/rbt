@@ -79,57 +79,68 @@ export default function DashboardLayout({ type }) {
   }
 
   const studentLinks = [
-    { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
-    { to: '/student/all-courses', label: 'All Courses', icon: <IC.book size={18} /> },
-    { to: '/student/courses', label: 'My Courses', icon: <IC.book size={18} /> },
-    { to: '/student/test-papers', label: 'Buy Test Series/Papers', icon: <IC.file size={18} /> },
-    { to: '/student/my-tests', label: 'My Tests/Series', icon: <IC.file size={18} /> },
-    { to: '/student/study-material', label: 'Study Material', icon: <IC.pdf size={18} /> },
-    { to: '/student/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
-    { to: '/student/counselling', label: 'Counselling', icon: <IC.headset size={18} /> },
-    { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
-    { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
-    { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
-    { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
-    { to: '/student/invoices', label: 'My Invoices', icon: <IC.receipt size={18} /> },
-    { to: '/student/offline-enrollment', label: 'Offline Enrollment', icon: <IC.mail size={18} /> },
-    { to: '/student/profile', label: 'Profile', icon: <IC.users size={18} /> },
+    { type: 'link', to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
+    { type: 'header', label: 'Learning' },
+    { type: 'link', to: '/student/all-courses', label: 'All Courses', icon: <IC.book size={18} /> },
+    { type: 'link', to: '/student/courses', label: 'My Courses', icon: <IC.book size={18} /> },
+    { type: 'link', to: '/student/study-material', label: 'Study Material', icon: <IC.pdf size={18} /> },
+    { type: 'link', to: '/student/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
+    { type: 'header', label: 'Tests & Results' },
+    { type: 'link', to: '/student/test-papers', label: 'Buy Test Series', icon: <IC.file size={18} /> },
+    { type: 'link', to: '/student/my-tests', label: 'My Tests', icon: <IC.file size={18} /> },
+    { type: 'link', to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
+    { type: 'header', label: 'Communication' },
+    { type: 'link', to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
+    { type: 'link', to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
+    { type: 'link', to: '/student/counselling', label: 'Counselling', icon: <IC.headset size={18} /> },
+    { type: 'header', label: 'Account' },
+    { type: 'link', to: '/student/invoices', label: 'My Invoices', icon: <IC.receipt size={18} /> },
+    { type: 'link', to: '/student/offline-enrollment', label: 'Offline Enrollment', icon: <IC.mail size={18} /> },
+    { type: 'link', to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
+    { type: 'link', to: '/student/profile', label: 'Profile', icon: <IC.users size={18} /> },
   ]
 
   const adminLinks = [
-    { to: '/admin', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
-    { to: '/admin/courses', label: 'Manage Courses', icon: <IC.book size={18} /> },
-    { to: '/admin/pdfs', label: 'Manage PDFs', icon: <IC.file size={18} /> },
-    { to: '/admin/mock-tests', label: 'Manage Mock Tests', icon: <IC.file size={18} /> },
-    { to: '/admin/mock-results', label: 'Mock Results', icon: <IC.trophy size={18} /> },
-    { to: '/admin/study-material', label: 'Study Material', icon: <IC.file size={18} /> },
-    { to: '/admin/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
-    { to: '/admin/gallery', label: 'Manage Gallery', icon: <IC.users size={18} /> },
-    { to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
-    { to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
-    { to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
-    { to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
-    { to: '/admin/offline-enrollments', label: 'Offline Enrollments', icon: <IC.mail size={18} /> },
-    { to: '/admin/offline-batches', label: 'Offline Batches', icon: <IC.users size={18} /> },
-    { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
-    { to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
-    { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
-    { to: '/admin/offers', label: 'Offers', icon: <IC.bell size={18} /> },
-    { to: '/admin/inquiries', label: 'Inquiries', icon: <IC.mail size={18} /> },
-    { to: '/admin/doubts', label: 'Doubts', icon: <IC.msg size={18} /> },
-    { to: '/admin/notifications', label: 'Send Notifications', icon: <IC.bell size={18} /> },
-    { to: '/admin/invoices', label: 'Create Invoices', icon: <IC.receipt size={18} /> },
-    { to: '/admin/profile-form', label: 'Profile Form Edits', icon: <IC.file size={18} /> },
-    { to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
+    { type: 'link', to: '/admin', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
+    { type: 'header', label: 'Content' },
+    { type: 'link', to: '/admin/courses', label: 'Manage Courses', icon: <IC.book size={18} /> },
+    { type: 'link', to: '/admin/pdfs', label: 'Manage PDFs', icon: <IC.file size={18} /> },
+    { type: 'link', to: '/admin/study-material', label: 'Study Material', icon: <IC.file size={18} /> },
+    { type: 'link', to: '/admin/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
+    { type: 'header', label: 'Testing' },
+    { type: 'link', to: '/admin/mock-tests', label: 'Mock Tests', icon: <IC.file size={18} /> },
+    { type: 'link', to: '/admin/mock-results', label: 'Mock Results', icon: <IC.trophy size={18} /> },
+    { type: 'header', label: 'Users' },
+    { type: 'link', to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
+    { type: 'link', to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
+    { type: 'link', to: '/admin/offline-enrollments', label: 'Offline Enrolls', icon: <IC.mail size={18} /> },
+    { type: 'link', to: '/admin/offline-batches', label: 'Offline Batches', icon: <IC.users size={18} /> },
+    { type: 'header', label: 'Engagement' },
+    { type: 'link', to: '/admin/doubts', label: 'Doubts', icon: <IC.msg size={18} /> },
+    { type: 'link', to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
+    { type: 'link', to: '/admin/inquiries', label: 'Inquiries', icon: <IC.mail size={18} /> },
+    { type: 'link', to: '/admin/notifications', label: 'Notifications', icon: <IC.bell size={18} /> },
+    { type: 'link', to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
+    { type: 'header', label: 'Finance' },
+    { type: 'link', to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
+    { type: 'link', to: '/admin/invoices', label: 'Invoices', icon: <IC.receipt size={18} /> },
+    { type: 'link', to: '/admin/offers', label: 'Offers', icon: <IC.bell size={18} /> },
+    { type: 'header', label: 'Website' },
+    { type: 'link', to: '/admin/gallery', label: 'Gallery', icon: <IC.users size={18} /> },
+    { type: 'link', to: '/admin/testimonials', label: 'Testimonials', icon: <IC.msg size={18} /> },
+    { type: 'link', to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
+    { type: 'link', to: '/admin/profile-form', label: 'Profile Form', icon: <IC.file size={18} /> },
+    { type: 'header', label: 'System' },
+    { type: 'link', to: '/admin/help', label: 'Help', icon: <IC.star size={18} /> },
   ]
 
   const initializationLinks = [
-    { to: '/student-initialization', label: 'Initialization', icon: <IC.users size={18} />, end: true }
+    { type: 'link', to: '/student-initialization', label: 'Initialization', icon: <IC.users size={18} />, end: true }
   ]
 
   const links = type === 'admin' ? adminLinks : type === 'initialization' ? initializationLinks : studentLinks
 
-  const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredLinks = links.filter(l => l.type !== 'header' && l.label.toLowerCase().includes(searchQuery.toLowerCase()))
 
   const handleLogout = () => {
     logout()
@@ -215,7 +226,14 @@ export default function DashboardLayout({ type }) {
           onScroll={handleSidebarScroll}
           className="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-2 sidebar-scroll"
         >
-          {links.map((link) => {
+          {links.map((link, idx) => {
+            if (link.type === 'header') {
+              return (
+                <div key={`header-${idx}`} className={`mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500 transition-opacity duration-300 ${!isSidebarExpanded ? 'opacity-0 hidden' : 'opacity-100'}`}>
+                  {link.label}
+                </div>
+              )
+            }
             const isLockedRoute = isProfileLocked && link.to !== '/student' && type === 'student';
             return (
             <NavLink
@@ -401,7 +419,7 @@ export default function DashboardLayout({ type }) {
 
         {/* Mobile Bottom Navigation */}
         <nav className="lg:hidden flex items-center justify-around bg-navy border-t border-slate-800 py-2 shrink-0 overflow-x-auto">
-          {links.slice(0, type === 'admin' ? 8 : 7).map((link) => {
+          {links.filter(l => l.type !== 'header').slice(0, type === 'admin' ? 8 : 7).map((link) => {
             const isLockedRoute = isProfileLocked && link.to !== '/student' && type === 'student';
             return (
             <NavLink
@@ -457,7 +475,15 @@ export default function DashboardLayout({ type }) {
               </div>
 
               <nav className="flex-1 overflow-y-auto p-4 flex flex-col gap-2">
-                {links.map((link) => (
+                {links.map((link, idx) => {
+                  if (link.type === 'header') {
+                    return (
+                      <div key={`mob-header-${idx}`} className="mt-4 mb-1 px-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                        {link.label}
+                      </div>
+                    )
+                  }
+                  return (
                   <NavLink
                     key={link.to}
                     to={link.to}
@@ -470,7 +496,7 @@ export default function DashboardLayout({ type }) {
                     <span className="sidebar-icon-wrap shrink-0">{link.icon}</span>
                     {link.label}
                   </NavLink>
-                ))}
+                )})}
               </nav>
 
               <div className="p-4 border-t border-white/10">

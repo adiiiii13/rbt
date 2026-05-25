@@ -69,7 +69,9 @@ export function useRealtimeCollection(name, opts = {}) {
         console.warn(`[useRealtimeCollection] ${name}`, err.message)
         // Retry without orderBy if index missing
         if (err.code === 'failed-precondition') {
-          const fallbackQ = query(collection(db, name))
+          const fallbackConstraints = []
+          for (const [f, op, v] of whereClauses) fallbackConstraints.push(where(f, op, v))
+          const fallbackQ = query(collection(db, name), ...fallbackConstraints)
           const unsub2 = onSnapshot(fallbackQ, (snap) => {
             const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }))
             setData(rows)
