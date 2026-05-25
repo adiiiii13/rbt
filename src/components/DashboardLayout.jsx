@@ -77,23 +77,19 @@ export default function DashboardLayout({ type }) {
     })
   }
 
-  const isBatch = user?.batch === true
-
   const studentLinks = [
     { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
+    { to: '/student/all-courses', label: 'All Courses', icon: <IC.book size={18} /> },
     { to: '/student/courses', label: 'My Courses', icon: <IC.book size={18} /> },
     { to: '/student/test-papers', label: 'Test Papers', icon: <IC.file size={18} /> },
     { to: '/student/study-material', label: 'Study Material', icon: <IC.pdf size={18} /> },
     { to: '/student/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
-    ...(isBatch ? [
-      { to: '/student/counselling', label: 'Counselling', icon: <IC.headset size={18} /> },
-      { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
-      { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
-      { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
-      { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
-    ] : []),
+    { to: '/student/counselling', label: 'Counselling', icon: <IC.headset size={18} /> },
+    { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
+    { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
+    { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
+    { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
     { to: '/student/invoices', label: 'My Invoices', icon: <IC.receipt size={18} /> },
-    ...(!isBatch ? [{ to: '/student/upgrade-batch', label: 'Apply for Batch', icon: <IC.mail size={18} /> }] : []),
     { to: '/student/profile', label: 'Profile', icon: <IC.users size={18} /> },
   ]
 
@@ -110,9 +106,6 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
     { to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
     { to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
-    { to: '/admin/batches', label: 'Batches', icon: <IC.book size={18} /> },
-    { to: '/admin/batch-students', label: 'Batch Students', icon: <IC.users size={18} /> },
-    { to: '/admin/batch-requests', label: 'Batch Requests', icon: <IC.mail size={18} /> },
     { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
     { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
@@ -173,7 +166,7 @@ export default function DashboardLayout({ type }) {
     setupFCM()
   }, [user])
 
-  const isProfileLocked = user && user.role === 'student' && user.batch && !user.profileCompleted;
+  const isProfileLocked = false;
 
   const handleLinkClick = (e, link) => {
     if (isProfileLocked && link.to !== '/student' && type === 'student') {

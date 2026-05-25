@@ -37,7 +37,6 @@ export default function ManageCourses() {
   const [modules, setModules] = useState([])
 
   const [thumbUploading, setThumbUploading] = useState(false)
-  const { data: batches } = useRealtimeCollection('batches')
 
   const handleThumbUpload = async (e) => {
     const file = e.target.files?.[0]
@@ -164,11 +163,6 @@ export default function ManageCourses() {
     if (!basic.title.trim()) { toast.error('Title required'); return }
     const subjectsArr = basic.subjects.split(',').map(s => s.trim()).filter(Boolean)
     
-    if (basic.courseType === 'batch' && !basic.batchId) {
-      toast.error('Please select a batch for this specific batch course');
-      return;
-    }
-    
     // Auto-thumb from first video item if available
     let firstVideoUrl = ''
     for (const m of modules) { const v = m.items.find(i => i.type === 'video'); if (v?.data) { firstVideoUrl = v.data; break } }
@@ -180,8 +174,8 @@ export default function ManageCourses() {
       ...basic, subjects: subjectsArr, thumbnail: basic.thumbnail || autoThumb,
       duration: finalDuration,
       isFree: basic.isFree,
-      courseType: basic.courseType || 'basic',
-      batchId: basic.courseType === 'batch' ? basic.batchId : null,
+      courseType: 'basic',
+      batchId: null,
       variants: pricing.map(v => ({ ...v, months: Number(v.months), price: Number(v.price), originalPrice: Number(v.originalPrice) })),
       modules: modules.map((m, i) => ({ ...m, order: i + 1, items: m.items.map((itm, j) => ({ ...itm, order: j + 1 })) })),
       lessons: [] // Clear old format
@@ -206,13 +200,7 @@ export default function ManageCourses() {
     { n: 4, label: 'Review' },
   ]
 
-  const [activeTab, setActiveTab] = useState('basic')
-
-  const filteredCourses = courses.filter(c => {
-    if (activeTab === 'basic') return c.courseType !== 'batch'
-    if (activeTab === 'batch') return c.courseType === 'batch'
-    return true
-  })
+  const filteredCourses = courses
 
   return (
     <div>
@@ -231,21 +219,6 @@ export default function ManageCourses() {
           ]} />
           <button onClick={openCreate} className="btn-primary">+ Add Course</button>
         </div>
-      </div>
-
-      <div className="flex items-center gap-4 border-b border-slate-800 mb-6">
-        <button
-          onClick={() => setActiveTab('basic')}
-          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'basic' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
-        >
-          Basic Courses
-        </button>
-        <button
-          onClick={() => setActiveTab('batch')}
-          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${activeTab === 'batch' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
-        >
-          Batch Courses
-        </button>
       </div>
 
       {loading && <TableSkeleton />}
@@ -341,28 +314,6 @@ export default function ManageCourses() {
                     <option value="Lifetime">Lifetime</option>
                   </select>
                 </div>
-              </div>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm text-slate-300 font-medium mb-1 block">Course Audience</label>
-                <select className="input-field" value={basic.courseType || 'basic'} onChange={e => setBasic({ ...basic, courseType: e.target.value })}>
-                  <option value="basic">Basic Users Course</option>
-                  <option value="batch">Specific Batch/Class Course</option>
-                </select>
-              </div>
-              <div>
-                {basic.courseType === 'batch' && (
-                  <>
-                    <label className="text-sm text-slate-300 font-medium mb-1 block">Select Batch/Class *</label>
-                    <select className="input-field" value={basic.batchId || ''} onChange={e => setBasic({ ...basic, batchId: e.target.value })}>
-                      <option value="">-- Choose Batch/Class --</option>
-                      {batches?.map(b => (
-                        <option key={b.id} value={b.id}>{b.className || b.name}</option>
-                      ))}
-                    </select>
-                  </>
-                )}
               </div>
             </div>
             <div>

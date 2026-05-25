@@ -92,14 +92,6 @@ export default function BasicCourseDetail() {
   const handleBuy = async () => {
     if (!user) { toast.error('Please login first'); navigate('/student-login'); return; }
 
-    if (course.courseType === 'batch' && !user.batch && user.batchStatus !== 'pending') {
-      setShowUpgradeModal(true);
-      return;
-    } else if (course.courseType === 'batch' && user.batchStatus === 'pending') {
-      toast.error('Your batch upgrade request is pending admin approval.');
-      return;
-    }
-    
     const variant = selectedVariant || { months: 12, price: 0 }
     const isFree = variant.price === 0 || course.isFree
 

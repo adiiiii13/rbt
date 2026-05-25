@@ -38,6 +38,7 @@ const ApplyTeacher = lazy(() => import('./pages/ApplyTeacher'))
 // Student Pages (lazy)
 const StudentDashboard = lazy(() => import('./pages/student/Dashboard'))
 const StudentCourses = lazy(() => import('./pages/student/Courses'))
+const AllCourses = lazy(() => import('./pages/student/AllCourses'))
 const StudentPdfs = lazy(() => import('./pages/student/Pdfs'))
 const StudyMaterial = lazy(() => import('./pages/student/StudyMaterial'))
 const StudentVideos = lazy(() => import('./pages/student/Videos'))
@@ -52,8 +53,6 @@ const StudentProfile = lazy(() => import('./pages/student/Profile'))
 
 // Basic Pages (lazy)
 const BasicCourseDetail = lazy(() => import('./pages/basic/CourseDetail'))
-const StudentInitialization = lazy(() => import('./pages/basic/StudentInitialization'))
-const BatchUpgradeForm = lazy(() => import('./pages/student/BatchUpgradeForm'))
 
 // Admin Pages (lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -75,9 +74,6 @@ const ManageStudyMaterial = lazy(() => import('./pages/admin/ManageStudyMaterial
 const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
 const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications'))
 const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
-const ManageBatches = lazy(() => import('./pages/admin/ManageBatches'))
-const ManageBatchStudents = lazy(() => import('./pages/admin/ManageBatchStudents'))
-const ManageBatchRequests = lazy(() => import('./pages/admin/ManageBatchRequests'))
 const ManageProfileForm = lazy(() => import('./pages/admin/ManageProfileForm'))
 const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
@@ -98,7 +94,7 @@ function ScrollToTop() {
   const { pathname } = useLocation()
   useEffect(() => {
     // Don't auto-scroll in dashboard (admin/student/basic)
-    const inDashboard = pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/basic') || pathname.startsWith('/student-initialization')
+    const inDashboard = pathname.startsWith('/admin') || pathname.startsWith('/student') || pathname.startsWith('/basic')
     if (!inDashboard) {
       window.scrollTo(0, 0)
     }
@@ -197,15 +193,11 @@ function AppContent() {
                   <Route path="/student-login" element={<StudentLogin />} />
                   <Route path="/admin-login" element={<AdminLogin />} />
 
-                  {/* Student Initialization holding page */}
-                  <Route path="/student-initialization" element={<ProtectedRoute role="student"><DashboardLayout type="initialization" /></ProtectedRoute>}>
-                    <Route index element={<StudentInitialization />} />
-                  </Route>
-
-                  {/* Student Routes — unified (basic + batch in one dashboard) */}
+                  {/* Student Routes */}
                   <Route path="/student" element={<ProtectedRoute role="student"><DashboardLayout type="student" /></ProtectedRoute>}>
                     <Route index element={<StudentDashboard />} />
-                    <Route path="buy-courses" element={<Navigate to="/student/courses" replace />} />
+                    <Route path="all-courses" element={<AllCourses />} />
+                    <Route path="buy-courses" element={<Navigate to="/student/all-courses" replace />} />
                     <Route path="courses" element={<StudentCourses />} />
                     <Route path="courses/:id" element={<CourseDetail />} />
                     <Route path="test-papers" element={<TestPapers />} />
@@ -222,21 +214,22 @@ function AppContent() {
                     <Route path="doubts" element={<StudentDoubts />} />
                     <Route path="mock-results" element={<StudentMockResults />} />
                     <Route path="profile" element={<StudentProfile />} />
-                    <Route path="basic-courses" element={<Navigate to="/student/courses" replace />} />
+                    <Route path="basic-courses" element={<Navigate to="/student/all-courses" replace />} />
                     <Route path="basic-courses/:id" element={<BasicCourseDetail />} />
-                    <Route path="upgrade-batch" element={<BatchUpgradeForm />} />
+                    <Route path="upgrade-batch" element={<Navigate to="/student" replace />} />
                   </Route>
 
-                  {/* /basic legacy redirects — keep old bookmarks alive */}
+                  {/* Legacy redirects */}
+                  <Route path="/student-initialization" element={<Navigate to="/student" replace />} />
                   <Route path="/basic" element={<Navigate to="/student" replace />} />
-                  <Route path="/basic/courses" element={<Navigate to="/student/basic-courses" replace />} />
+                  <Route path="/basic/courses" element={<Navigate to="/student/all-courses" replace />} />
                   <Route path="/basic/courses/:id" element={<BasicCourseRedirect />} />
                   <Route path="/basic/videos" element={<Navigate to="/student/videos" replace />} />
                   <Route path="/basic/test-papers" element={<Navigate to="/student/test-papers" replace />} />
                   <Route path="/basic/test-papers/downloadable" element={<Navigate to="/student/test-papers/downloadable" replace />} />
                   <Route path="/basic/test-papers/mock" element={<Navigate to="/student/test-papers/mock" replace />} />
                   <Route path="/basic/payment" element={<Navigate to="/student/payment" replace />} />
-                  <Route path="/basic/upgrade-batch" element={<Navigate to="/student/upgrade-batch" replace />} />
+                  <Route path="/basic/upgrade-batch" element={<Navigate to="/student" replace />} />
 
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout type="admin" /></ProtectedRoute>}>
@@ -251,9 +244,9 @@ function AppContent() {
                     <Route path="testimonials" element={<ManageTestimonials />} />
                     <Route path="achievements" element={<ManageAchievements />} />
                     <Route path="students" element={<ManageStudents />} />
-                    <Route path="batches" element={<ManageBatches />} />
-                    <Route path="batch-students" element={<ManageBatchStudents />} />
-                    <Route path="batch-requests" element={<ManageBatchRequests />} />
+                    <Route path="batches" element={<Navigate to="/admin" replace />} />
+                    <Route path="batch-students" element={<Navigate to="/admin/students" replace />} />
+                    <Route path="batch-requests" element={<Navigate to="/admin" replace />} />
                     <Route path="notices" element={<ManageNotices />} />
                     <Route path="gallery" element={<ManageGallery />} />
                     <Route path="payments" element={<ManagePayments />} />
@@ -306,7 +299,7 @@ function AppContent() {
               <OfferPopup />
             )}
             {/* Profile popup for active batch students who haven't filled profile */}
-            {!initialLoading && user && user.role === 'student' && user.batch && !user.profileCompleted && (
+            {!initialLoading && user && user.role === 'student' && !user.profileCompleted && (
               <ProfilePopup />
             )}
           </motion.div>

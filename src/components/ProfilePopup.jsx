@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion'
 import toast from 'react-hot-toast'
 
 const DEFAULT_FIELDS = [
-  { id: 'batchId', label: 'Batch / Class', type: 'batchSelect', required: true },
   { id: 'board', label: 'Board', type: 'boardSelect', required: false },
   { id: 'school', label: 'School / College', type: 'text', required: false },
   { id: 'phone', label: 'Your Phone', type: 'tel', required: true },
@@ -54,7 +53,7 @@ export default function ProfilePopup() {
   }, [])
 
   useEffect(() => {
-    if (!user || user.role !== 'student' || (!user.batch && user.batchStatus !== 'pending')) return
+    if (!user || user.role !== 'student') return
     // Show if profile not filled
     const hasProfile = user.profileCompleted
     if (!hasProfile) setShow(true)

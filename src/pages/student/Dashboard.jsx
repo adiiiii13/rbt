@@ -87,46 +87,6 @@ export default function StudentDashboard() {
         </div>
       )}
 
-      {user?.batchStatus === 'pending' && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between">
-          <div>
-            <h3 className="text-amber-400 font-bold mb-1">Batch Application Pending</h3>
-            <p className="text-sm text-amber-200/80">Your offline batch application is under review. RBT team will call you within 24h.</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-          </div>
-        </div>
-      )}
-
-      {user?.batchStatus === 'called' && (
-        <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
-          <h3 className="text-blue-400 font-bold mb-1">Application Under Review</h3>
-          <p className="text-sm text-blue-200/80">We have contacted you. Visit the institution to complete enrollment.</p>
-        </div>
-      )}
-
-      {user?.batchStatus === 'rejected' && (
-        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-          <h3 className="text-red-400 font-bold mb-1">Batch Application Rejected</h3>
-          <p className="text-sm text-red-200/80 mb-3">Your previous application was rejected. You can apply again with updated details.</p>
-          <Link to="/student/upgrade-batch" className="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-sm no-underline">
-            Apply Again
-          </Link>
-        </div>
-      )}
-
-      {!user?.batch && (!user?.batchStatus || user.batchStatus === 'none') && (
-        <div className="p-5 bg-linear-to-br from-green-brand/10 to-green-dark/5 rounded-2xl border border-green-brand/20 flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h3 className="text-white font-bold mb-1">Want Offline Batch Access?</h3>
-            <p className="text-sm text-slate-400">Apply for offline classroom batch — counselling, notices, full institutional access.</p>
-          </div>
-          <Link to="/student/upgrade-batch" className="px-5 py-2.5 bg-green-brand hover:bg-green-600 text-white font-bold rounded-xl text-sm no-underline">
-            Apply for Batch →
-          </Link>
-        </div>
-      )}
       {/* Welcome Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -143,21 +103,6 @@ export default function StudentDashboard() {
             <div>
               <h1 className="text-xl lg:text-2xl font-bold text-white">Welcome back, {user?.name || 'Student'}</h1>
               <p className="text-slate-400 text-sm">{user?.course || 'Enrolled Student'} • {user?.studentId || user?.id || ''}</p>
-              {user?.assignedBatchName && (
-                <div className="flex flex-wrap items-center gap-2 mt-1">
-                  <p className="text-emerald-400 text-sm font-medium">
-                    Batch / Class: {user.assignedBatchName} {user.assignedBatchCode ? `(${user.assignedBatchCode})` : ''}
-                  </p>
-                  {user.batchPaymentMode?.startsWith('offline-') && (
-                    <span className="badge badge-green text-[10px]">
-                      OFFLINE • {user.batchPaymentMode.replace('offline-', '').toUpperCase()}
-                    </span>
-                  )}
-                  {user.hasPaidBatchFee && (
-                    <span className="badge badge-blue text-[10px]">FEE PAID</span>
-                  )}
-                </div>
-              )}
             </div>
           </div>
         </div>

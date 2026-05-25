@@ -39,7 +39,6 @@ export default function StudentNotices() {
           <p className="text-slate-400 text-sm">
             {notices.length} notice{notices.length !== 1 ? 's' : ''}
             {user?.className ? ` • ${user.className}` : ''}
-            {user?.batch && user.batch !== true ? ` • ${user.batch}` : ''}
           </p>
         </div>
       </div>
