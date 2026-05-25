@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultCourses } from '../../data/courses';
@@ -10,6 +10,9 @@ const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: Gradu
 export default function BasicCourses() {
   const [activeTab, setActiveTab] = useState('all');
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const location = useLocation();
+  const linkPrefix = location.pathname.startsWith('/student') ? '/student/basic-courses' : '/basic/courses';
+
   const allCourses = (coursesRaw?.length ? coursesRaw : defaultCourses);
   const courses = allCourses.filter(c => {
     if (activeTab === 'basic') return !c.courseType || c.courseType === 'basic';
@@ -85,7 +88,7 @@ export default function BasicCourses() {
                 transition={{ delay: idx * 0.05, duration: 0.3 }}
               >
                 <Link
-                  to={`/basic/courses/${c.id}`}
+                  to={`${linkPrefix}/${c.id}`}
                   className="bg-[#111111] rounded-2xl p-6 border border-slate-800 hover:border-green-brand/30 transition-all no-underline flex flex-col h-full group"
                 >
                   <div

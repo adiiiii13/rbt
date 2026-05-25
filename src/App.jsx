@@ -85,7 +85,7 @@ const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role, batch }) {
-  const { user, loading } = useAuth()
+  const { user, loading, sessionMode } = useAuth()
   const location = useLocation()
   if (loading) return <LoadingScreen />
   if (!user) {
@@ -93,6 +93,21 @@ function ProtectedRoute({ children, role, batch }) {
     return <Navigate to={dest} replace state={{ from: location.pathname + location.search }} />
   }
   if (role && user.role !== role) return <Navigate to="/" replace />
+
+  // Session mode enforcement: prevent cross-dashboard navigation
+  if (user.role === 'student' && sessionMode) {
+    // If logged in as basic mode but trying to access batch routes
+    if (sessionMode === 'basic' && batch) {
+      return <Navigate to="/basic" replace />
+    }
+    // If logged in as batch mode but trying to access basic routes (except basic-courses inside batch dashboard)
+    if (sessionMode === 'batch' && !batch && location.pathname.startsWith('/basic')) {
+      if (user.batch || (user.batchStatus === 'approved' && user.hasPaidBatchFee)) {
+        return <Navigate to="/student" replace />
+      }
+      return <Navigate to="/student-initialization" replace />
+    }
+  }
 
   // Force pending batch students, and approved students who haven't paid yet, to the initialization page (unless they are accessing the basic dashboard)
   if (user.role === 'student' && (['pending', 'revoked'].includes(user.batchStatus) || (user.batchStatus === 'approved' && !user.batch && !user.hasPaidBatchFee)) && location.pathname !== '/student-initialization' && !location.pathname.startsWith('/basic')) {
@@ -227,6 +242,8 @@ function AppContent() {
                     <Route path="doubts" element={<StudentDoubts />} />
                     <Route path="mock-results" element={<StudentMockResults />} />
                     <Route path="profile" element={<StudentProfile />} />
+                    <Route path="basic-courses" element={<BasicCourses />} />
+                    <Route path="basic-courses/:id" element={<BasicCourseDetail />} />
                   </Route>
 
                   {/* Basic Routes (limited access) */}

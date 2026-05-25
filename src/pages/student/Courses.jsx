@@ -18,7 +18,7 @@ export default function StudentCourses() {
   const enrolledCourseIds = new Set((enrollments || []).map(e => e.courseId));
 
   const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => 
-    c.courseType === 'batch' && enrolledCourseIds.has(c.id)
+    enrolledCourseIds.has(c.id)
   );
 
   return (

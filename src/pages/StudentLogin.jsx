@@ -14,7 +14,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
   const [password, setPassword] = useState('');
   const [batchCode, setBatchCode] = useState(''); // New state for Batch Code
   const [upgradeConfirm, setUpgradeConfirm] = useState(false); // New state for confirmation
-  const { loginWithGoogle, loginStudent, upgradeToBatch } = useAuth();
+  const { loginWithGoogle, loginStudent, upgradeToBatch, setSessionMode } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -32,6 +32,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
       if (result.success) {
         if (onClose) onClose();
         const isBatchFlow = result.user?.batch || ['pending', 'approved', 'revoked'].includes(result.user?.batchStatus);
+        setSessionMode(isBatch ? 'batch' : 'basic');
         const dest = isBatchFlow ? '/student-initialization' : '/basic';
         navigate(dest, { replace: true });
       } else if (result.requireUpgrade) {
@@ -60,6 +61,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
       if (result.success) {
         if (onClose) onClose();
         const isBatchFlow = result.user?.batch || ['pending', 'approved', 'revoked'].includes(result.user?.batchStatus);
+        setSessionMode(isBatch ? 'batch' : 'basic');
         const dest = isBatchFlow ? '/student-initialization' : '/basic';
         navigate(dest, { replace: true });
       } else if (result.requireUpgrade) {
@@ -81,6 +83,7 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
       setIsLoading(false);
       if (res.success) {
         if (onClose) onClose();
+        setSessionMode('batch');
         navigate('/student-initialization', { replace: true });
       } else {
         setError(res.message);

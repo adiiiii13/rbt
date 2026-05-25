@@ -25,7 +25,7 @@ export default function StudentDashboard() {
   const { data: allPdfsRaw } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
   const { data: allNoticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices })
   const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c =>
-    c.courseType === 'batch' && c.batchId === user?.batchId
+    c.courseType === 'batch' && c.batchId === user?.assignedBatchId
   )
   const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
   const allNotices = allNoticesRaw?.length ? allNoticesRaw : defaultNotices

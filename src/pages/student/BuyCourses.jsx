@@ -10,7 +10,7 @@ export default function StudentBuyCourses() {
   const { user } = useAuth();
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
   const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => 
-    c.courseType === 'batch' && c.batchId === user?.batchId
+    c.courseType === 'batch' && c.batchId === user?.assignedBatchId
   );
   return (
     <div>

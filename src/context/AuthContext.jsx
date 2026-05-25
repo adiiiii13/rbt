@@ -69,7 +69,27 @@ async function buildUserFromToken(firebaseUser) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [sessionMode, setSessionModeState] = useState(() => localStorage.getItem('rbt_session_mode') || null)
   const isAuthActionInProgress = useRef(false)
+
+  const setSessionMode = (mode) => {
+    if (mode) {
+      localStorage.setItem('rbt_session_mode', mode)
+    } else {
+      localStorage.removeItem('rbt_session_mode')
+    }
+    setSessionModeState(mode)
+  }
+
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === 'rbt_session_mode') {
+        setSessionModeState(e.newValue);
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   useEffect(() => {
     let docUnsub = null;
@@ -303,13 +323,14 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const upgradeToBatch = async () => {
-    if (!user) return { success: false, message: 'No user logged in' };
+  const upgradeToBatch = async (userId = null) => {
+    const targetUid = userId || user?.uid;
+    if (!targetUid) return { success: false, message: 'No user logged in' };
     isAuthActionInProgress.current = true;
     try {
-      const studentRef = doc(db, 'students', user.uid);
+      const studentRef = doc(db, 'students', targetUid);
       await updateDoc(studentRef, { batchStatus: 'pending' });
-      setUser(prev => ({ ...prev, batchStatus: 'pending' }));
+      setUser(prev => prev ? { ...prev, batchStatus: 'pending' } : prev);
       return { success: true };
     } catch (err) {
       return { success: false, message: err.message };
@@ -323,6 +344,7 @@ export function AuthProvider({ children }) {
     try {
       await signOut(auth);
       setUser(null);
+      setSessionMode(null);
     } catch (err) {
       console.error('Logout error', err);
     } finally {
@@ -332,7 +354,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, loginStudent, loginAdmin, loginWithGoogle, signupStudent, resetPassword, logout, upgradeToBatch }}
+      value={{ user, loading, sessionMode, setSessionMode, loginStudent, loginAdmin, loginWithGoogle, signupStudent, resetPassword, logout, upgradeToBatch }}
     >
       {children}
     </AuthContext.Provider>

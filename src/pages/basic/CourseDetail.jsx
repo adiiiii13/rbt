@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -12,7 +12,10 @@ import toast from 'react-hot-toast';
 export default function BasicCourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, upgradeToBatch } = useAuth();
+  
+  const backLink = location.pathname.startsWith('/student') ? '/student/basic-courses' : '/basic/courses';
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -280,7 +283,7 @@ export default function BasicCourseDetail() {
     if (flatItems.length === 0) {
       return (
         <div>
-          <Link to="/basic/courses" className="text-slate-400 hover:text-white text-sm mb-4 inline-block no-underline">← Back to Courses</Link>
+          <Link to={backLink} className="text-slate-400 hover:text-white text-sm mb-4 inline-block no-underline">← Back to Courses</Link>
           <div className="bg-white/5 border border-white/10 rounded-2xl p-8 text-center mt-6">
             <h2 className="text-2xl font-bold text-white mb-2">You are enrolled! 🎉</h2>
             <p className="text-slate-400">Content for this course will be uploaded soon. Check back later.</p>
@@ -291,7 +294,7 @@ export default function BasicCourseDetail() {
 
     return (
       <div>
-        <Link to="/basic/courses" className="text-slate-400 hover:text-white text-sm mb-4 inline-block no-underline">← Back to Courses</Link>
+        <Link to={backLink} className="text-slate-400 hover:text-white text-sm mb-4 inline-block no-underline">← Back to Courses</Link>
         <div className="grid lg:grid-cols-[1fr_320px] gap-6">
           <div>
             {item ? (
@@ -389,7 +392,7 @@ export default function BasicCourseDetail() {
         </div>
       )}
 
-      <Link to="/basic/courses" className="text-slate-400 hover:text-white text-sm mb-6 inline-block no-underline">← Back to Courses</Link>
+      <Link to={backLink} className="text-slate-400 hover:text-white text-sm mb-6 inline-block no-underline">← Back to Courses</Link>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="grid lg:grid-cols-[1fr_360px] gap-8">
         <div>
@@ -488,7 +491,7 @@ export default function BasicCourseDetail() {
 
             <button
               onClick={handleBuy}
-              disabled={(!course.isFree && !selectedVariant) || buying}
+              disabled={(!course.isFree && !selectedVariant) || buying || (course.courseType === 'batch' && user?.batchStatus === 'pending')}
               className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
             >
               {buying ? (
@@ -496,6 +499,8 @@ export default function BasicCourseDetail() {
                   <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.4" strokeLinecap="round" /></svg>
                   Processing...
                 </>
+              ) : course.courseType === 'batch' && !user?.batch ? (
+                user?.batchStatus === 'pending' ? 'Upgrade Pending Approval' : 'Upgrade to Batch Access'
               ) : course.isFree ? (
                 'Free, enroll now'
               ) : selectedVariant ? (
