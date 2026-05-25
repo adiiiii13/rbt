@@ -1,7 +1,8 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { GridSkeleton } from '../../components/ui/Skeleton';
 import { motion } from 'framer-motion';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
+import { getCollectionWhere } from '../../lib/firebaseHelpers';
 import HlsPlayer from '../../components/HlsPlayer';
 import { useAuth } from '../../context/AuthContext';
 
@@ -39,6 +40,24 @@ export default function StudyMaterial() {
   const [crumbs, setCrumbs] = useState([{ id: null, name: 'Study Material' }]);
   const [previewItem, setPreviewItem] = useState(null);
   const [tab, setTab] = useState('free');
+  const [hasPaidAccess, setHasPaidAccess] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    if (user.batch === true || user.assignedBatchId) {
+      setHasPaidAccess(true);
+      return;
+    }
+    let alive = true;
+    getCollectionWhere('enrollments', 'uid', '==', user.uid)
+      .then(enrolls => {
+        if (alive && enrolls && enrolls.length > 0) {
+          setHasPaidAccess(true);
+        }
+      })
+      .catch(console.error);
+    return () => { alive = false; };
+  }, [user]);
 
   // Determine isFree for an item: folder inherits when any child marked, but explicit flag wins.
   const isItemFree = (it) => it?.isFree === true;
@@ -159,20 +178,22 @@ export default function StudyMaterial() {
         <>
           <div className="text-xs uppercase text-slate-500 font-bold mb-2">Files ({files.length})</div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {files.map((file, idx) => (
+            {files.map((file, idx) => {
+              const isLocked = !isItemFree(file) && !hasPaidAccess;
+              return (
               <motion.button
                 key={file.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
                 onClick={() => {
-                  if (!isItemFree(file)) {
-                    alert('Paid content — requires enrollment.');
+                  if (isLocked) {
+                    alert('Paid content — requires enrollment in a batch or course.');
                     return;
                   }
                   setPreviewItem(file);
                 }}
-                className={`text-left rounded-xl border overflow-hidden hover:scale-105 transition-all ${COLORS[file.type] || COLORS.video} ${!isItemFree(file) ? 'opacity-70' : ''}`}
+                className={`text-left rounded-xl border overflow-hidden hover:scale-105 transition-all ${COLORS[file.type] || COLORS.video} ${isLocked ? 'opacity-70' : ''}`}
               >
                 {(() => {
                   const thumb = getThumbnail(file);
@@ -193,7 +214,7 @@ export default function StudyMaterial() {
                   {file.subject && <div className="text-xs opacity-70 mt-1">{file.subject}</div>}
                 </div>
               </motion.button>
-            ))}
+            )})}
           </div>
         </>
       )}

@@ -10,11 +10,12 @@ import ExportButton from '../../components/ExportButton'
 
 const AUDIENCES = [
   { id: 'all', label: '📢 All Students', desc: 'Every student sees this' },
-  { id: 'batch', label: '📚 Specific Batch/Class', desc: 'Only students from one batch/class' },
+  { id: 'class', label: '🎓 Specific Class', desc: 'Only students from one class (e.g. Class 10)' },
+  { id: 'batch', label: '📚 Specific Batch', desc: 'Only students from one specific batch' },
   { id: 'specific', label: '👤 Specific Students', desc: 'Hand-picked recipients' },
 ]
 
-
+const CLASS_OPTIONS = ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Dropper']
 
 const emptyForm = {
   title: '', content: '', priority: 'medium', category: 'General',
@@ -22,7 +23,7 @@ const emptyForm = {
 }
 
 export default function ManageNotices() {
-  const { data: noticesRaw, loading } = useRealtimeCollection('notices', { fallback: defaultNotices })
+  const { data: noticesRaw, loading } = useRealtimeCollection('notices', { fallback: [] })
   const notices = noticesRaw?.length ? noticesRaw : defaultNotices
   const { data: students } = useRealtimeCollection('students', { fallback: [] })
   const { data: batchesList } = useRealtimeCollection('batches', { fallback: [] })
@@ -40,13 +41,18 @@ export default function ManageNotices() {
 
   const targetStudents = useMemo(() => {
     if (form.audience === 'all') return students
+    if (form.audience === 'class') return students.filter(s => (s.class || s.className) === form.targetClass)
     if (form.audience === 'batch') return students.filter(s => s.batchId === form.targetBatch || s.assignedBatchId === form.targetBatch)
     if (form.audience === 'specific') return students.filter(s => form.targetStudentIds.includes(s.id || s.uid))
     return []
-  }, [form.audience, form.targetBatch, form.targetStudentIds, students])
+  }, [form.audience, form.targetBatch, form.targetClass, form.targetStudentIds, students])
 
   const save = async () => {
     if (!form.title || !form.content) { toast.error('Title and content required'); return }
+    if (form.audience === 'class' && !form.targetClass) { toast.error('Please select a class'); return }
+    if (form.audience === 'batch' && !form.targetBatch) { toast.error('Please select a batch'); return }
+    if (form.audience === 'specific' && !form.targetStudentIds.length) { toast.error('Please select at least one student'); return }
+
     try {
       if (editing) {
         await updateDocument('notices', editing.id, form)
@@ -55,9 +61,10 @@ export default function ManageNotices() {
         await addDocument('notices', { ...form, date: new Date().toISOString().split('T')[0], createdAt: new Date() })
         toast.success('Published')
 
-        // Send notification to targeted students
-        if (form.audience !== 'all') {
-          await Promise.all(targetStudents.slice(0, 100).map(s => addDocument('notifications', {
+        // Send notification to targeted students (up to 500)
+        const recipients = targetStudents.slice(0, 500)
+        if (recipients.length > 0) {
+          await Promise.all(recipients.map(s => addDocument('notifications', {
             studentUid: s.id || s.uid,
             studentName: s.name || '',
             subject: `Notice: ${form.title}`,
@@ -66,7 +73,7 @@ export default function ManageNotices() {
             read: false,
             createdAt: new Date(),
           })))
-          toast.success(`Sent to ${Math.min(targetStudents.length, 100)} student(s)`)
+          toast.success(`Sent to ${recipients.length} student(s)`)
         }
       }
       closeModal()
@@ -145,25 +152,35 @@ export default function ManageNotices() {
           {/* Audience */}
           <div>
             <label className="text-sm font-medium text-slate-300 mb-2 block">Send To</label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {AUDIENCES.map(a => (
                 <button key={a.id} onClick={() => setForm({...form, audience: a.id, targetClass: '', targetBatch: '', targetStudentIds: [] })}
                   className={`p-3 rounded-xl text-left cursor-pointer transition-all ${form.audience === a.id ? 'bg-green-brand/15 border-2 border-green-brand' : 'bg-white/5 border-2 border-transparent'}`}>
-                  <p className="text-white text-sm font-bold">{a.label}</p>
-                  <p className="text-xs text-slate-400">{a.desc}</p>
+                  <p className="text-white text-[10px] font-bold">{a.label}</p>
                 </button>
               ))}
             </div>
           </div>
 
+          {form.audience === 'class' && (
+            <div>
+              <label className="text-sm font-medium text-slate-300 mb-1 block">Select Class</label>
+              <select className="input-field" value={form.targetClass} onChange={e => setForm({...form, targetClass: e.target.value})}>
+                <option value="">Pick Class...</option>
+                {CLASS_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {form.targetClass && <p className="text-xs text-green-brand mt-1">{targetStudents.length} student(s) in this class</p>}
+            </div>
+          )}
+
           {form.audience === 'batch' && (
             <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">Select Batch/Class</label>
+              <label className="text-sm font-medium text-slate-300 mb-1 block">Select Batch</label>
               <select className="input-field" value={form.targetBatch} onChange={e => setForm({...form, targetBatch: e.target.value})}>
-                <option value="">Pick Batch/Class...</option>
-                {batchesList.map(b => <option key={b.id} value={b.id}>{b.className || b.name}</option>)}
+                <option value="">Pick Batch...</option>
+                {batchesList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
-              {form.targetBatch && <p className="text-xs text-green-brand mt-1">{targetStudents.length} student(s) in this batch/class</p>}
+              {form.targetBatch && <p className="text-xs text-green-brand mt-1">{targetStudents.length} student(s) in this batch</p>}
             </div>
           )}
 

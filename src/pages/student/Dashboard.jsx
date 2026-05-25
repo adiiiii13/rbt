@@ -76,7 +76,14 @@ export default function StudentDashboard() {
       if (!alive) return
       setPayments(pay)
       setBookings(book)
-      setMyNotifications(notifs.filter(n => !n.read).slice(0, 5))
+      setMyNotifications(notifs
+        .filter(n => !n.read)
+        .sort((a, b) => {
+          const ta = a.createdAt?.toMillis?.() || a.createdAt?.seconds || 0;
+          const tb = b.createdAt?.toMillis?.() || b.createdAt?.seconds || 0;
+          return tb - ta;
+        })
+        .slice(0, 5))
     }).catch(console.error)
     return () => { alive = false }
   }, [user])

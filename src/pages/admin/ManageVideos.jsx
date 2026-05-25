@@ -11,8 +11,7 @@ import ExportButton from '../../components/ExportButton'
 const emptyForm = { title: '', subject: '', class: 'Class 11', duration: '', teacher: '', videoUrl: '', thumbnailUrl: '', isFree: true, price: 0 }
 
 export default function ManageVideos() {
-  const { data: videosRaw, loading } = useRealtimeCollection('videos', { fallback: defaultVideos })
-  const videos = videosRaw?.length ? videosRaw : defaultVideos
+  const { data: videos, loading } = useRealtimeCollection('videos', { fallback: [] })
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)

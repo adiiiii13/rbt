@@ -11,8 +11,7 @@ import ExportButton from '../../components/ExportButton';
 const emptyForm = { name: '', role: '', text: '', rating: 5, type: 'student' };
 
 export default function ManageTestimonials() {
-  const { data: itemsRaw, loading } = useRealtimeCollection('testimonials', { fallback: defaultTestimonials });
-  const items = itemsRaw?.length ? itemsRaw : defaultTestimonials;
+  const { data: items, loading } = useRealtimeCollection('testimonials', { fallback: [] });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);

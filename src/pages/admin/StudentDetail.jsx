@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { updateDocument, addDocument, deleteDocument } from '../../lib/firebaseHelpers';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
@@ -174,12 +174,12 @@ export default function StudentDetail() {
     if (!course) return;
     setBusy(true);
     try {
-      await addDoc(collection(db, 'enrollments'), {
+      await addDocument('enrollments', {
         uid: studentId,
         courseId: grantCourseId,
         courseTitle: course.title || '',
         status: 'active',
-        enrolledAt: serverTimestamp(),
+        enrolledAt: new Date().toISOString(),
         grantedByAdmin: true,
         studentName: student.name || '',
         studentEmail: student.email || '',
