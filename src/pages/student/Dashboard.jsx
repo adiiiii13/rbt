@@ -29,14 +29,24 @@ export default function StudentDashboard() {
   })
   const enrolledIds = new Set((enrollments || []).map(e => e.courseId))
   const isBatchStudent = user?.batch === true
-  const manualCourseTitle = user?.course?.trim().toLowerCase()
+  const manualCourseTitle = user?.course?.trim();
+  const matchedManualCourse = manualCourseTitle ? (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).find(c => c.title.toLowerCase() === manualCourseTitle.toLowerCase()) : null;
 
   const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c => {
     if (enrolledIds.has(c.id)) return true;
     if (isBatchStudent && c.courseType === 'batch') return true;
-    if (manualCourseTitle && c.title.toLowerCase() === manualCourseTitle) return true;
+    if (matchedManualCourse && c.id === matchedManualCourse.id) return true;
     return false;
   })
+
+  if (manualCourseTitle && !matchedManualCourse) {
+    allCourses.unshift({
+      id: 'manual-offline-batch',
+      title: user.course.trim(),
+      description: 'Offline Batch / Manual Enrollment',
+      isOffline: true
+    });
+  }
   const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
   const allNotices = allNoticesRaw?.length ? allNoticesRaw : defaultNotices
   const courses = allCourses.slice(0, 4)

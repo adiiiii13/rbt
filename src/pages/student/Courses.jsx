@@ -17,14 +17,28 @@ export default function StudentCourses() {
   
   const enrolledCourseIds = new Set((enrollments || []).map(e => e.courseId));
   const isBatchStudent = user?.batch === true;
-  const manualCourseTitle = user?.course?.trim().toLowerCase();
+  const manualCourseTitle = user?.course?.trim();
+  const matchedManualCourse = manualCourseTitle ? (coursesRaw?.length ? coursesRaw : defaultCourses).find(c => c.title.toLowerCase() === manualCourseTitle.toLowerCase()) : null;
 
   const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => {
     if (enrolledCourseIds.has(c.id)) return true;
     if (isBatchStudent && c.courseType === 'batch') return true;
-    if (manualCourseTitle && c.title.toLowerCase() === manualCourseTitle) return true;
+    if (matchedManualCourse && c.id === matchedManualCourse.id) return true;
     return false;
   });
+
+  if (manualCourseTitle && !matchedManualCourse) {
+    courses.unshift({
+      id: 'manual-offline-batch',
+      title: user.course.trim(),
+      description: 'Offline Batch / Manual Enrollment',
+      subjects: [],
+      duration: 'Ongoing',
+      image: 'Users',
+      students: 'N/A',
+      isOffline: true
+    });
+  }
 
   return (
     <div>
@@ -47,8 +61,9 @@ export default function StudentCourses() {
           return (
             <Link
               key={c.id}
-              to={`/student/courses/${c.id}`}
-              className="bg-[#111111] rounded-2xl p-6 border border-slate-800 hover:border-green-brand/30 transition-all no-underline flex flex-col"
+              to={c.isOffline ? "#" : `/student/courses/${c.id}`}
+              onClick={(e) => { if (c.isOffline) e.preventDefault(); }}
+              className={`bg-[#111111] rounded-2xl p-6 border border-slate-800 hover:border-green-brand/30 transition-all flex flex-col ${c.isOffline ? 'cursor-default' : 'no-underline'}`}
             >
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{ background: `${c.color || '#3b82f6'}15`, color: c.color || '#3b82f6' }}>
                 <IconComponent size={20} />
@@ -66,7 +81,7 @@ export default function StudentCourses() {
               </div>
               <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
                 <span className="text-green-brand font-bold text-sm">Enrolled</span>
-                <span className="text-xs text-white">Access Course →</span>
+                <span className="text-xs text-white">{c.isOffline ? 'Offline Batch' : 'Access Course →'}</span>
               </div>
             </Link>
           );
