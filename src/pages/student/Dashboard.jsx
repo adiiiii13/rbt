@@ -44,7 +44,7 @@ export default function StudentDashboard() {
     let alive = true
     const uid = user.uid || user.id || ''
     Promise.all([
-      getCollectionWhere('payments', 'uid', '==', uid),
+      getCollectionWhere('payments', 'studentId', '==', user.studentId || user.id || ''),
       getCollectionWhere('counsellingBookings', 'studentName', '==', user.name || ''),
       getCollectionWhere('notifications', 'studentUid', '==', uid),
     ]).then(([pay, book, notifs]) => {

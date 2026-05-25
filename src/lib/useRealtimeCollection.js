@@ -76,6 +76,10 @@ export function useRealtimeCollection(name, opts = {}) {
             const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }))
             setData(rows)
             setLoading(false)
+          }, (err2) => {
+            console.error(`[useRealtimeCollection] fallback failed for ${name}:`, err2)
+            setError(err2)
+            setLoading(false)
           })
           return unsub2
         }

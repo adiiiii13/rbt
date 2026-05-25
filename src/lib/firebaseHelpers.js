@@ -46,9 +46,14 @@ export async function deleteDocument(collectionName, id) {
 }
 
 export async function getCollectionWhere(collectionName, field, op, value) {
-  const q = query(collection(db, collectionName), where(field, op, value))
-  const snapshot = await getDocs(q)
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  try {
+    const q = query(collection(db, collectionName), where(field, op, value))
+    const snapshot = await getDocs(q)
+    return snapshot.docs.map(d => ({ id: d.id, ...d.data() }))
+  } catch (err) {
+    console.error(`[getCollectionWhere] failed for ${collectionName}:`, err)
+    throw err
+  }
 }
 
 // ─── Storage ───
