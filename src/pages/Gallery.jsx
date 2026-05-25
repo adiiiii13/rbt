@@ -14,33 +14,18 @@ const itemVariants = {
   show: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 120, damping: 14 } }
 };
 
-const defaultImages = [
-  { id: 'd1', title: "Administration & Faculty", category: "Facilities", imageUrl: "/Images/Image-2.webp" },
-  { id: 'd2', title: "Campus Infrastructure", category: "Campus", imageUrl: "/Images/Image-1.webp" },
-  { id: 'd3', title: "Students studying", category: "Campus", imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=800&auto=format&fit=crop" },
-  { id: 'd4', title: "Science lab", category: "Labs", imageUrl: "https://images.unsplash.com/photo-1577896851231-70ef18881754?q=80&w=800&auto=format&fit=crop" },
-  { id: 'd5', title: "Graduation", category: "Events", imageUrl: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?q=80&w=800&auto=format&fit=crop" },
-  { id: 'd6', title: "Classroom", category: "Campus", imageUrl: "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=800&auto=format&fit=crop" },
-  { id: 'd7', title: "Tech lab", category: "Labs", imageUrl: "https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?q=80&w=800&auto=format&fit=crop" },
-  { id: 'd8', title: "Campus event", category: "Events", imageUrl: "https://images.unsplash.com/photo-1511629091441-ee46146481b6?q=80&w=800&auto=format&fit=crop" },
-];
-
 export default function Gallery() {
-  const { data: firestoreImages } = useRealtimeCollection('gallery');
+  const { data: images } = useRealtimeCollection('gallery');
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeCategory, setActiveCategory] = useState("All");
 
-  // Merge: Firestore images first, then defaults (skip duplicates)
-  const fsIds = new Set(firestoreImages.map(i => i.id));
-  const allImages = [...firestoreImages, ...defaultImages.filter(d => !fsIds.has(d.id))];
-
   // Build categories from all images
-  const allCategories = [...new Set(allImages.map(i => i.category).filter(Boolean))];
+  const allCategories = [...new Set(images.map(i => i.category).filter(Boolean))];
   const categories = ["All", ...allCategories];
 
   const filteredImages = activeCategory === "All"
-    ? allImages
-    : allImages.filter(img => img.category === activeCategory);
+    ? images
+    : images.filter(img => img.category === activeCategory);
 
   return (
     <div className="bg-black min-h-screen relative">
