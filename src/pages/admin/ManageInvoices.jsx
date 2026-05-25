@@ -50,6 +50,49 @@ export default function ManageInvoices() {
     return g
   }, [groups, filterStudent, filterStatus])
 
+  const fixOldInvoices = async () => {
+    try {
+      const invoicesToFix = invoices.filter(i => !i.studentEmail || !i.studentUid);
+      if (invoicesToFix.length === 0) {
+        toast.success("No old invoices need fixing!");
+        return;
+      }
+      
+      const studentMap = {};
+      students.forEach(s => {
+        if (s.id) studentMap[s.id] = s;
+        if (s.studentId) studentMap[s.studentId] = s;
+      });
+
+      let fixedCount = 0;
+      for (const inv of invoicesToFix) {
+        // Try matching by uid, studentId, or email
+        let matchedStudent = null;
+        if (inv.studentUid && studentMap[inv.studentUid]) matchedStudent = studentMap[inv.studentUid];
+        else if (inv.studentId && studentMap[inv.studentId]) matchedStudent = studentMap[inv.studentId];
+        else {
+          // match by email or name if possible
+          matchedStudent = students.find(s => 
+            (inv.studentEmail && s.email === inv.studentEmail) || 
+            (inv.studentName && s.name === inv.studentName)
+          );
+        }
+
+        if (matchedStudent) {
+          await updateDocument('invoices', inv.id, {
+            studentEmail: matchedStudent.email || '',
+            studentUid: matchedStudent.id || '',
+            studentId: matchedStudent.studentId || ''
+          });
+          fixedCount++;
+        }
+      }
+      toast.success(`Fixed ${fixedCount} old invoices!`);
+    } catch (e) {
+      toast.error(e.message || "Failed to fix invoices");
+    }
+  }
+
   const createInvoice = async () => {
     if (!form.studentUid) { toast.error('Student required'); return }
     
@@ -217,6 +260,9 @@ export default function ManageInvoices() {
           <p className="text-sm text-slate-400">{invoices.length} invoices · {groups.length} student{groups.length !== 1 ? 's' : ''}</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={fixOldInvoices} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition-colors hidden md:block">
+            Fix Old Records
+          </button>
           <ExportButton data={invoices} filename="invoices" columns={[
             { key: 'invoiceNumber', label: 'Invoice #' },
             { key: 'studentName', label: 'Student' },

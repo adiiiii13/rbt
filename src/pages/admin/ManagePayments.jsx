@@ -72,6 +72,36 @@ export default function ManagePayments() {
     setIsEditRevenueModalOpen(true);
   }
 
+  const fixOldPayments = async () => {
+    try {
+      const paymentsToFix = payments.filter(p => !p.studentEmail || !p.uid);
+      if (paymentsToFix.length === 0) {
+        toast.success("No old payments need fixing!");
+        return;
+      }
+      
+      const studentMap = {};
+      students.forEach(s => {
+        if (s.studentId) studentMap[s.studentId] = s;
+      });
+
+      let fixedCount = 0;
+      for (const p of paymentsToFix) {
+        if (p.studentId && studentMap[p.studentId]) {
+          const s = studentMap[p.studentId];
+          await updateDocument('payments', p.id, {
+            studentEmail: s.email || '',
+            uid: s.id || ''
+          });
+          fixedCount++;
+        }
+      }
+      toast.success(`Fixed ${fixedCount} old payments!`);
+    } catch (e) {
+      toast.error(e.message || "Failed to fix payments");
+    }
+  }
+
   const saveRevenue = async () => {
     try {
       if (revenueInput.trim() === '') {
@@ -113,6 +143,9 @@ export default function ManagePayments() {
           <p className="text-sm text-slate-400">Transactions and Dues</p>
         </div>
         <div className="flex gap-3">
+          <button onClick={fixOldPayments} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition-colors hidden md:block">
+            Fix Old Records
+          </button>
           {activeTab === 'dues' ? (
             <button onClick={() => setIsInvoiceModalOpen(true)} className="btn-primary flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
