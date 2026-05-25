@@ -21,8 +21,7 @@ const ytId = (url) => {
 const ytThumb = (url) => { const id = ytId(url); return id ? `https://i.ytimg.com/vi/${id}/hqdefault.jpg` : '' }
 
 export default function ManageCourses() {
-  const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses })
-  const courses = coursesRaw?.length ? coursesRaw : defaultCourses
+  const { data: courses, loading } = useRealtimeCollection('courses', { fallback: [] })
   
   const { data: testsRaw } = useRealtimeCollection('mock_tests', { fallback: [] })
   const { data: seriesRaw } = useRealtimeCollection('test_series', { fallback: [] })

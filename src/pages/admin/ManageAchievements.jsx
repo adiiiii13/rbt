@@ -11,8 +11,7 @@ import ExportButton from '../../components/ExportButton';
 const emptyForm = { studentName: '', course: '', result: '', year: '2025', description: '', marks: '' };
 
 export default function ManageAchievements() {
-  const { data: itemsRaw, loading } = useRealtimeCollection('achievements', { fallback: defaultAchievements });
-  const items = itemsRaw?.length ? itemsRaw : defaultAchievements;
+  const { data: items, loading } = useRealtimeCollection('achievements', { fallback: [] });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);

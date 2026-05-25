@@ -21,8 +21,7 @@ const normalizeUrl = (url) => {
 const fmtSize = (b) => !b ? '' : b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : (b / 1024).toFixed(1) + ' KB';
 
 export default function ManagePdfs() {
-  const { data: pdfsRaw, loading } = useRealtimeCollection('pdfs', { fallback: defaultPdfs });
-  const pdfs = pdfsRaw?.length ? pdfsRaw : defaultPdfs;
+  const { data: pdfs, loading } = useRealtimeCollection('pdfs', { fallback: [] });
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
