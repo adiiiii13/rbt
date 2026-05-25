@@ -264,8 +264,8 @@ export default function StudentDashboard() {
                 {payments.slice(0, 3).map((p) => (
                   <div key={p.id} className="flex items-center justify-between p-3 rounded-xl bg-white/3 border border-white/6">
                     <div className="truncate mr-2">
-                      <p className="text-sm text-white truncate">{p.videoTitle}</p>
-                      <p className="text-xs text-slate-500">{p.invoiceNumber}</p>
+                      <p className="text-sm text-white truncate">{p.videoTitle || p.courseTitle || p.courseName || p.description || 'Course Purchase'}</p>
+                      <p className="text-xs text-slate-500">{p.invoiceNumber || p.paymentId || p.id}</p>
                     </div>
                     <span className={`badge text-xs shrink-0 ${p.status === 'verified' ? 'badge-green' : p.status === 'pending' ? 'badge-gold' : 'badge-red'}`}>
                       {p.status}

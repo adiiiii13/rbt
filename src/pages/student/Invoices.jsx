@@ -53,8 +53,8 @@ export default function Invoices() {
     ...payments.filter(p => !p.invoiceNumber && p.type !== 'razorpay_invoice_webhook' && p.type !== 'razorpay_invoice').map(p => ({
       id: p.id,
       kind: 'payment',
-      invoiceNumber: p.invoiceNumber,
-      title: p.videoTitle,
+      invoiceNumber: p.invoiceNumber || p.paymentId || p.id,
+      title: p.videoTitle || p.courseTitle || p.courseName || p.description || 'Course Purchase',
       subtitle: p.method === 'razorpay' ? 'Razorpay' : 'UPI',
       amount: p.amount,
       date: formatDateTime(p.paidAt || p.createdAt || '—'),
