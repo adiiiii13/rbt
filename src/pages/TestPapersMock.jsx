@@ -323,14 +323,33 @@ export default function TestPapersMock() {
                             {cat.label}
                           </span>
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasAccess ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                            {test.testType === 'live' && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20">LIVE</span>}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${hasAccess ? 'bg-green-500/10 text-green-400 border border-green-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}`}>
                               {hasAccess ? 'Unlocked' : (isPaid ? `₹${test.price}` : 'Free')}
                             </span>
                           </div>
                         </div>
 
                         <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{test.title}</h3>
-                        <p className="text-sm text-slate-400 mb-4 line-clamp-2">{test.description}</p>
+                        {test.description && <p className="text-sm text-slate-400 mb-2 line-clamp-2">{test.description}</p>}
+
+                        {test.testType === 'live' && test.liveStartTime && test.liveEndTime && (
+                          <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-2.5 mb-3 mt-1">
+                            <div className="flex items-center gap-1.5 text-red-400 text-[10px] font-bold mb-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                              LIVE TEST SCHEDULE
+                            </div>
+                            <div className="text-[10px] text-slate-300 space-y-0.5">
+                              <div className="flex justify-between"><span>Starts:</span> <span className="font-medium text-white">{new Date(test.liveStartTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+                              <div className="flex justify-between"><span>Ends:</span> <span className="font-medium text-white">{new Date(test.liveEndTime).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</span></div>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex gap-1.5 flex-wrap mb-4">
+                          {test.difficulty && <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">{test.difficulty}</span>}
+                          {test.resultMode && <span className="text-[9px] uppercase tracking-wider font-bold text-slate-400 bg-white/5 px-2 py-0.5 rounded border border-white/10">{test.resultMode.replace('-', ' ')} results</span>}
+                        </div>
 
                         <div className="grid grid-cols-3 gap-2 text-center mb-4">
                           <div className="bg-white/5 rounded-lg p-2">

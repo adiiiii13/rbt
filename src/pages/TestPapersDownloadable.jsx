@@ -15,6 +15,8 @@ export default function TestPapersDownloadable() {
 
   const { data: pdfsRaw, loading } = useRealtimeCollection('pdfs', { fallback: defaultPdfs });
   const allPdfs = pdfsRaw?.length ? pdfsRaw : defaultPdfs;
+  const uniqueClasses = [...new Set(allPdfs.map(p => p.class).filter(Boolean))].sort();
+  const FILTERS = ['All', ...uniqueClasses];
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
   const [tab, setTab] = useState('free');
@@ -103,48 +105,60 @@ export default function TestPapersDownloadable() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((paper, idx) => (
-            <motion.div
-              key={paper.id || idx}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: idx * 0.05 }}
-              whileHover={{ y: -4 }}
-              className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl group border border-white/10 hover:border-green-brand/30 transition-all flex flex-col"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <div className="w-12 h-12 rounded-xl bg-green-brand/10 flex items-center justify-center text-green-brand group-hover:scale-110 transition-transform">
-                  <FileTextIcon size={24} />
-                </div>
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-white/10 text-slate-400">
-                  {paper.examType || paper.category || paper.class || 'Paper'}
-                </span>
-              </div>
-
-              <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{paper.title}</h3>
-              <p className="text-sm text-slate-400 mb-4">{paper.subject} {paper.year && `• ${paper.year}`}</p>
-
-              <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/10">
-                <span className="text-xs text-slate-500">{paper.pages ? `${paper.pages} pages` : paper.size || 'PDF'}</span>
-                {paper.isFree === true ? (
-                  <a
-                    href={paper.url || paper.fileUrl || '#'}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm font-bold text-green-brand hover:text-emerald-400 no-underline"
-                    onClick={e => { if (!paper.url && !paper.fileUrl) e.preventDefault(); }}
-                  >
-                    <DownloadIcon size={16} /> Download
-                  </a>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-400">
-                    🔒 Paid
+          {filtered.map((paper, idx) => {
+            const sizeFormatted = paper.fileSize 
+              ? (paper.fileSize > 1048576 ? (paper.fileSize / 1048576).toFixed(1) + ' MB' : (paper.fileSize / 1024).toFixed(1) + ' KB') 
+              : 'PDF';
+              
+            return (
+              <motion.div
+                key={paper.id || idx}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.05 }}
+                whileHover={{ y: -4 }}
+                className="bg-white/5 backdrop-blur-sm p-6 rounded-2xl group border border-white/10 hover:border-green-brand/30 transition-all flex flex-col"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="w-12 h-12 rounded-xl bg-green-brand/10 flex items-center justify-center text-green-brand group-hover:scale-110 transition-transform">
+                    <FileTextIcon size={24} />
+                  </div>
+                  <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-white/10 text-slate-400">
+                    {paper.examType || paper.category || paper.class || 'Paper'}
                   </span>
+                </div>
+
+                <h3 className="text-lg font-bold text-white mb-1 line-clamp-2">{paper.title}</h3>
+                {paper.description && (
+                  <p className="text-xs text-slate-400 mb-2 line-clamp-2">{paper.description}</p>
                 )}
-              </div>
-            </motion.div>
-          ))}
+                <p className="text-sm text-slate-400 mb-4">
+                  {paper.subject} 
+                  {paper.date ? ` • ${new Date(paper.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}` : (paper.year ? ` • ${paper.year}` : '')}
+                </p>
+
+                <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/10">
+                  <span className="text-xs text-slate-500">{sizeFormatted}</span>
+                  {paper.isFree === true ? (
+                    <a
+                      href={paper.url || paper.fileUrl || '#'}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm font-bold text-green-brand hover:text-emerald-400 no-underline"
+                      onClick={e => { if (!paper.url && !paper.fileUrl) e.preventDefault(); }}
+                    >
+                      <DownloadIcon size={16} /> Download
+                    </a>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-400">
+                      🔒 Paid
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
     </div>
