@@ -4,7 +4,6 @@ import { motion } from 'framer-motion';
 import anime from 'animejs';
 import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { defaultCourses } from '../data/courses';
-import { defaultTestimonials } from '../data/testimonials';
 import { defaultAchievements } from '../data/achievements';
 import {
   UsersIcon, TrendingUpIcon, TrophyIcon, CalendarIcon,
@@ -78,10 +77,10 @@ export default function Home({ onOpenLogin }) {
 
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
   const { data: galleryImages } = useRealtimeCollection('gallery', { fallback: [] });
-  const { data: testimonialsRaw } = useRealtimeCollection('testimonials', { fallback: defaultTestimonials });
+  const { data: testimonialsRaw } = useRealtimeCollection('testimonials', { fallback: [] });
   const { data: achievementsRaw } = useRealtimeCollection('achievements', { fallback: defaultAchievements });
   const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
-  const testimonials = testimonialsRaw?.length ? testimonialsRaw : defaultTestimonials;
+  const testimonials = testimonialsRaw?.length ? testimonialsRaw : [];
   const achievementsAll = achievementsRaw?.length ? achievementsRaw : defaultAchievements;
   const achievements = achievementsAll.slice(0, 4);
 

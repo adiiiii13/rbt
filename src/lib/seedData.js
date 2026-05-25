@@ -8,7 +8,6 @@ export async function seedAll() {
     { defaultPdfs },
     { defaultStudents },
     { defaultAchievements },
-    { defaultTestimonials },
     { defaultNotices },
   ] = await Promise.all([
     import('../data/courses'),
@@ -16,7 +15,6 @@ export async function seedAll() {
     import('../data/pdfs'),
     import('../data/students'),
     import('../data/achievements'),
-    import('../data/testimonials'),
     import('../data/notices'),
   ])
 
@@ -27,7 +25,6 @@ export async function seedAll() {
   results.pdfs = await seedCollection('pdfs', defaultPdfs)
   results.students = await seedCollection('students', defaultStudents)
   results.achievements = await seedCollection('achievements', defaultAchievements)
-  results.testimonials = await seedCollection('testimonials', defaultTestimonials)
   results.notices = await seedCollection('notices', defaultNotices)
   console.log('Seed result:', results)
   return results
