@@ -336,6 +336,57 @@ export default function StudentDashboard() {
             </motion.div>
           )}
 
+          {/* Offline Batch / Apply Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className={`rounded-2xl p-6 border ${
+              user?.batch 
+                ? 'bg-green-brand/10 border-green-brand/20' 
+                : user?.batchStatus === 'pending'
+                ? 'bg-amber-500/10 border-amber-500/20'
+                : 'bg-linear-to-br from-blue-600/10 to-indigo-600/5 border-blue-500/20'
+            }`}
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                user?.batch ? 'bg-green-brand/20 text-green-brand' : 'bg-blue-500/20 text-blue-400'
+              }`}>
+                <GraduationCapIcon size={20} />
+              </div>
+              <div>
+                <h3 className="font-bold text-white">Offline Batch Classes</h3>
+                <p className="text-xs text-slate-400">Join our physical classrooms</p>
+              </div>
+            </div>
+            
+            {user?.batch ? (
+              <div>
+                <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm mb-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  Active Enrollment
+                </div>
+                <p className="text-xs text-slate-300 mb-4">You are currently enrolled in {user.course || 'the offline batch'}. Visit the campus for your schedule.</p>
+                <Link to="/student/profile" className="btn-navy w-full text-center block no-underline text-xs py-2!">View Enrollment</Link>
+              </div>
+            ) : user?.batchStatus === 'pending' ? (
+              <div>
+                <div className="flex items-center gap-2 text-amber-400 font-bold text-sm mb-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  Application Pending
+                </div>
+                <p className="text-xs text-slate-300 mb-4">Our team is reviewing your application. We will call you within 24 hours.</p>
+                <Link to="/student/upgrade-batch" className="btn-navy w-full text-center block no-underline text-xs py-2!">View Status</Link>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs text-slate-300 mb-4">Interested in physical classes? Apply now to join our offline learning program at the RBT Campus.</p>
+                <Link to="/student/upgrade-batch" className="btn-primary w-full text-center block no-underline text-xs py-2! bg-blue-500 hover:bg-blue-600 border-none shadow-lg shadow-blue-500/20">Apply Now →</Link>
+              </div>
+            )}
+          </motion.div>
+
           {/* Admin Notifications */}
           {myNotifications.length > 0 && (
             <motion.div

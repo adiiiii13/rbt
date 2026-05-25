@@ -8,11 +8,13 @@ import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import toast from 'react-hot-toast'
 
 const CLASS_OPTIONS = [
-  { value: '9', label: 'Class 9' },
-  { value: '10', label: 'Class 10' },
-  { value: '11', label: 'Class 11' },
-  { value: '12', label: 'Class 12' },
-  { value: 'dropper', label: 'Dropper / 12+' },
+  { value: 'Class 8', label: 'Class 8' },
+  { value: 'Class 9', label: 'Class 9' },
+  { value: 'Class 10', label: 'Class 10' },
+  { value: 'Class 11', label: 'Class 11' },
+  { value: 'Class 12', label: 'Class 12' },
+  { value: 'JEE Dropper', label: 'JEE Dropper / 12+' },
+  { value: 'NEET Dropper', label: 'NEET Dropper' },
 ]
 
 const BOARD_OPTIONS = ['CBSE', 'ICSE', 'State Board', 'Other']
@@ -109,10 +111,12 @@ export default function BatchUpgradeForm() {
   }
 
   const uploadFile = async (file, name) => {
-    const compressed = await compressImage(file)
-    const path = `students/${user.uid}/batch-${name}-${Date.now()}.${compressed.type === 'application/pdf' ? 'pdf' : 'jpg'}`
+    const isPdf = file.type === 'application/pdf'
+    const finalFile = isPdf ? file : await compressImage(file)
+    const ext = isPdf ? 'pdf' : 'jpg'
+    const path = `students/${user.uid}/batch-${name}-${Date.now()}.${ext}`
     const r = ref(storage, path)
-    await uploadBytes(r, compressed)
+    await uploadBytes(r, finalFile)
     return await getDownloadURL(r)
   }
 

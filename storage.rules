@@ -59,10 +59,10 @@ service firebase.storage {
     }
 
     // Doubt photos — any signed-in user uploads under own uid; signed-in read for admin reply view
-    match /doubts/{uid}/{file} {
+    match /students/{uid}/{file} {
       allow read: if isSignedIn();
       allow write: if isSignedIn() && request.auth.uid == uid
-        && isImage() && sizeOk(5);
+        && (isImage() || isPdf()) && sizeOk(5);
     }
 
     // Default deny
