@@ -175,11 +175,15 @@ export default function BasicDashboard() {
       </div>
 
       {/* Upgrade CTA */}
-      <div className="bg-linear-to-br from-green-brand/10 to-green-dark/5 rounded-2xl p-6 border border-green-brand/20 text-center">
-        <h3 className="text-white font-bold mb-2">Want Full Access?</h3>
-        <p className="text-sm text-slate-400 mb-3">Get counselling, notices, achievements, invoices and more with Batch Student access.</p>
-        <p className="text-xs text-slate-500">Contact admin to enroll in a batch.</p>
-      </div>
+      {(!user?.batchStatus || user.batchStatus === 'none' || user.batchStatus === 'rejected') && (
+        <div className="bg-linear-to-br from-green-brand/10 to-green-dark/5 rounded-2xl p-6 border border-green-brand/20 text-center">
+          <h3 className="text-white font-bold mb-2">Want Offline Batch Access?</h3>
+          <p className="text-sm text-slate-400 mb-4">Apply for offline classroom batch. Get counselling, notices, achievements, invoices and full institutional access.</p>
+          <Link to="/basic/upgrade-batch" className="inline-block px-6 py-2.5 bg-green-brand hover:bg-green-600 text-white font-bold rounded-xl text-sm no-underline transition-colors">
+            Apply for Offline Batch →
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

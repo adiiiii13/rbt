@@ -117,6 +117,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
     { to: '/admin/batches', label: 'Batches', icon: <IC.book size={18} /> },
     { to: '/admin/batch-students', label: 'Batch Students', icon: <IC.users size={18} /> },
+    { to: '/admin/batch-requests', label: 'Batch Requests', icon: <IC.mail size={18} /> },
     { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
     { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },

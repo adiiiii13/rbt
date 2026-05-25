@@ -57,6 +57,7 @@ const BasicCourses = lazy(() => import('./pages/basic/Courses'))
 const BasicCourseDetail = lazy(() => import('./pages/basic/CourseDetail'))
 const BasicPayment = lazy(() => import('./pages/basic/Payment'))
 const StudentInitialization = lazy(() => import('./pages/basic/StudentInitialization'))
+const BatchUpgradeForm = lazy(() => import('./pages/basic/BatchUpgradeForm'))
 
 // Admin Pages (lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -80,6 +81,7 @@ const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications
 const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
 const ManageBatches = lazy(() => import('./pages/admin/ManageBatches'))
 const ManageBatchStudents = lazy(() => import('./pages/admin/ManageBatchStudents'))
+const ManageBatchRequests = lazy(() => import('./pages/admin/ManageBatchRequests'))
 const ManageProfileForm = lazy(() => import('./pages/admin/ManageProfileForm'))
 const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
@@ -233,6 +235,7 @@ function AppContent() {
                     <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
                     <Route path="test-papers/mock" element={<TestPapersMock />} />
                     <Route path="payment" element={<BasicPayment />} />
+                    <Route path="upgrade-batch" element={<BatchUpgradeForm />} />
                   </Route>
 
                   {/* Admin Routes */}
@@ -250,6 +253,7 @@ function AppContent() {
                     <Route path="students" element={<ManageStudents />} />
                     <Route path="batches" element={<ManageBatches />} />
                     <Route path="batch-students" element={<ManageBatchStudents />} />
+                    <Route path="batch-requests" element={<ManageBatchRequests />} />
                     <Route path="notices" element={<ManageNotices />} />
                     <Route path="gallery" element={<ManageGallery />} />
                     <Route path="payments" element={<ManagePayments />} />

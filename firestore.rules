@@ -156,6 +156,15 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Batch upgrade requests (doc ID = student UID)
+    // Owner can read + create own; admin full; owner can update only if rejected (re-apply)
+    match /batchRequests/{uid} {
+      allow read: if isAdmin() || isOwner(uid);
+      allow create: if isAdmin() || (isOwner(uid) && request.resource.data.uid == request.auth.uid);
+      allow update: if isAdmin() || (isOwner(uid) && resource.data.status == 'rejected');
+      allow delete: if isAdmin();
+    }
+
     // Deleted IDs tracking: admin only
     match /_deleted/{doc} {
       allow read, write: if isAdmin();

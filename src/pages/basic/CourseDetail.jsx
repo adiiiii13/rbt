@@ -13,7 +13,7 @@ export default function BasicCourseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, upgradeToBatch } = useAuth();
+  const { user } = useAuth();
   
   const backLink = location.pathname.startsWith('/student') ? '/student/basic-courses' : '/basic/courses';
 
@@ -191,17 +191,9 @@ export default function BasicCourseDetail() {
     });
   };
 
-  const handleConfirmUpgrade = async () => {
-    setBuying(true);
-    const res = await upgradeToBatch();
-    setBuying(false);
-    if (res.success) {
-      toast.success('Upgrade requested! Waiting for admin approval.');
-      setShowUpgradeModal(false);
-      navigate('/student-initialization');
-    } else {
-      toast.error(res.message);
-    }
+  const handleConfirmUpgrade = () => {
+    setShowUpgradeModal(false);
+    navigate('/basic/upgrade-batch');
   };
 
   // ─── Loading ───
@@ -376,16 +368,16 @@ export default function BasicCourseDetail() {
             <div className="w-16 h-16 bg-amber-500/20 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-4 relative z-10">
               <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>
             </div>
-            <h3 className="text-xl font-bold text-white mb-2 relative z-10">Batch Course</h3>
+            <h3 className="text-xl font-bold text-white mb-2 relative z-10">Offline Batch Course</h3>
             <p className="text-slate-400 text-sm mb-6 relative z-10">
-              You are a Basic User trying to buy/enroll in a Batch Course. Please upgrade your account to a Batch Student first.
+              This course is part of the offline batch program. Apply for batch enrollment — fill the form, RBT team will call you, and pay fees at the institution.
             </p>
             <div className="flex gap-3 relative z-10">
-              <button onClick={() => setShowUpgradeModal(false)} disabled={buying} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium cursor-pointer">
+              <button onClick={() => setShowUpgradeModal(false)} className="flex-1 px-4 py-3 bg-white/5 hover:bg-white/10 text-white rounded-xl transition-colors font-medium cursor-pointer">
                 Cancel
               </button>
-              <button onClick={handleConfirmUpgrade} disabled={buying} className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors font-medium cursor-pointer">
-                {buying ? 'Upgrading...' : 'Upgrade Account'}
+              <button onClick={handleConfirmUpgrade} className="flex-1 px-4 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors font-medium cursor-pointer">
+                Apply for Batch
               </button>
             </div>
           </div>
@@ -500,7 +492,7 @@ export default function BasicCourseDetail() {
                   Processing...
                 </>
               ) : course.courseType === 'batch' && !user?.batch ? (
-                user?.batchStatus === 'pending' ? 'Upgrade Pending Approval' : 'Upgrade to Batch Access'
+                user?.batchStatus === 'pending' ? 'Batch Application Pending' : 'Apply for Offline Batch'
               ) : course.isFree ? (
                 'Free, enroll now'
               ) : selectedVariant ? (
