@@ -19,8 +19,8 @@ export default function Invoices() {
   const uid = user?.id || user?.uid || ''
 
   const { data: payments, loading: lp } = useRealtimeCollection('payments', {
-    where: [['studentId', '==', sid]],
-    enabled: !!sid,
+    where: [['uid', '==', uid]],
+    enabled: !!uid,
   })
   const { data: invsByUid, loading: li1 } = useRealtimeCollection('invoices', {
     where: [['studentUid', '==', uid]],
