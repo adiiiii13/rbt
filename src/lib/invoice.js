@@ -17,15 +17,22 @@ export function formatCurrency(amount) {
 export function formatDateTime(dateString) {
   if (!dateString || dateString === '—') return '—';
   try {
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return dateString;
+    let d;
+    if (typeof dateString?.toDate === 'function') {
+      d = dateString.toDate();
+    } else if (dateString?.seconds) {
+      d = new Date(dateString.seconds * 1000);
+    } else {
+      d = new Date(dateString);
+    }
+    if (isNaN(d.getTime())) return String(dateString === '[object Object]' ? '' : dateString);
     return d.toLocaleString('en-IN', {
       day: '2-digit', month: 'short', year: 'numeric',
       hour: '2-digit', minute: '2-digit', second: '2-digit',
       hour12: true
     });
   } catch (e) {
-    return dateString;
+    return String(dateString);
   }
 }
 
