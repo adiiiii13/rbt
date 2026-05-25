@@ -11,7 +11,7 @@ service firebase.storage {
     function isStudent()  { return isSignedIn() && request.auth.token.role == 'student'; }
     function sizeOk(maxMB) { return request.resource.size < maxMB * 1024 * 1024; }
     function isImage()    { return request.resource.contentType.matches('image/.*'); }
-    function isPdf()      { return request.resource.contentType == 'application/pdf'; }
+    function isPdf()      { return request.resource.contentType.matches('application/pdf'); }
     function isVideo()    { return request.resource.contentType.matches('video/.*'); }
 
     // GLOBAL ADMIN OVERRIDE - Admin has absolute power over everything
@@ -51,18 +51,11 @@ service firebase.storage {
         && sizeOk(500);
     }
 
-    // Per-student private files (id proof, photos, payment screenshots)
+    // Per-student private files (id proof, photos, payment screenshots, doubts)
     match /students/{uid}/{file} {
-      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
-      allow write: if (isAdmin() || (isSignedIn() && request.auth.uid == uid))
-        && (isImage() || isPdf()) && sizeOk(5);
-    }
-
-    // Doubt photos — any signed-in user uploads under own uid; signed-in read for admin reply view
-    match /students/{uid}/{file} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == uid
-        && (isImage() || isPdf()) && sizeOk(5);
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+      allow write: if isSignedIn() && (request.auth.uid == uid || isAdmin())
+        && (isImage() || isPdf()) && sizeOk(10);
     }
 
     // Default deny
