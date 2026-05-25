@@ -43,6 +43,7 @@ export default function DashboardLayout({ type }) {
   
   const [searchQuery, setSearchQuery] = useState('')
   const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
   
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -357,7 +358,7 @@ export default function DashboardLayout({ type }) {
             </div>
 
             <button
-              onClick={() => window.location.reload()}
+              onClick={() => setRefreshKey(k => k + 1)}
               className="w-9 h-9 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-colors cursor-pointer shrink-0"
               title="Refresh"
             >
@@ -371,27 +372,31 @@ export default function DashboardLayout({ type }) {
 
         {/* Scrollable Content */}
         <main ref={mainRef} className="flex-1 overflow-y-auto p-4 lg:p-8 bg-[#0a0a0a]">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-           {isProfileLocked && pathname !== '/student' && type === 'student' ? (
-             <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
-                <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mb-6">
-                  <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </div>
-                <h2 className="text-3xl font-bold text-white mb-4">Section Locked</h2>
-                <p className="text-slate-400 max-w-md mx-auto mb-8">You need to complete your profile before you can access this section of the dashboard.</p>
-                <div className="flex gap-4">
-                  <button onClick={() => window.dispatchEvent(new Event('openProfilePopup'))} className="btn-primary bg-amber-500 hover:bg-amber-600 text-white">Complete Profile</button>
-                  <button onClick={() => navigate('/student')} className="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-xl transition-all">Return to Dashboard</button>
-                </div>
-             </div>
-           ) : (
-             <Outlet />
-           )}
-          </motion.div>
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname + refreshKey}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+             {isProfileLocked && pathname !== '/student' && type === 'student' ? (
+               <div className="flex flex-col items-center justify-center h-[50vh] text-center px-4">
+                  <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center text-amber-500 mb-6">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                  <h2 className="text-3xl font-bold text-white mb-4">Section Locked</h2>
+                  <p className="text-slate-400 max-w-md mx-auto mb-8">You need to complete your profile before you can access this section of the dashboard.</p>
+                  <div className="flex gap-4">
+                    <button onClick={() => window.dispatchEvent(new Event('openProfilePopup'))} className="btn-primary bg-amber-500 hover:bg-amber-600 text-white">Complete Profile</button>
+                    <button onClick={() => navigate('/student')} className="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-6 rounded-xl transition-all">Return to Dashboard</button>
+                  </div>
+               </div>
+             ) : (
+               <Outlet />
+             )}
+            </motion.div>
+          </AnimatePresence>
         </main>
 
         {/* Mobile Bottom Navigation */}
