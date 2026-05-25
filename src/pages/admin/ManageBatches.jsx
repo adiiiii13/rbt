@@ -13,8 +13,6 @@ const emptyBatch = {
   name: '',
   location: '',
   schedule: '',
-  classId: '',
-  maxStudents: 30,
   description: '',
   type: 'offline',
 }
@@ -86,8 +84,6 @@ export default function ManageBatches() {
       name: b.name || '',
       location: b.location || '',
       schedule: b.schedule || '',
-      classId: b.classId || '',
-      maxStudents: b.maxStudents || 30,
       description: b.description || '',
       type: b.type || 'offline',
     })
@@ -100,14 +96,12 @@ export default function ManageBatches() {
       const payload = {
         ...form,
         type: form.type || 'offline',
-        isOffline: form.type === 'offline',
-        maxStudents: Number(form.maxStudents) || 30,
       }
       if (editing) {
         await updateDocument('batches', editing.id, payload)
         toast.success('Batch updated')
       } else {
-        await addDocument('batches', { ...payload, currentStudents: 0, createdAt: new Date().toISOString() })
+        await addDocument('batches', { ...payload, createdAt: new Date().toISOString() })
         toast.success('Batch created')
       }
       setBatchModal(false)
@@ -153,12 +147,6 @@ export default function ManageBatches() {
         batchAssignedAt: new Date().toISOString(),
       })
 
-      // Update batch student count
-      const currentCount = assignModal.currentStudents || 0
-      await updateDocument('batches', assignModal.id, {
-        currentStudents: currentCount + 1,
-      })
-
       toast.success(`${student.name} assigned to ${assignModal.name}`)
       setAssignModal(null)
       setSelectedStudent('')
@@ -168,7 +156,6 @@ export default function ManageBatches() {
       setAssignBusy(false)
     }
   }
-
   const approveContact = async (contact) => {
     try {
       const collection = contact._type === 'counselling' ? 'counsellingBookings' : 'inquiries'
@@ -266,10 +253,7 @@ export default function ManageBatches() {
               {b.location && <p className="text-sm text-slate-400 mb-1">{b.type === 'online' ? '🔗' : '📍'} {b.location}</p>}
               {b.schedule && <p className="text-sm text-slate-400 mb-1">🕐 {b.schedule}</p>}
               {b.description && <p className="text-xs text-slate-500 mb-3">{b.description}</p>}
-              <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
-                <span>{b.currentStudents || 0} / {b.maxStudents || 30} students</span>
-              </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 mt-4">
                 <button onClick={() => openAssign(b)} className="flex-1 bg-green-brand/10 hover:bg-green-brand/20 text-green-brand text-sm py-2 rounded font-bold">
                   + Add Student
                 </button>
@@ -406,19 +390,6 @@ export default function ManageBatches() {
               <option value="offline">Offline</option>
               <option value="online">Online</option>
             </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            {form.type === 'offline' && (
-              <div>
-                <label className="text-sm font-bold text-white mb-1.5 block">Max Students</label>
-                <input
-                  type="number"
-                  className="input-field w-full"
-                  value={form.maxStudents}
-                  onChange={e => setForm({ ...form, maxStudents: e.target.value })}
-                />
-              </div>
-            )}
           </div>
           {form.type === 'offline' && (
             <>

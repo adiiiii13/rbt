@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp } from 'firebase/firestore'
+import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, increment } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { generateInvoiceNumber, formatCurrency } from '../lib/invoice'
@@ -130,6 +130,8 @@ export default function CourseDetail() {
           studentName: user.name || '',
           studentEmail: user.email || '',
         })
+
+        await updateDoc(doc(db, 'courses', course.id), { students: increment(1) })
 
         const invoiceNum = generateInvoiceNumber(enrolRef.id)
         const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })

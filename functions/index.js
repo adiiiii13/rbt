@@ -693,7 +693,11 @@ export const verifyRazorpayPayment = onCall(async (request) => {
         enrolledAt: FieldValue.serverTimestamp(),
         expiresAt: expiresAt.toISOString(),
         studentName: studentData.name || 'Student',
-        studentEmail: studentData.email || '',
+      })
+
+      // Increment course student count
+      await db.collection('courses').doc(courseId).update({
+        students: FieldValue.increment(1)
       })
     }
 
