@@ -9,6 +9,7 @@ import Modal from '../../components/Modal'
 import ExportButton from '../../components/ExportButton'
 import CreateInvoiceModal from '../../components/CreateInvoiceModal'
 import { getCollectionWhere } from '../../lib/firebaseHelpers'
+import { sendInvoiceReminderEmail } from '../../lib/emailUtils'
 
 export default function ManageInvoices() {
   const { data: invoices, loading } = useRealtimeCollection('invoices', { fallback: [] })
@@ -162,6 +163,20 @@ export default function ManageInvoices() {
         audience: 'invoice',
         read: false,
       })
+      
+      try {
+        await sendInvoiceReminderEmail(
+          inv.studentName,
+          inv.studentEmail,
+          inv.invoiceNumber,
+          inv.amount,
+          inv.dueDate,
+          inv.courseName
+        )
+      } catch (emailErr) {
+        console.error('Reminder email failed:', emailErr)
+      }
+      
       toast.success('Reminder sent')
     } catch (err) {
       console.error('[resend]', err)

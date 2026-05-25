@@ -6,6 +6,7 @@ import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { generateInvoiceNumber, formatCurrency } from '../lib/invoice'
 import { openCheckout } from '../lib/razorpay'
+import { sendCoursePaymentSuccessEmail } from '../lib/emailUtils'
 import HlsPlayer from '../components/HlsPlayer'
 import { Skeleton } from '../components/ui/Skeleton'
 import toast from 'react-hot-toast'
@@ -175,13 +176,16 @@ export default function CourseDetail() {
       variantMonths: variant.months,
       variantPrice: variant.price,
       user,
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         setEnrollment({
           id: result.enrollmentId,
           uid: user.uid,
           courseId: course.id,
           paymentId: result.paymentId,
         })
+        try {
+          await sendCoursePaymentSuccessEmail(user.name, user.email, course.title, variant.price, result.paymentId)
+        } catch(e) { console.error('Failed to send success email', e) }
         toast.success('🎉 Payment received. Enrolled!')
         setBuying(false)
       },
@@ -520,12 +524,21 @@ export default function CourseDetail() {
                   }
                 }}
                 disabled={buying || (!course.isFree && !selectedVariant) || (course.courseType === 'batch' && user?.batchStatus === 'pending')}
-                className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all">
-                {buying ? 'Enrolling...'
-                  : course.courseType === 'batch' && !user?.batch
+                className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer">
+                {buying ? (
+                  <>
+                    <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.4" strokeLinecap="round" /></svg>
+                    Processing...
+                  </>
+                ) : course.courseType === 'batch' && !user?.batch
                     ? user?.batchStatus === 'pending' ? 'Batch Application Pending' : 'Apply for Offline Batch'
                     : course.isFree ? 'Free, enroll now'
-                    : selectedVariant ? `Enroll — ${formatCurrency(selectedVariant.price)}`
+                    : selectedVariant ? (
+                      <>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+                        Pay {formatCurrency(selectedVariant.price)} with Razorpay
+                      </>
+                    )
                     : 'Select a plan'}
               </button>
 

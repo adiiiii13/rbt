@@ -10,6 +10,7 @@ import {
 } from 'firebase/auth'
 import { doc, getDoc, setDoc, updateDoc, onSnapshot } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import { sendSignupWelcomeEmail } from '../lib/emailUtils'
 
 const AuthContext = createContext(null)
 
@@ -218,6 +219,9 @@ export function AuthProvider({ children }) {
           studentId: 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
         })
+        
+        // Send welcome email
+        await sendSignupWelcomeEmail(cred.user.displayName || 'Student', cred.user.email);
       } else {
         // Sync the latest Google profile data if they already have an account
         const data = snap.data();
@@ -267,6 +271,9 @@ export function AuthProvider({ children }) {
         studentId: 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase(),
         createdAt: new Date().toISOString()
       })
+      
+      // Send welcome email
+      await sendSignupWelcomeEmail(name || 'Student', cred.user.email);
       
       const userData = await buildUserFromToken(cred.user)
       setUser(userData)

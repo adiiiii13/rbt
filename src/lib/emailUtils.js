@@ -14,14 +14,14 @@ import { db } from './firebase';
  * 5. Once installed, any document added to the "mail" collection will be automatically sent by Firebase securely.
  */
 
-export const sendTeacherStatusEmail = async (teacherName, teacherEmail, status) => {
+export const sendTeacherStatusEmail = async (teacherName, teacherEmail, status, joiningDetails = '') => {
   try {
     let message = '';
     let subject = '';
 
     if (status === 'approved') {
-      subject = 'Application Approved - Welcome!';
-      message = `Dear ${teacherName},\n\nCongratulations! Your application to become a teacher at RBT Mission Learning has been approved. Please contact the institution administrator immediately to proceed with your onboarding.\n\nBest regards,\nRBT Mission Learning Team`;
+      subject = 'Application Approved - Welcome to RBT Mission Learning!';
+      message = `Dear ${teacherName},\n\nCongratulations! Your application to become a teacher at RBT Mission Learning has been approved.\n\n${joiningDetails ? `**Important Joining Details / Next Steps:**\n${joiningDetails}\n\n` : ''}Please contact the institution administrator if you have any questions.\n\nBest regards,\nRBT Mission Learning Team`;
     } else if (status === 'rejected') {
       subject = 'Application Status Update';
       message = `Dear ${teacherName},\n\nThank you for applying to teach at RBT Mission Learning. Unfortunately, we will not be moving forward with your application at this time. We wish you the best and encourage you to try again in the future.\n\nBest regards,\nRBT Mission Learning Team`;
@@ -86,5 +86,69 @@ export const sendStudentStatusEmail = async (studentName, studentEmail, status, 
   } catch (error) {
     console.error('Failed to queue student email:', error);
     throw error;
+  }
+};
+
+export const sendSignupWelcomeEmail = async (name, email) => {
+  try {
+    const subject = 'Welcome to RBT Mission Learning!';
+    const message = `Dear ${name || 'Student'},\n\nWelcome to RBT Mission Learning! We are thrilled to have you join our platform. You can now explore our extensive catalog of courses, mock tests, and study materials.\n\nHappy learning!\n\nBest regards,\nRBT Mission Learning Team`;
+
+    await addDoc(collection(db, 'mail'), {
+      to: email,
+      message: { subject, text: message },
+      createdAt: serverTimestamp(),
+    });
+    console.log('Signup welcome email queued');
+  } catch (error) {
+    console.error('Failed to queue signup email:', error);
+  }
+};
+
+export const sendInvoiceCreatedEmail = async (name, email, invoiceNum, amount, dueDate, courseName) => {
+  try {
+    const subject = `New Invoice Generated: ${invoiceNum}`;
+    const message = `Dear ${name || 'Student'},\n\nA new invoice (${invoiceNum}) has been generated for your account regarding the course: "${courseName}".\n\nAmount Due: ₹${amount}\n${dueDate ? `Due Date: ${dueDate}\n` : ''}\nPlease log in to your dashboard to view and pay this invoice.\n\nBest regards,\nRBT Mission Learning Team`;
+
+    await addDoc(collection(db, 'mail'), {
+      to: email,
+      message: { subject, text: message },
+      createdAt: serverTimestamp(),
+    });
+    console.log('Invoice created email queued');
+  } catch (error) {
+    console.error('Failed to queue invoice email:', error);
+  }
+};
+
+export const sendInvoiceReminderEmail = async (name, email, invoiceNum, amount, dueDate, courseName) => {
+  try {
+    const subject = `Payment Reminder: Invoice ${invoiceNum}`;
+    const message = `Dear ${name || 'Student'},\n\nThis is a friendly reminder regarding your pending invoice (${invoiceNum}) for the course: "${courseName}".\n\nAmount Due: ₹${amount}\n${dueDate ? `Due Date: ${dueDate}\n` : ''}\nPlease log in to your dashboard and complete the payment at your earliest convenience.\n\nBest regards,\nRBT Mission Learning Team`;
+
+    await addDoc(collection(db, 'mail'), {
+      to: email,
+      message: { subject, text: message },
+      createdAt: serverTimestamp(),
+    });
+    console.log('Invoice reminder email queued');
+  } catch (error) {
+    console.error('Failed to queue reminder email:', error);
+  }
+};
+
+export const sendCoursePaymentSuccessEmail = async (name, email, courseName, amount, orderId) => {
+  try {
+    const subject = `Payment Successful - Welcome to ${courseName}!`;
+    const message = `Dear ${name || 'Student'},\n\nThank you for your payment of ₹${amount}. Your transaction (Order ID: ${orderId}) was successful, and you have been granted full access to "${courseName}".\n\nYou can now log in to your dashboard and start learning immediately.\n\nBest regards,\nRBT Mission Learning Team`;
+
+    await addDoc(collection(db, 'mail'), {
+      to: email,
+      message: { subject, text: message },
+      createdAt: serverTimestamp(),
+    });
+    console.log('Course payment success email queued');
+  } catch (error) {
+    console.error('Failed to queue payment email:', error);
   }
 };

@@ -19,12 +19,12 @@ function loadScript() {
 // Replace via VITE_RAZORPAY_KEY_ID env if available; fallback to test key
 const KEY = import.meta.env.VITE_RAZORPAY_KEY_ID || import.meta.env.VITE_RAZORPAY_KEY || 'rzp_test_REPLACE_ME';
 
-export async function openRazorpayClient({ amount, name, description, user, onSuccess, onFailure }) {
+export async function openRazorpayClient({ amount, name, description, user, orderId, onSuccess, onFailure }) {
   const ok = await loadScript();
   if (!ok) { onFailure?.(new Error('Razorpay SDK failed to load')); return; }
   if (!amount || amount <= 0) { onFailure?.(new Error('Invalid amount')); return; }
 
-  const rzp = new window.Razorpay({
+  const options = {
     key: KEY,
     amount: Math.round(amount * 100),
     currency: 'INR',
@@ -48,6 +48,12 @@ export async function openRazorpayClient({ amount, name, description, user, onSu
     modal: {
       ondismiss: () => onFailure?.(new Error('Payment cancelled')),
     },
-  });
+  };
+
+  if (orderId) {
+    options.order_id = orderId;
+  }
+
+  const rzp = new window.Razorpay(options);
   rzp.open();
 }

@@ -13,6 +13,7 @@ export default function Invoices() {
   const { user } = useAuth()
   const [selected, setSelected] = useState(null)
   const [tab, setTab] = useState('all') // 'all' | 'pending' | 'paid'
+  const [payingId, setPayingId] = useState(null)
 
   const sid = user?.studentId || user?.id || ''
   const uid = user?.id || user?.uid || ''
@@ -86,14 +87,19 @@ export default function Invoices() {
   const totalPending = rows.filter(r => r.status === 'pending').reduce((s, r) => s + (r.amount || 0), 0)
 
   const handlePay = (r) => {
+    setPayingId(r.id)
     openInvoiceCheckout({
       invoiceId: r.id,
       user: user,
       onSuccess: async (res) => {
         toast.success('Payment successful!')
         load() // reload to show updated status
+        setPayingId(null)
       },
-      onFailure: (err) => toast.error(err.message || 'Payment failed')
+      onFailure: (err) => {
+        if (err.message !== 'Payment cancelled') toast.error(err.message || 'Payment failed')
+        setPayingId(null)
+      }
     })
   }
 
@@ -176,8 +182,13 @@ export default function Invoices() {
                           <EyeIcon size={14} /> View
                         </button>
                         {r.kind === 'invoice' && r.status === 'pending' && (
-                          <button onClick={() => handlePay(r)} className="px-3 py-1 bg-green-brand text-black font-bold rounded-lg hover:bg-green-500 transition-colors text-sm">
-                            Pay Now
+                          <button onClick={() => handlePay(r)} disabled={payingId === r.id} className="px-3 py-1 bg-green-brand text-black font-bold rounded-lg hover:bg-green-500 transition-colors text-sm flex items-center justify-center gap-1 active:scale-95 cursor-pointer disabled:opacity-50">
+                            {payingId === r.id ? (
+                              <>
+                                <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.4" strokeLinecap="round" /></svg>
+                                Wait...
+                              </>
+                            ) : 'Pay Now'}
                           </button>
                         )}
                       </div>

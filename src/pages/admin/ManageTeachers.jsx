@@ -13,13 +13,17 @@ export default function ManageTeachers() {
   const [selectedApp, setSelectedApp] = useState(null);
   const [viewModal, setViewModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  
+  // New state for joining details
+  const [showApproveForm, setShowApproveForm] = useState(false);
+  const [joiningDetails, setJoiningDetails] = useState('');
 
   const filteredApps = applications.filter((app) => {
     if (activeTab === 'application') return true;
     return app.status === activeTab;
   });
 
-  const handleStatusChange = async (appId, newStatus, email, name) => {
+  const handleStatusChange = async (appId, newStatus, email, name, details = '') => {
     setActionLoading(true);
     try {
       await updateDoc(doc(db, 'teacherApplications', appId), {
@@ -27,10 +31,12 @@ export default function ManageTeachers() {
       });
 
       // Send Email Notification
-      await sendTeacherStatusEmail(name, email, newStatus);
+      await sendTeacherStatusEmail(name, email, newStatus, details);
       
       toast.success(`Application marked as ${newStatus}`);
       setViewModal(false);
+      setShowApproveForm(false);
+      setJoiningDetails('');
     } catch (error) {
       console.error('Error updating status:', error);
       toast.error('Failed to update status');
@@ -152,7 +158,15 @@ export default function ManageTeachers() {
       </div>
 
       {/* View Modal */}
-      <Modal isOpen={viewModal} onClose={() => setViewModal(false)} title="Application Details">
+      <Modal 
+        isOpen={viewModal} 
+        onClose={() => {
+          setViewModal(false);
+          setShowApproveForm(false);
+          setJoiningDetails('');
+        }} 
+        title="Application Details"
+      >
         {selectedApp && (
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -207,22 +221,56 @@ export default function ManageTeachers() {
 
             <div className="border-t border-slate-800 pt-6">
               <h4 className="text-sm font-bold text-white mb-4">Action</h4>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => handleStatusChange(selectedApp.id, 'approved', selectedApp.email, selectedApp.name)}
-                  disabled={actionLoading}
-                  className="flex-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50 font-bold py-3 rounded-xl transition-all disabled:opacity-50"
-                >
-                  Approve
-                </button>
-                <button
-                  onClick={() => handleStatusChange(selectedApp.id, 'rejected', selectedApp.email, selectedApp.name)}
-                  disabled={actionLoading}
-                  className="flex-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50 font-bold py-3 rounded-xl transition-all disabled:opacity-50"
-                >
-                  Reject
-                </button>
-              </div>
+              
+              {!showApproveForm ? (
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowApproveForm(true)}
+                    disabled={actionLoading}
+                    className="flex-1 bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/50 font-bold py-3 rounded-xl transition-all disabled:opacity-50"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(selectedApp.id, 'rejected', selectedApp.email, selectedApp.name)}
+                    disabled={actionLoading}
+                    className="flex-1 bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/50 font-bold py-3 rounded-xl transition-all disabled:opacity-50"
+                  >
+                    Reject
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm text-slate-300 font-medium mb-1 block">Joining Details / Next Steps</label>
+                    <textarea
+                      value={joiningDetails}
+                      onChange={(e) => setJoiningDetails(e.target.value)}
+                      placeholder="e.g. Please log in using these credentials: user/pass. Your portal link is..."
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-green-brand/50 h-32 resize-none"
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleStatusChange(selectedApp.id, 'approved', selectedApp.email, selectedApp.name, joiningDetails)}
+                      disabled={actionLoading}
+                      className="flex-1 bg-green-brand text-white hover:bg-green-600 font-bold py-3 rounded-xl transition-all disabled:opacity-50"
+                    >
+                      Confirm Approval & Send Email
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowApproveForm(false);
+                        setJoiningDetails('');
+                      }}
+                      disabled={actionLoading}
+                      className="flex-1 bg-white/5 text-slate-300 hover:bg-white/10 font-bold py-3 rounded-xl transition-all disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
               <p className="text-[10px] text-slate-500 text-center mt-3">
                 Approving or rejecting will send an automated email to the applicant.
               </p>

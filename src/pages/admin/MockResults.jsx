@@ -45,22 +45,69 @@ export default function MockResults() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [detail, setDetail] = useState(null);
-  const [remarks, setRemarks] = useState({}); // qid -> string, local edit buffer
+  
+  // Grading State
+  const [remarks, setRemarks] = useState({}); // qid -> string
+  const [manualMarks, setManualMarks] = useState({}); // qid -> number
   const [savingRemarks, setSavingRemarks] = useState(false);
+  const [overrideScore, setOverrideScore] = useState('');
 
   useEffect(() => {
-    if (detail) setRemarks(detail.adminRemarks || {});
-    else setRemarks({});
+    if (detail) {
+      setRemarks(detail.adminRemarks || {});
+      setManualMarks(detail.manualMarks || {});
+      setOverrideScore(detail.overrideScore ?? '');
+    } else {
+      setRemarks({});
+      setManualMarks({});
+      setOverrideScore('');
+    }
   }, [detail]);
 
-  const saveRemarks = async () => {
+  const saveRemarksAndMarks = async () => {
     if (!detail) return;
     setSavingRemarks(true);
     try {
-      await updateDocument('mockAttempts', detail.id, { adminRemarks: remarks });
-      toast.success('Remarks saved — student will see them');
+      const payload = { 
+        adminRemarks: remarks,
+        manualMarks: manualMarks 
+      };
+      if (overrideScore !== '') {
+        payload.overrideScore = Number(overrideScore);
+      } else {
+        payload.overrideScore = null; // Clear override
+      }
+      
+      // Auto-recalc if no override but manual marks changed?
+      // For simplicity, let's just let the overrideScore rule if provided.
+      
+      await updateDocument('mockAttempts', detail.id, payload);
+      toast.success('Grading & Remarks saved');
+      // Update local detail state so UI reflects changes immediately
+      setDetail(prev => ({ ...prev, ...payload }));
     } catch (err) { toast.error(err.message); }
     finally { setSavingRemarks(false); }
+  };
+
+  const publishResult = async (id, isPublished) => {
+    try {
+      await updateDocument('mockAttempts', id, { published: isPublished });
+      toast.success(isPublished ? 'Result Published' : 'Result Hidden');
+      if (detail && detail.id === id) {
+        setDetail(prev => ({ ...prev, published: isPublished }));
+      }
+    } catch (err) { toast.error(err.message); }
+  };
+
+  const publishAllForTest = async (testId) => {
+    if (!confirm('Publish all currently un-published results for this test?')) return;
+    try {
+      const toPublish = attempts.filter(a => a.testId === testId && !a.published);
+      for (const a of toPublish) {
+        await updateDocument('mockAttempts', a.id, { published: true });
+      }
+      toast.success(`Published ${toPublish.length} results`);
+    } catch (err) { toast.error(err.message); }
   };
 
   const filtered = useMemo(() => {
@@ -119,28 +166,54 @@ export default function MockResults() {
     } catch (err) { toast.error(err.message); }
   };
 
+  const renderCorrectOptions = (q) => {
+    if (q.questionType === 'text') return <span className="text-slate-400">Text Answer</span>;
+    if (q.questionType === 'mcq-multi') {
+      return (q.correctIndices || []).map(idx => String.fromCharCode(65 + idx)).join(', ');
+    }
+    return String.fromCharCode(65 + q.correctIndex);
+  };
+
+  const renderUserOptions = (q, bk) => {
+    if (!bk) return <span className="text-slate-500">—</span>;
+    if (q.questionType === 'text') return <span className="text-white">{bk.textAnswer || '(No answer)'}</span>;
+    if (q.questionType === 'mcq-multi') {
+      if (!bk.selectedIndices || bk.selectedIndices.length === 0) return <span className="text-slate-500">—</span>;
+      return bk.selectedIndices.map(idx => String.fromCharCode(65 + idx)).join(', ');
+    }
+    if (bk.selectedIndex == null) return <span className="text-slate-500">—</span>;
+    return String.fromCharCode(65 + bk.selectedIndex);
+  };
+
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold text-white">Mock Test Results</h1>
-          <p className="text-sm text-slate-400">All student attempts with proctoring violations log</p>
+          <p className="text-sm text-slate-400">All student attempts with manual grading & proctoring logs</p>
         </div>
-        <ExportButton data={attempts} filename="mock_attempts" columns={[
-          { key: 'studentName', label: 'Student' },
-          { key: 'studentEmail', label: 'Email' },
-          { key: 'testTitle', label: 'Test' },
-          { key: 'score', label: 'Score' },
-          { key: 'maxMarks', label: 'Max Marks' },
-          { key: 'percentage', label: '%' },
-          { key: 'correct', label: 'Correct' },
-          { key: 'wrong', label: 'Wrong' },
-          { key: 'skipped', label: 'Skipped' },
-          { key: 'status', label: 'Status' },
-          { key: 'tabSwitches', label: 'Tab Switches' },
-          { key: 'duration', label: 'Time Taken (sec)' },
-          { key: 'submittedAt', label: 'Submitted At' },
-        ]} />
+        <div className="flex gap-2">
+          {testFilter !== 'all' && (
+            <button onClick={() => publishAllForTest(testFilter)} className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-4 py-2 rounded-lg text-sm">
+              Publish All for this Test
+            </button>
+          )}
+          <ExportButton data={attempts} filename="mock_attempts" columns={[
+            { key: 'studentName', label: 'Student' },
+            { key: 'studentEmail', label: 'Email' },
+            { key: 'testTitle', label: 'Test' },
+            { key: 'score', label: 'Score' },
+            { key: 'maxMarks', label: 'Max Marks' },
+            { key: 'percentage', label: '%' },
+            { key: 'correct', label: 'Correct' },
+            { key: 'wrong', label: 'Wrong' },
+            { key: 'skipped', label: 'Skipped' },
+            { key: 'status', label: 'Status' },
+            { key: 'tabSwitches', label: 'Tab Switches' },
+            { key: 'duration', label: 'Time Taken (sec)' },
+            { key: 'submittedAt', label: 'Submitted At' },
+          ]} />
+        </div>
       </div>
 
       {/* Stats */}
@@ -209,7 +282,7 @@ export default function MockResults() {
                   <th className="text-left p-3">Test</th>
                   <th className="text-right p-3">Score</th>
                   <th className="text-right p-3">%</th>
-                  <th className="text-right p-3">Time</th>
+                  <th className="text-center p-3">Published?</th>
                   <th className="text-center p-3">Violations</th>
                   <th className="text-center p-3">Status</th>
                   <th className="text-right p-3">Submitted</th>
@@ -224,13 +297,21 @@ export default function MockResults() {
                       <div className="text-xs text-slate-500">{a.studentEmail}</div>
                     </td>
                     <td className="p-3 text-slate-300">{a.testTitle}</td>
-                    <td className="p-3 text-right text-white font-bold">{a.score}/{a.maxMarks}</td>
+                    <td className="p-3 text-right text-white font-bold">
+                      {a.overrideScore != null ? a.overrideScore : a.score}/{a.maxMarks}
+                    </td>
                     <td className="p-3 text-right">
                       <span className={a.percentage >= 60 ? 'text-green-400' : a.percentage >= 35 ? 'text-amber-400' : 'text-red-400'}>
                         {a.percentage}%
                       </span>
                     </td>
-                    <td className="p-3 text-right text-slate-400 text-xs">{fmtDuration(a.timeTaken)}</td>
+                    <td className="p-3 text-center">
+                      {a.published ? (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded bg-green-500/20 text-green-400">YES</span>
+                      ) : (
+                        <span className="text-[10px] font-bold px-2 py-1 rounded bg-slate-500/20 text-slate-400">NO</span>
+                      )}
+                    </td>
                     <td className="p-3 text-center">
                       <span className={`text-xs font-bold ${a.violations?.length ? 'text-red-400' : 'text-slate-500'}`}>
                         {a.violations?.length || 0}
@@ -310,7 +391,21 @@ export default function MockResults() {
         title={detail ? `${detail.studentName || 'Attempt'} — ${detail.testTitle}` : ''}
         size="lg">
         {detail && (
-          <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          <div className="space-y-4 max-h-[85vh] overflow-y-auto pr-2">
+            
+            <div className="flex justify-between items-center">
+              <div>
+                <span className={`text-xs font-bold px-2 py-1 rounded ${detail.published ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'}`}>
+                  {detail.published ? 'RESULTS PUBLISHED' : 'RESULTS HIDDEN'}
+                </span>
+              </div>
+              <button 
+                onClick={() => publishResult(detail.id, !detail.published)} 
+                className={`px-4 py-2 rounded text-sm font-bold ${detail.published ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-indigo-600 text-white hover:bg-indigo-500'}`}>
+                {detail.published ? 'Hide Results' : 'Publish Results'}
+              </button>
+            </div>
+
             {/* Status banner */}
             {detail.cheatingFlagged && (
               <div className="bg-red-500/20 border border-red-500/40 rounded-lg p-4">
@@ -322,7 +417,10 @@ export default function MockResults() {
             {/* Summary */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <div className="bg-black/30 rounded-lg p-3 text-center">
-                <div className="text-2xl font-bold text-white">{detail.score}<span className="text-sm text-slate-500">/{detail.maxMarks}</span></div>
+                <div className="text-2xl font-bold text-white">
+                  {detail.overrideScore != null ? detail.overrideScore : detail.score}
+                  <span className="text-sm text-slate-500">/{detail.maxMarks}</span>
+                </div>
                 <div className="text-xs text-slate-500">Score</div>
               </div>
               <div className="bg-black/30 rounded-lg p-3 text-center">
@@ -338,21 +436,14 @@ export default function MockResults() {
                 <div className="text-xs text-slate-500">Violations</div>
               </div>
             </div>
-
-            {/* Breakdown */}
-            <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-green-500/10 border border-green-500/30 rounded p-3">
-                <div className="text-xl font-bold text-green-400">{detail.correct || 0}</div>
-                <div className="text-xs text-green-400">Correct</div>
-              </div>
-              <div className="bg-red-500/10 border border-red-500/30 rounded p-3">
-                <div className="text-xl font-bold text-red-400">{detail.wrong || 0}</div>
-                <div className="text-xs text-red-400">Wrong</div>
-              </div>
-              <div className="bg-slate-500/10 border border-slate-500/30 rounded p-3">
-                <div className="text-xl font-bold text-slate-300">{detail.unattempted || 0}</div>
-                <div className="text-xs text-slate-400">Skipped</div>
-              </div>
+            
+            {/* Override Total Score */}
+            <div className="bg-indigo-900/30 border border-indigo-500/30 rounded-lg p-3 flex items-center gap-3">
+              <label className="text-sm text-indigo-300 font-bold">Override Total Score:</label>
+              <input type="number" value={overrideScore} onChange={e => setOverrideScore(e.target.value)}
+                placeholder="Auto"
+                className="bg-black/50 border border-indigo-500/50 rounded px-2 py-1 text-white text-sm w-24" />
+              <span className="text-xs text-indigo-400 flex-1">(Leave blank to use auto-calculated score)</span>
             </div>
 
             {/* Violations log */}
@@ -384,26 +475,33 @@ export default function MockResults() {
               }
               return (
                 <div>
-                  <h4 className="text-white font-bold mb-3 text-sm">Question-by-Question Detail</h4>
-                  <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                  <h4 className="text-white font-bold mb-3 text-sm">Manual Grading & Question Detail</h4>
+                  <div className="space-y-3">
                     {questions.map((q, idx) => {
                       const bk = detail.breakdown?.find(b => b.qid === q.id);
-                      const userAns = bk?.selectedIndex;
+                      
+                      // For Text questions, status might be 'review_pending' initially.
                       const isCorrect = bk?.status === 'correct';
                       const isSkipped = !bk || bk.status === 'unattempted' || bk.status === 'skipped';
+                      const isWrong = bk?.status === 'wrong';
+                      const isReview = q.questionType === 'text';
+
+                      let bgClass = 'bg-slate-800 border-slate-700';
+                      if (!isReview) {
+                        bgClass = isCorrect ? 'bg-green-500/5 border-green-500/30' :
+                                  isSkipped ? 'bg-slate-500/5 border-slate-700' :
+                                  'bg-red-500/5 border-red-500/30';
+                      }
+
                       return (
-                        <div key={q.id || idx} className={`rounded-lg p-3 border ${
-                          isCorrect ? 'bg-green-500/5 border-green-500/30' :
-                          isSkipped ? 'bg-slate-500/5 border-slate-700' :
-                          'bg-red-500/5 border-red-500/30'
-                        }`}>
+                        <div key={q.id || idx} className={`rounded-lg p-3 border ${bgClass}`}>
                           <div className="flex items-start gap-2 mb-2">
                             <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                              isCorrect ? 'bg-green-500/20 text-green-400' :
-                              isSkipped ? 'bg-slate-500/20 text-slate-400' :
-                              'bg-red-500/20 text-red-400'
+                              !isReview && isCorrect ? 'bg-green-500/20 text-green-400' :
+                              !isReview && isSkipped ? 'bg-slate-500/20 text-slate-400' :
+                              !isReview ? 'bg-red-500/20 text-red-400' : 'bg-indigo-500/20 text-indigo-400'
                             }`}>
-                              {isCorrect ? '✓' : isSkipped ? '—' : '✗'}
+                              {isReview ? '?' : isCorrect ? '✓' : isSkipped ? '—' : '✗'}
                             </span>
                             <div className="flex-1">
                               <p className="text-sm text-white font-medium">Q{idx + 1}. {q.question}</p>
@@ -411,36 +509,48 @@ export default function MockResults() {
                                 <img src={q.imageUrl} alt="" className="mt-2 max-h-40 rounded border border-white/10" loading="lazy" />
                               )}
                             </div>
+                            
+                            {/* Manual Marks Input for this question */}
+                            <div className="flex flex-col items-end gap-1 ml-4 border-l border-white/10 pl-4">
+                              <span className="text-[10px] text-slate-400 font-bold uppercase">Marks</span>
+                              <div className="flex items-center gap-1">
+                                <input 
+                                  type="number" 
+                                  value={manualMarks[q.id] ?? (bk?.marksAwarded ?? 0)}
+                                  onChange={e => setManualMarks(m => ({ ...m, [q.id]: Number(e.target.value) }))}
+                                  className="w-16 bg-black/40 border border-white/20 rounded px-2 py-1 text-white text-sm text-center" 
+                                />
+                                <span className="text-xs text-slate-500">/ {q.marks || test.marksPerQuestion}</span>
+                              </div>
+                            </div>
                           </div>
-                          <div className="ml-8 space-y-1">
-                            {q.options?.map((opt, oi) => {
-                              const isUserPick = userAns === oi;
-                              const isRight = q.correctIndex === oi;
-                              let cls = 'text-slate-400';
-                              if (isRight) cls = 'text-green-400 font-medium';
-                              else if (isUserPick && !isRight) cls = 'text-red-400 line-through';
-                              return (
-                                <div key={oi} className={`flex items-center gap-2 text-xs ${cls}`}>
-                                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                                    isRight ? 'bg-green-500/20 text-green-400' :
-                                    isUserPick ? 'bg-red-500/20 text-red-400' :
-                                    'bg-white/5 text-slate-500'
-                                  }`}>
-                                    {String.fromCharCode(65 + oi)}
-                                  </span>
-                                  <span className="flex-1">{opt}</span>
-                                  {isRight && <span className="text-[10px] text-green-400 font-bold">(Correct)</span>}
-                                  {isUserPick && !isRight && <span className="text-[10px] text-red-400 font-bold">(Picked)</span>}
+                          
+                          <div className="ml-8 space-y-3">
+                            <div className="bg-black/20 rounded p-2 text-sm border border-white/5">
+                              <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Student's Answer</div>
+                                  <div className="text-slate-300 font-medium whitespace-pre-wrap">
+                                    {renderUserOptions(q, bk)}
+                                  </div>
                                 </div>
-                              );
-                            })}
+                                <div>
+                                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-1">Correct Answer / Rubric</div>
+                                  <div className="text-green-400 font-medium whitespace-pre-wrap">
+                                    {q.questionType === 'text' ? (q.expectedAnswer || 'No model answer provided') : renderCorrectOptions(q)}
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
                             {q.explanation && (
-                              <div className="mt-2 p-2 rounded bg-blue-500/5 border border-blue-500/20">
+                              <div className="p-2 rounded bg-blue-500/5 border border-blue-500/20">
                                 <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Explanation</p>
                                 <p className="text-xs text-slate-300">{q.explanation}</p>
                               </div>
                             )}
-                            <div className="mt-2">
+                            
+                            <div>
                               <label className="text-[10px] font-bold text-amber-400 uppercase mb-1 block">Admin remark (visible to student)</label>
                               <textarea
                                 value={remarks[q.id] || ''}
@@ -455,10 +565,12 @@ export default function MockResults() {
                       );
                     })}
                   </div>
-                  <button onClick={saveRemarks} disabled={savingRemarks}
-                    className="mt-3 w-full bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-sm font-bold py-2 rounded-lg disabled:opacity-50">
-                    {savingRemarks ? 'Saving...' : '💬 Save All Remarks → Student'}
-                  </button>
+                  <div className="sticky bottom-0 bg-slate-900 p-4 border-t border-white/10 mt-4 flex gap-4 items-center rounded-b-lg">
+                    <button onClick={saveRemarksAndMarks} disabled={savingRemarks}
+                      className="flex-1 bg-green-brand hover:bg-green-600 text-white text-sm font-bold py-3 rounded-lg disabled:opacity-50">
+                      {savingRemarks ? 'Saving...' : '💾 Save Grading & Remarks'}
+                    </button>
+                  </div>
                 </div>
               );
             })()}

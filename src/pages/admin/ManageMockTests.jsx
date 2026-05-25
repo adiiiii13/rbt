@@ -6,6 +6,12 @@ import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import ExportButton from '../../components/ExportButton';
 
+const VISIBILITY_OPTIONS = [
+  { id: 'public', label: 'Public (All Students)', icon: '🌐', color: 'bg-blue-500/10 text-blue-400' },
+  { id: 'batch', label: 'Batch Students Only', icon: '🎓', color: 'bg-purple-500/10 text-purple-400' },
+  { id: 'course', label: 'Course Specific', icon: '📚', color: 'bg-amber-500/10 text-amber-400' },
+];
+
 const CATEGORIES = [
   { id: 'jee-main', label: 'JEE Main' },
   { id: 'neet', label: 'NEET' },
@@ -27,25 +33,90 @@ const emptyForm = {
   negativeMarks: 1,
   price: 0,
   questions: [],
+  testType: 'single', // 'single', 'live'
+  liveStartTime: '',
+  liveEndTime: '',
+  resultMode: 'instant', // 'instant', 'scheduled', 'manual'
+  resultPublishDate: '',
+  allowRetakes: false,
+  defaultQuestionType: 'mcq-single', // 'mcq-single', 'mcq-multi', 'text', 'custom'
+  visibility: 'public', // 'public' | 'batch' | 'course'
+  visibilityCourseIds: [],
+  expiryType: 'lifetime', // 'lifetime' | 'date'
+  expiryDate: '',
 };
 
-const emptyQ = () => ({
+const emptyQ = (defaultType = 'mcq-single') => ({
   id: `q_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
   section: 'Physics',
+  questionType: defaultType === 'custom' ? 'mcq-single' : defaultType,
   question: '',
   imageUrl: '',
   options: ['', '', '', ''],
   correctIndex: 0,
+  correctIndices: [],
+  expectedAnswer: '',
   marks: null, // null = use test default
   explanation: '',
 });
 
+const emptySeriesForm = {
+  title: '',
+  description: '',
+  category: 'jee-main',
+  price: 0,
+  thumbnail: '',
+  testIds: [],
+  visibility: 'public',
+  visibilityCourseIds: [],
+  expiryType: 'lifetime',
+  expiryDate: '',
+};
+
 function isQComplete(q) {
-  return q.question.trim() && q.options.every(o => o.trim());
+  if (!q.question.trim()) return false;
+  if (q.questionType === 'text') return true; // expectedAnswer is optional
+  return q.options.every(o => o.trim());
+}
+
+// Smart searchable course picker component
+function CoursePicker({ selectedIds, onChange, courses }) {
+  const [search, setSearch] = useState('');
+  const filtered = courses.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()));
+  return (
+    <div className="mt-2">
+      <input value={search} onChange={e => setSearch(e.target.value)}
+        placeholder="🔍 Search courses..." className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-2" />
+      <div className="bg-black/30 border border-white/10 rounded-lg max-h-40 overflow-y-auto p-2 space-y-1">
+        {filtered.length === 0 ? (
+          <p className="text-slate-500 text-xs text-center py-3">No courses found</p>
+        ) : filtered.map(c => (
+          <label key={c.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer">
+            <input type="checkbox" checked={selectedIds.includes(c.id)}
+              onChange={() => {
+                const next = selectedIds.includes(c.id) ? selectedIds.filter(x => x !== c.id) : [...selectedIds, c.id];
+                onChange(next);
+              }} className="w-4 h-4 accent-green-brand" />
+            <div className="min-w-0 flex-1">
+              <div className="text-sm text-white font-medium truncate">{c.title}</div>
+              <div className="text-[10px] text-slate-500">{c.level || ''} {c.isFree ? '• Free' : ''}</div>
+            </div>
+          </label>
+        ))}
+      </div>
+      {selectedIds.length > 0 && <p className="text-xs text-green-400 mt-1 font-medium">{selectedIds.length} course(s) linked</p>}
+    </div>
+  );
 }
 
 export default function ManageMockTests() {
-  const { data: tests, loading } = useRealtimeCollection('mockTests', { fallback: [] });
+  const [activeTab, setActiveTab] = useState('tests'); // 'tests' | 'series'
+
+  const { data: tests, loading: testsLoading } = useRealtimeCollection('mockTests', { fallback: [] });
+  const { data: series, loading: seriesLoading } = useRealtimeCollection('testSeries', { fallback: [] });
+  const { data: courses } = useRealtimeCollection('courses', { fallback: [] });
+
+  // Test State
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
@@ -56,31 +127,28 @@ export default function ManageMockTests() {
   const [preview, setPreview] = useState(false);
   const [uploading, setUploading] = useState(false);
 
+  // Series State
+  const [seriesModal, setSeriesModal] = useState(false);
+  const [editingSeries, setEditingSeries] = useState(null);
+  const [sForm, setSForm] = useState(emptySeriesForm);
+
+  // --- Image Upload ---
   const handleImageUpload = async (e, qIdx) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.error('Only images allowed');
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('Image too large (max 5MB)');
-      return;
-    }
+    if (!file.type.startsWith('image/')) { toast.error('Only images allowed'); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error('Image too large (max 5MB)'); return; }
     setUploading(true);
     try {
       const path = `mockTestImages/${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
       const url = await uploadFile(path, file);
       updateQ(qIdx, { imageUrl: url });
       toast.success('Image uploaded');
-    } catch (err) {
-      toast.error('Upload failed: ' + err.message);
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
+    } catch (err) { toast.error('Upload failed: ' + err.message); }
+    finally { setUploading(false); e.target.value = ''; }
   };
 
+  // --- Tests Logic ---
   const filtered = filter === 'all' ? tests : tests.filter(t => t.category === filter);
   const activeQ = form.questions[activeQIdx];
 
@@ -101,22 +169,35 @@ export default function ManageMockTests() {
       marksPerQuestion: t.marksPerQuestion ?? 4,
       negativeMarks: t.negativeMarks ?? 1,
       price: t.price ?? 0,
+      testType: t.testType || 'single',
+      liveStartTime: t.liveStartTime || '',
+      liveEndTime: t.liveEndTime || '',
+      resultMode: t.resultMode || 'instant',
+      resultPublishDate: t.resultPublishDate || '',
+      allowRetakes: t.allowRetakes || false,
+      defaultQuestionType: t.defaultQuestionType || 'mcq-single',
+      visibility: t.visibility || 'public',
+      visibilityCourseIds: t.visibilityCourseIds || [],
+      expiryType: t.expiryType || 'lifetime',
+      expiryDate: t.expiryDate || '',
       questions: (t.questions || []).map(q => ({
         section: 'Physics',
         imageUrl: '',
         marks: null,
         explanation: '',
+        questionType: q.questionType || t.defaultQuestionType || 'mcq-single',
+        correctIndices: q.correctIndices || (typeof q.correctIndex === 'number' ? [q.correctIndex] : []),
+        expectedAnswer: q.expectedAnswer || '',
         ...q,
       })),
     });
     setActiveQIdx(0);
     setModal(true);
   };
-
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); setActiveQIdx(0); };
 
   const addQuestion = () => {
-    setForm(f => ({ ...f, questions: [...f.questions, emptyQ()] }));
+    setForm(f => ({ ...f, questions: [...f.questions, emptyQ(f.defaultQuestionType)] }));
     setActiveQIdx(form.questions.length);
   };
   const removeQuestion = (idx) => {
@@ -154,7 +235,7 @@ export default function ManageMockTests() {
       const parsed = JSON.parse(jsonText);
       if (!Array.isArray(parsed)) throw new Error('Must be array');
       const qs = parsed.map(p => ({
-        ...emptyQ(),
+        ...emptyQ(form.defaultQuestionType),
         section: p.section || 'Physics',
         question: p.question || '',
         imageUrl: p.imageUrl || '',
@@ -166,17 +247,23 @@ export default function ManageMockTests() {
       toast.success(`Imported ${qs.length} questions`);
       setJsonModal(false);
       setJsonText('');
-    } catch (err) {
-      toast.error('Invalid JSON: ' + err.message);
-    }
+    } catch (err) { toast.error('Invalid JSON: ' + err.message); }
   };
 
   const save = async () => {
     if (!form.title.trim()) { toast.error('Title required'); return; }
     if (!form.questions.length) { toast.error('Add at least one question'); return; }
+    if (form.visibility === 'course' && form.visibilityCourseIds.length === 0) {
+      toast.error('Select at least one course for course-specific visibility'); return;
+    }
+    if (form.expiryType === 'date' && !form.expiryDate) {
+      toast.error('Set an expiry date or choose Lifetime'); return;
+    }
     for (const [i, q] of form.questions.entries()) {
       if (!q.question.trim()) { toast.error(`Q${i + 1}: question text missing`); return; }
-      if (q.options.some(o => !o.trim())) { toast.error(`Q${i + 1}: all 4 options needed`); return; }
+      if ((q.questionType === 'mcq-single' || q.questionType === 'mcq-multi') && q.options.some(o => !o.trim())) { 
+        toast.error(`Q${i + 1}: all 4 options needed`); return; 
+      }
     }
     const payload = {
       ...form,
@@ -207,133 +294,339 @@ export default function ManageMockTests() {
     } catch (err) { toast.error(err.message); }
   };
 
+  // --- Series Logic ---
+  const openCreateSeries = () => { setEditingSeries(null); setSForm(emptySeriesForm); setSeriesModal(true); };
+  const openEditSeries = (s) => {
+    setEditingSeries(s);
+    setSForm({
+      title: s.title || '',
+      description: s.description || '',
+      category: s.category || 'jee-main',
+      price: s.price ?? 0,
+      thumbnail: s.thumbnail || '',
+      testIds: s.testIds || [],
+      visibility: s.visibility || 'public',
+      visibilityCourseIds: s.visibilityCourseIds || [],
+      expiryType: s.expiryType || 'lifetime',
+      expiryDate: s.expiryDate || '',
+    });
+    setSeriesModal(true);
+  };
+  const closeSeriesModal = () => { setSeriesModal(false); setEditingSeries(null); setSForm(emptySeriesForm); };
+
+  const saveSeries = async () => {
+    if (!sForm.title.trim()) { toast.error('Title required'); return; }
+    if (sForm.visibility === 'course' && sForm.visibilityCourseIds.length === 0) {
+      toast.error('Select at least one course for course-specific visibility'); return;
+    }
+    const payload = {
+      ...sForm,
+      price: Number(sForm.price) || 0,
+    };
+    try {
+      if (editingSeries) {
+        await updateDocument('testSeries', editingSeries.id, payload);
+        toast.success('Series updated');
+      } else {
+        await addDocument('testSeries', payload);
+        toast.success('Series created');
+      }
+      closeSeriesModal();
+    } catch (err) { toast.error(err.message); }
+  };
+
+  const removeSeries = async (id) => {
+    if (!confirm('Delete this test series?')) return;
+    try {
+      await deleteDocument('testSeries', id);
+      toast.success('Deleted');
+    } catch (err) { toast.error(err.message); }
+  };
+
+  const toggleTestInSeries = (testId) => {
+    setSForm(f => {
+      const ids = f.testIds.includes(testId)
+        ? f.testIds.filter(id => id !== testId)
+        : [...f.testIds, testId];
+      return { ...f, testIds: ids };
+    });
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white">Mock Tests</h1>
-          <p className="text-sm text-slate-400">NTA-style proctored MCQ tests</p>
+          <h1 className="text-2xl font-bold text-white">Test Papers & Series</h1>
+          <p className="text-sm text-slate-400">Manage individual tests and test bundles</p>
         </div>
-        <div className="flex gap-2">
-          <ExportButton data={tests} filename="mock_tests" columns={[
-            { key: 'title', label: 'Title' },
-            { key: 'category', label: 'Category' },
-            { key: 'difficulty', label: 'Difficulty' },
-            { key: 'duration', label: 'Duration (min)' },
-            { key: 'totalQuestions', label: 'Questions' },
-            { key: 'maxMarks', label: 'Max Marks' },
-            { key: 'marksPerQuestion', label: 'Marks per Q' },
-            { key: 'negativeMarks', label: 'Negative Marks' },
-            { key: 'description', label: 'Description' },
-          ]} />
-          <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">
-            + New Test
+        <div className="flex gap-2 bg-white/5 p-1 rounded-lg border border-white/10">
+          <button onClick={() => setActiveTab('tests')} className={`px-4 py-2 text-sm font-bold rounded-md ${activeTab === 'tests' ? 'bg-green-brand text-white' : 'text-slate-400 hover:text-white'}`}>
+            Individual Tests
+          </button>
+          <button onClick={() => setActiveTab('series')} className={`px-4 py-2 text-sm font-bold rounded-md ${activeTab === 'series' ? 'bg-green-brand text-white' : 'text-slate-400 hover:text-white'}`}>
+            Test Series
           </button>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-6">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-3 py-1.5 rounded-full text-xs font-medium ${filter === 'all' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-white/10'}`}
-        >
-          All ({tests.length})
-        </button>
-        {CATEGORIES.map(c => {
-          const count = tests.filter(t => t.category === c.id).length;
-          return (
-            <button
-              key={c.id}
-              onClick={() => setFilter(c.id)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium ${filter === c.id ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-white/10'}`}
-            >
-              {c.label} ({count})
-            </button>
-          );
-        })}
-      </div>
-
-      {loading && <TableSkeleton />}
-
-      {!loading && filtered.length === 0 && (
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
-          <p className="text-slate-400 mb-4">No mock tests yet.</p>
-          <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">
-            Create First Test
-          </button>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(t => (
-          <div key={t.id} className="bg-white/5 border border-white/10 rounded-2xl p-5">
-            <div className="flex justify-between items-start mb-2">
-              <span className="text-xs font-bold px-2 py-1 rounded bg-green-brand/10 text-green-brand">
-                {CATEGORIES.find(c => c.id === t.category)?.label || t.category}
-              </span>
-              <span className={`text-xs font-bold px-2 py-1 rounded ${t.price > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
-                {t.price > 0 ? `₹${t.price}` : 'Free'}
-              </span>
-            </div>
-            <h3 className="text-white font-bold mb-1 line-clamp-2">{t.title}</h3>
-            <p className="text-xs text-slate-400 mb-3 line-clamp-2">{t.description}</p>
-            <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
-              <div className="bg-black/30 rounded p-2">
-                <div className="text-white font-bold">{t.questions?.length || 0}</div>
-                <div className="text-slate-500 text-[10px]">Q's</div>
-              </div>
-              <div className="bg-black/30 rounded p-2">
-                <div className="text-white font-bold">{t.duration || 30}</div>
-                <div className="text-slate-500 text-[10px]">Mins</div>
-              </div>
-              <div className="bg-black/30 rounded p-2">
-                <div className="text-white font-bold">{t.maxMarks ?? (t.questions?.length || 0) * (t.marksPerQuestion ?? 4)}</div>
-                <div className="text-slate-500 text-[10px]">Marks</div>
-              </div>
+      {activeTab === 'tests' && (
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-wrap gap-2">
+              <button onClick={() => setFilter('all')} className={`px-3 py-1.5 rounded-full text-xs font-medium ${filter === 'all' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-white/10'}`}>
+                All ({tests.length})
+              </button>
+              {CATEGORIES.map(c => {
+                const count = tests.filter(t => t.category === c.id).length;
+                return (
+                  <button key={c.id} onClick={() => setFilter(c.id)} className={`px-3 py-1.5 rounded-full text-xs font-medium ${filter === c.id ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-white/10'}`}>
+                    {c.label} ({count})
+                  </button>
+                );
+              })}
             </div>
             <div className="flex gap-2">
-              <button onClick={() => openEdit(t)} className="flex-1 bg-white/10 hover:bg-white/20 text-white text-sm py-2 rounded">Edit</button>
-              <button onClick={() => remove(t.id)} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm py-2 px-3 rounded">Delete</button>
+              <ExportButton data={tests} filename="mock_tests" columns={[ { key: 'title', label: 'Title' }, { key: 'category', label: 'Category' }, { key: 'testType', label: 'Type' } ]} />
+              <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">+ New Test</button>
             </div>
           </div>
-        ))}
-      </div>
 
+          {testsLoading ? <TableSkeleton /> : filtered.length === 0 ? (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
+              <p className="text-slate-400 mb-4">No tests yet.</p>
+              <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">Create First Test</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filtered.map(t => {
+                const vis = VISIBILITY_OPTIONS.find(v => v.id === (t.visibility || 'public'));
+                const isExpired = t.expiryType === 'date' && t.expiryDate && new Date(t.expiryDate) < new Date();
+                return (
+                <div key={t.id} className={`bg-white/5 border rounded-2xl p-5 ${isExpired ? 'border-red-500/30 opacity-70' : 'border-white/10'}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold px-2 py-1 rounded bg-green-brand/10 text-green-brand">
+                      {CATEGORIES.find(c => c.id === t.category)?.label || t.category}
+                    </span>
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      {t.testType === 'live' && <span className="text-xs font-bold px-2 py-1 rounded bg-red-500/10 text-red-400">LIVE</span>}
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${t.price > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                        {t.price > 0 ? `₹${t.price}` : 'Free'}
+                      </span>
+                      <span className={`text-xs font-bold px-1.5 py-1 rounded ${vis?.color || 'bg-blue-500/10 text-blue-400'}`}>
+                        {vis?.icon} {vis?.id === 'public' ? '' : vis?.label?.split(' ')[0]}
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-white font-bold mb-1 line-clamp-2">{t.title}</h3>
+                  <p className="text-xs text-slate-400 mb-2 line-clamp-2">{t.description}</p>
+                  <div className="flex gap-2 text-[10px] mb-3 flex-wrap">
+                    {isExpired ? (
+                      <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">EXPIRED</span>
+                    ) : t.expiryType === 'date' && t.expiryDate ? (
+                      <span className="bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full">Expires: {new Date(t.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    ) : (
+                      <span className="bg-green-brand/10 text-green-400 px-2 py-0.5 rounded-full">Lifetime</span>
+                    )}
+                    {t.visibility === 'course' && t.visibilityCourseIds?.length > 0 && (
+                      <span className="bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full">{t.visibilityCourseIds.length} course(s)</span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-center text-xs mb-3">
+                    <div className="bg-black/30 rounded p-2">
+                      <div className="text-white font-bold">{t.questions?.length || 0}</div>
+                      <div className="text-slate-500 text-[10px]">Q's</div>
+                    </div>
+                    <div className="bg-black/30 rounded p-2">
+                      <div className="text-white font-bold">{t.duration || 30}</div>
+                      <div className="text-slate-500 text-[10px]">Mins</div>
+                    </div>
+                    <div className="bg-black/30 rounded p-2">
+                      <div className="text-white font-bold">{t.maxMarks ?? (t.questions?.length || 0) * (t.marksPerQuestion ?? 4)}</div>
+                      <div className="text-slate-500 text-[10px]">Marks</div>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => openEdit(t)} className="flex-1 bg-white/10 hover:bg-white/20 text-white text-sm py-2 rounded">Edit</button>
+                    <button onClick={() => remove(t.id)} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm py-2 px-3 rounded">Delete</button>
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {activeTab === 'series' && (
+        <>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-white font-bold">Test Bundles</h2>
+            <button onClick={openCreateSeries} className="bg-green-brand hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">+ New Series</button>
+          </div>
+          
+          {seriesLoading ? <TableSkeleton /> : series.length === 0 ? (
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-12 text-center">
+              <p className="text-slate-400 mb-4">No test series created yet.</p>
+              <button onClick={openCreateSeries} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">Create Test Series</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {series.map(s => {
+                const vis = VISIBILITY_OPTIONS.find(v => v.id === (s.visibility || 'public'));
+                const isExpired = s.expiryType === 'date' && s.expiryDate && new Date(s.expiryDate) < new Date();
+                return (
+                <div key={s.id} className={`bg-white/5 border rounded-2xl p-5 ${isExpired ? 'border-red-500/30 opacity-70' : 'border-white/10'}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold px-2 py-1 rounded bg-indigo-500/10 text-indigo-400">SERIES</span>
+                    <div className="flex gap-1">
+                      <span className={`text-xs font-bold px-2 py-1 rounded ${s.price > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-blue-500/10 text-blue-400'}`}>
+                        {s.price > 0 ? `₹${s.price}` : 'Free'}
+                      </span>
+                      <span className={`text-xs font-bold px-1.5 py-1 rounded ${vis?.color || 'bg-blue-500/10 text-blue-400'}`}>
+                        {vis?.icon}
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-white font-bold mb-1 line-clamp-2">{s.title}</h3>
+                  <p className="text-xs text-slate-400 mb-2 line-clamp-2">{s.description}</p>
+                  <div className="flex gap-2 text-[10px] mb-3">
+                    {isExpired ? (
+                      <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full font-bold">EXPIRED</span>
+                    ) : s.expiryType === 'date' && s.expiryDate ? (
+                      <span className="bg-amber-500/10 text-amber-400 px-2 py-0.5 rounded-full">Exp: {new Date(s.expiryDate).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</span>
+                    ) : (
+                      <span className="bg-green-brand/10 text-green-400 px-2 py-0.5 rounded-full">Lifetime</span>
+                    )}
+                  </div>
+                  <div className="bg-black/30 rounded p-2 text-center mb-3">
+                    <span className="text-white font-bold">{s.testIds?.length || 0}</span> <span className="text-slate-500 text-xs">Tests in Bundle</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => openEditSeries(s)} className="flex-1 bg-white/10 hover:bg-white/20 text-white text-sm py-2 rounded">Edit</button>
+                    <button onClick={() => removeSeries(s.id)} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm py-2 px-3 rounded">Delete</button>
+                  </div>
+                </div>
+                );
+              })}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Test Form Modal */}
       <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Mock Test' : 'New Mock Test'} size="full">
-        <div className="flex flex-col h-[80vh]">
-          {/* Test meta strip */}
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-2 pb-3 border-b border-white/10">
+        <div className="flex flex-col h-[85vh]">
+          {/* Top Config Strip */}
+          <div className="bg-white/5 border border-white/10 rounded-lg p-4 mb-4 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             <input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
-              placeholder="Test title"
-              className="md:col-span-2 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-bold" />
+              placeholder="Test title" className="md:col-span-2 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm font-bold" />
             <select value={form.category} onChange={e => setForm({ ...form, category: e.target.value })}
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+              className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
               {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.label}</option>)}
             </select>
-            <input type="number" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}
-              placeholder="Min" title="Duration (min)"
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-            <input type="number" value={form.marksPerQuestion} onChange={e => setForm({ ...form, marksPerQuestion: e.target.value })}
-              placeholder="Marks/Q" title="Marks per Q"
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-            <input type="number" value={form.negativeMarks} onChange={e => setForm({ ...form, negativeMarks: e.target.value })}
-              placeholder="-ve" title="Negative marks"
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
             <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
-              placeholder="₹ Price (0=free)" title="Price in INR (0 = free)"
-              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              placeholder="₹ Price (0=free)" title="Price"
+              className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+            
+            <select value={form.testType} onChange={e => setForm({ ...form, testType: e.target.value })}
+              className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" title="Test Type">
+              <option value="single" className="bg-slate-900">Standard Test</option>
+              <option value="live" className="bg-slate-900">Live Scheduled Test</option>
+            </select>
+            <select value={form.resultMode} onChange={e => setForm({ ...form, resultMode: e.target.value })}
+              className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" title="Result Mode">
+              <option value="instant" className="bg-slate-900">Instant Results</option>
+              <option value="scheduled" className="bg-slate-900">Scheduled Results</option>
+              <option value="manual" className="bg-slate-900">Manual Review</option>
+            </select>
+
+            {form.testType === 'live' && (
+              <>
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-slate-400 block mb-1">Live Start Time</label>
+                  <input type="datetime-local" value={form.liveStartTime} onChange={e => setForm({ ...form, liveStartTime: e.target.value })}
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-slate-400 block mb-1">Live End Time</label>
+                  <input type="datetime-local" value={form.liveEndTime} onChange={e => setForm({ ...form, liveEndTime: e.target.value })}
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                </div>
+              </>
+            )}
+
+            {form.resultMode === 'scheduled' && (
+              <div className="md:col-span-2">
+                <label className="text-[10px] text-slate-400 block mb-1">Result Publish Date</label>
+                <input type="datetime-local" value={form.resultPublishDate} onChange={e => setForm({ ...form, resultPublishDate: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              </div>
+            )}
+
+            <label className="flex items-center gap-2 text-sm text-slate-300 md:col-span-2 cursor-pointer bg-black/40 border border-white/10 rounded-lg px-3 py-2">
+              <input type="checkbox" checked={form.allowRetakes} onChange={e => setForm({ ...form, allowRetakes: e.target.checked })}
+                className="w-4 h-4 accent-green-brand" />
+              Allow Retakes
+            </label>
+
+            <div className="col-span-2 md:col-span-4 lg:col-span-6 border-t border-white/10 pt-3 mt-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <input type="number" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}
+                placeholder="Duration (min)" title="Duration (min)" className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              <input type="number" value={form.marksPerQuestion} onChange={e => setForm({ ...form, marksPerQuestion: e.target.value })}
+                placeholder="Marks/Q" title="Marks per Q" className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              <input type="number" value={form.negativeMarks} onChange={e => setForm({ ...form, negativeMarks: e.target.value })}
+                placeholder="-ve Marks" title="Negative marks" className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              <select value={form.defaultQuestionType} onChange={e => setForm({ ...form, defaultQuestionType: e.target.value })}
+                className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" title="Default Question Type">
+                <option value="mcq-single" className="bg-slate-900">Default: MCQ (Single Correct)</option>
+                <option value="mcq-multi" className="bg-slate-900">Default: MCQ (Multiple Correct)</option>
+                <option value="text" className="bg-slate-900">Default: Text Input</option>
+                <option value="custom" className="bg-slate-900">Custom Per Question</option>
+              </select>
+            </div>
+
+            {/* Visibility & Expiry Row */}
+            <div className="col-span-2 md:col-span-4 lg:col-span-6 border-t border-white/10 pt-3 mt-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Visibility</label>
+                <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value, visibilityCourseIds: e.target.value !== 'course' ? [] : form.visibilityCourseIds })}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                  {VISIBILITY_OPTIONS.map(v => <option key={v.id} value={v.id} className="bg-slate-900">{v.icon} {v.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Access Expiry</label>
+                <select value={form.expiryType} onChange={e => setForm({ ...form, expiryType: e.target.value, expiryDate: e.target.value === 'lifetime' ? '' : form.expiryDate })}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                  <option value="lifetime" className="bg-slate-900">♾ Lifetime Access</option>
+                  <option value="date" className="bg-slate-900">📅 Specific Expiry Date</option>
+                </select>
+              </div>
+              {form.expiryType === 'date' && (
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">Expiry Date</label>
+                  <input type="date" value={form.expiryDate} onChange={e => setForm({ ...form, expiryDate: e.target.value })}
+                    className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                </div>
+              )}
+              {form.visibility === 'course' && (
+                <div className="md:col-span-2">
+                  <label className="text-[10px] text-slate-400 block mb-1">Link to Courses</label>
+                  <CoursePicker selectedIds={form.visibilityCourseIds} onChange={ids => setForm({ ...form, visibilityCourseIds: ids })} courses={courses} />
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Split layout */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex overflow-hidden border border-white/10 rounded-lg bg-black/20">
             {/* Left: Q list */}
-            <div className="w-72 border-r border-white/10 flex flex-col overflow-hidden">
+            <div className="w-72 border-r border-white/10 flex flex-col overflow-hidden bg-black/40">
               <div className="p-3 border-b border-white/10 flex gap-2">
                 <button onClick={addQuestion} className="flex-1 bg-green-brand hover:bg-green-600 text-white text-xs font-bold py-2 rounded">
                   + Add Q
                 </button>
-                <button onClick={() => setJsonModal(true)} title="Bulk import JSON"
-                  className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 rounded">
+                <button onClick={() => setJsonModal(true)} title="Bulk import JSON" className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 rounded">
                   JSON
                 </button>
               </div>
@@ -343,9 +636,7 @@ export default function ManageMockTests() {
                   const active = i === activeQIdx;
                   const stop = (fn) => (e) => { e.stopPropagation(); e.preventDefault(); fn(); };
                   return (
-                    <div key={q.id}
-                      role="button"
-                      onClick={() => setActiveQIdx(i)}
+                    <div key={q.id} role="button" onClick={() => setActiveQIdx(i)}
                       className={`p-2 rounded cursor-pointer border ${active ? 'bg-green-brand/20 border-green-brand' : 'bg-white/5 border-white/10 hover:bg-white/10'}`}>
                       <div className="flex items-center gap-2 min-w-0 mb-1.5">
                         <span className={`w-2 h-2 rounded-full flex-shrink-0 ${complete ? 'bg-green-500' : 'bg-amber-500'}`} />
@@ -355,70 +646,76 @@ export default function ManageMockTests() {
                       <div className="flex justify-between items-center">
                         <span className="text-[10px] text-slate-500 truncate">{q.section}</span>
                         <div className="flex gap-0.5 flex-shrink-0">
-                          <button type="button" onClick={stop(() => moveQ(i, -1))} disabled={i === 0} title="Move up"
-                            className="text-xs text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-20 disabled:hover:bg-transparent w-6 h-6 rounded flex items-center justify-center">↑</button>
-                          <button type="button" onClick={stop(() => moveQ(i, 1))} disabled={i === form.questions.length - 1} title="Move down"
-                            className="text-xs text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-20 disabled:hover:bg-transparent w-6 h-6 rounded flex items-center justify-center">↓</button>
-                          <button type="button" onClick={stop(() => dupQuestion(i))} title="Duplicate"
+                          <button type="button" onClick={stop(() => moveQ(i, -1))} disabled={i === 0}
+                            className="text-xs text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-20 w-6 h-6 rounded flex items-center justify-center">↑</button>
+                          <button type="button" onClick={stop(() => moveQ(i, 1))} disabled={i === form.questions.length - 1}
+                            className="text-xs text-slate-300 hover:text-white hover:bg-white/10 disabled:opacity-20 w-6 h-6 rounded flex items-center justify-center">↓</button>
+                          <button type="button" onClick={stop(() => dupQuestion(i))}
                             className="text-xs text-slate-300 hover:text-white hover:bg-white/10 w-6 h-6 rounded flex items-center justify-center">⎘</button>
-                          <button type="button" onClick={stop(() => { if (confirm(`Delete Q${i + 1}?`)) removeQuestion(i); })} title="Delete"
+                          <button type="button" onClick={stop(() => { if (confirm(`Delete Q${i + 1}?`)) removeQuestion(i); })}
                             className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10 w-6 h-6 rounded flex items-center justify-center">×</button>
                         </div>
                       </div>
                     </div>
                   );
                 })}
-                {form.questions.length === 0 && (
-                  <p className="text-slate-500 text-xs text-center py-6">No questions yet</p>
-                )}
-              </div>
-              <div className="p-2 border-t border-white/10 text-[10px] text-slate-400 grid grid-cols-2 gap-2">
-                <div>Total: <span className="text-white font-bold">{form.questions.length}</span></div>
-                <div>Done: <span className="text-green-400 font-bold">{form.questions.filter(isQComplete).length}</span></div>
               </div>
             </div>
 
             {/* Right: active Q editor */}
             <div className="flex-1 overflow-y-auto p-5">
-              {!activeQ && (
+              {!activeQ ? (
                 <div className="h-full flex flex-col items-center justify-center text-center">
                   <p className="text-slate-400 mb-3">No question selected</p>
-                  <button onClick={addQuestion} className="bg-green-brand hover:bg-green-600 text-white px-5 py-2 rounded-lg text-sm font-bold">
-                    + Add First Question
-                  </button>
                 </div>
-              )}
-
-              {activeQ && (
+              ) : (
                 <div className="max-w-3xl">
-                  <div className="flex justify-between items-center mb-4">
-                    <div className="flex items-center gap-3">
-                      <span className="text-xl font-bold text-white">Question {activeQIdx + 1}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${isQComplete(activeQ) ? 'bg-green-500/20 text-green-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                        {isQComplete(activeQ) ? '✓ Complete' : '⚠ Incomplete'}
-                      </span>
+                  <div className="flex justify-between items-center mb-4 pb-4 border-b border-white/10">
+                    <span className="text-xl font-bold text-white">Question {activeQIdx + 1}</span>
+                    <div className="flex gap-3">
+                      {form.defaultQuestionType === 'custom' && (
+                        <select value={activeQ.questionType || 'mcq-single'} onChange={e => updateQ(activeQIdx, { questionType: e.target.value })}
+                          className="bg-white/5 border border-white/10 rounded px-2 text-xs text-white">
+                          <option value="mcq-single" className="bg-slate-900">MCQ (Single)</option>
+                          <option value="mcq-multi" className="bg-slate-900">MCQ (Multiple)</option>
+                          <option value="text" className="bg-slate-900">Text Input</option>
+                        </select>
+                      )}
+                      <button onClick={() => setPreview(p => !p)} className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded">
+                        {preview ? 'Edit' : '👁 Preview'}
+                      </button>
                     </div>
-                    <button onClick={() => setPreview(p => !p)} className="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded">
-                      {preview ? 'Edit' : '👁 Preview'}
-                    </button>
                   </div>
 
                   {preview ? (
                     <div className="bg-white text-black rounded-lg p-6 space-y-4">
                       <div className="flex justify-between text-xs text-gray-600">
-                        <span>{activeQ.section} · Q{activeQIdx + 1}</span>
-                        <span>Marks: +{activeQ.marks || form.marksPerQuestion}  / −{form.negativeMarks}</span>
+                        <span>{activeQ.section} · {activeQ.questionType}</span>
+                        <span>Marks: +{activeQ.marks || form.marksPerQuestion} / −{form.negativeMarks}</span>
                       </div>
-                      <p className="text-base font-medium whitespace-pre-wrap">{activeQ.question || '(empty)'}</p>
+                      <p className="text-base font-medium whitespace-pre-wrap">{activeQ.question}</p>
                       {activeQ.imageUrl && <img src={activeQ.imageUrl} alt="" className="max-h-60 rounded" />}
-                      <div className="space-y-2">
-                        {activeQ.options.map((o, oi) => (
-                          <div key={oi} className={`flex gap-3 p-3 rounded border ${activeQ.correctIndex === oi ? 'bg-green-50 border-green-400' : 'border-gray-200'}`}>
-                            <span className="font-bold">{String.fromCharCode(65 + oi)}.</span>
-                            <span>{o || '(empty)'}</span>
-                          </div>
-                        ))}
-                      </div>
+                      
+                      {activeQ.questionType === 'text' ? (
+                        <div className="bg-gray-50 border border-gray-200 p-3 rounded text-sm text-gray-500 italic">
+                          Student will see a text box to type their answer.<br/><br/>
+                          <strong>Model Answer:</strong> {activeQ.expectedAnswer || 'None provided'}
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          {activeQ.options.map((o, oi) => {
+                            const isCorrect = activeQ.questionType === 'mcq-multi' 
+                              ? activeQ.correctIndices?.includes(oi)
+                              : activeQ.correctIndex === oi;
+                            return (
+                              <div key={oi} className={`flex gap-3 p-3 rounded border ${isCorrect ? 'bg-green-50 border-green-400' : 'border-gray-200'}`}>
+                                <span className="font-bold">{String.fromCharCode(65 + oi)}.</span>
+                                <span>{o}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                       {activeQ.explanation && (
                         <div className="bg-blue-50 border-l-4 border-blue-400 p-3 text-sm">
                           <strong>Explanation:</strong> {activeQ.explanation}
@@ -431,16 +728,9 @@ export default function ManageMockTests() {
                         <div>
                           <label className="text-xs text-slate-400 block mb-1">Section</label>
                           <input value={activeQ.section} onChange={e => updateQ(activeQIdx, { section: e.target.value })}
-                            list="sections-list"
-                            placeholder="Physics / Chemistry / Math"
+                            list="sections-list" placeholder="Physics / Chemistry / Math"
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-                          <datalist id="sections-list">
-                            {sections.map(s => <option key={s} value={s} />)}
-                            <option value="Physics" />
-                            <option value="Chemistry" />
-                            <option value="Mathematics" />
-                            <option value="Biology" />
-                          </datalist>
+                          <datalist id="sections-list">{sections.map(s => <option key={s} value={s} />)}</datalist>
                         </div>
                         <div>
                           <label className="text-xs text-slate-400 block mb-1">Marks override (blank = test default)</label>
@@ -458,63 +748,64 @@ export default function ManageMockTests() {
                       </div>
 
                       <div>
-                        <label className="text-xs text-slate-400 block mb-1">Image (optional) — upload or paste URL</label>
+                        <label className="text-xs text-slate-400 block mb-1">Image (optional)</label>
                         <div className="flex gap-2">
                           <input value={activeQ.imageUrl} onChange={e => updateQ(activeQIdx, { imageUrl: e.target.value })}
-                            placeholder="https://... or upload below"
-                            className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-                          <label className={`cursor-pointer bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg flex items-center gap-2 ${uploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                            {uploading ? '⏳ Uploading...' : '📁 Upload'}
-                            <input type="file" accept="image/*" hidden
-                              onChange={(e) => handleImageUpload(e, activeQIdx)} />
+                            placeholder="https://..." className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                          <label className="cursor-pointer bg-white/10 hover:bg-white/20 text-white text-sm px-4 py-2 rounded-lg">
+                            {uploading ? '⏳...' : '📁 Upload'}
+                            <input type="file" accept="image/*" hidden onChange={(e) => handleImageUpload(e, activeQIdx)} />
                           </label>
-                          {activeQ.imageUrl && (
-                            <button onClick={() => updateQ(activeQIdx, { imageUrl: '' })}
-                              className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-sm px-3 py-2 rounded-lg">
-                              ×
-                            </button>
-                          )}
                         </div>
-                        {activeQ.imageUrl && (
-                          <img src={activeQ.imageUrl} alt="" className="mt-2 max-h-48 rounded border border-white/10"
-                            onError={(e) => { e.target.style.display = 'none'; }} />
-                        )}
-                        <p className="text-[10px] text-slate-500 mt-1">JPG/PNG, max 5MB. Stored in Firebase Storage.</p>
+                        {activeQ.imageUrl && <img src={activeQ.imageUrl} alt="" className="mt-2 max-h-48 rounded" />}
                       </div>
 
-                      <div>
-                        <label className="text-xs text-slate-400 block mb-2">Options * (click radio to mark correct)</label>
-                        <div className="space-y-2">
-                          {activeQ.options.map((opt, oi) => (
-                            <div key={oi} className={`flex gap-3 items-center p-3 rounded-lg border ${activeQ.correctIndex === oi ? 'bg-green-brand/10 border-green-brand' : 'bg-white/5 border-white/10'}`}>
-                              <label className="flex items-center gap-2 cursor-pointer">
-                                <input type="radio" name={`correct_active`} checked={activeQ.correctIndex === oi}
-                                  onChange={() => updateQ(activeQIdx, { correctIndex: oi })} className="accent-green-brand w-4 h-4" />
-                                <span className="text-sm text-white font-bold w-5">{String.fromCharCode(65 + oi)}.</span>
-                              </label>
-                              <input value={opt} onChange={e => updateOpt(activeQIdx, oi, e.target.value)}
-                                placeholder={`Option ${String.fromCharCode(65 + oi)}`}
-                                className="flex-1 bg-transparent border-0 focus:outline-none text-white text-sm" />
-                              {activeQ.correctIndex === oi && <span className="text-xs text-green-brand font-bold">✓ Correct</span>}
-                            </div>
-                          ))}
+                      {(activeQ.questionType === 'mcq-single' || activeQ.questionType === 'mcq-multi') && (
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-2">Options * (select correct answer(s))</label>
+                          <div className="space-y-2">
+                            {activeQ.options.map((opt, oi) => {
+                              const isMulti = activeQ.questionType === 'mcq-multi';
+                              const isChecked = isMulti ? activeQ.correctIndices?.includes(oi) : activeQ.correctIndex === oi;
+                              return (
+                                <div key={oi} className={`flex gap-3 items-center p-3 rounded-lg border ${isChecked ? 'bg-green-brand/10 border-green-brand' : 'bg-white/5 border-white/10'}`}>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type={isMulti ? 'checkbox' : 'radio'} checked={isChecked}
+                                      onChange={(e) => {
+                                        if (isMulti) {
+                                          const curr = activeQ.correctIndices || [];
+                                          const next = e.target.checked ? [...curr, oi] : curr.filter(x => x !== oi);
+                                          updateQ(activeQIdx, { correctIndices: next });
+                                        } else {
+                                          updateQ(activeQIdx, { correctIndex: oi });
+                                        }
+                                      }} className="accent-green-brand w-4 h-4" />
+                                    <span className="text-sm text-white font-bold w-5">{String.fromCharCode(65 + oi)}.</span>
+                                  </label>
+                                  <input value={opt} onChange={e => updateOpt(activeQIdx, oi, e.target.value)}
+                                    placeholder={`Option ${String.fromCharCode(65 + oi)}`}
+                                    className="flex-1 bg-transparent border-0 focus:outline-none text-white text-sm" />
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
+                      )}
+
+                      {activeQ.questionType === 'text' && (
+                        <div>
+                          <label className="text-xs text-slate-400 block mb-1">Model Answer / Rubric (optional, for admin review ref)</label>
+                          <textarea value={activeQ.expectedAnswer || ''} onChange={e => updateQ(activeQIdx, { expectedAnswer: e.target.value })}
+                            rows={3} placeholder="What admin should look for when grading..."
+                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                        </div>
+                      )}
 
                       <div>
-                        <label className="text-xs text-slate-400 block mb-1">Explanation (optional, shown after submission)</label>
+                        <label className="text-xs text-slate-400 block mb-1">Explanation (optional)</label>
                         <textarea value={activeQ.explanation} onChange={e => updateQ(activeQIdx, { explanation: e.target.value })}
-                          rows={2} placeholder="Why is this answer correct..."
+                          rows={2} placeholder="Why is this correct..."
                           className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-                      </div>
-
-                      <div className="flex gap-2 pt-2">
-                        <button onClick={() => dupQuestion(activeQIdx)} className="bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-2 rounded">
-                          ⎘ Duplicate
-                        </button>
-                        <button onClick={() => { if (confirm(`Delete Q${activeQIdx + 1}?`)) removeQuestion(activeQIdx); }} className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-3 py-2 rounded">
-                          × Delete this Q
-                        </button>
                       </div>
                     </div>
                   )}
@@ -523,8 +814,7 @@ export default function ManageMockTests() {
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex gap-3 pt-3 border-t border-white/10">
+          <div className="flex gap-3 pt-4 mt-2 border-t border-white/10">
             <button onClick={closeModal} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2.5 rounded-lg">Cancel</button>
             <button onClick={save} className="flex-1 bg-green-brand hover:bg-green-600 text-white font-bold py-2.5 rounded-lg">
               {editing ? 'Save Changes' : 'Create Test'}
@@ -533,15 +823,96 @@ export default function ManageMockTests() {
         </div>
       </Modal>
 
-      {/* JSON bulk import */}
+      {/* Series Form Modal */}
+      <Modal isOpen={seriesModal} onClose={closeSeriesModal} title={editingSeries ? 'Edit Test Series' : 'New Test Series'} size="lg">
+        <div className="space-y-4 max-h-[80vh] overflow-y-auto">
+          <input value={sForm.title} onChange={e => setSForm({ ...sForm, title: e.target.value })}
+            placeholder="Series Title" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white font-bold" />
+          <textarea value={sForm.description} onChange={e => setSForm({ ...sForm, description: e.target.value })}
+            placeholder="Description" rows={3} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Category</label>
+              <select value={sForm.category} onChange={e => setSForm({ ...sForm, category: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                {CATEGORIES.map(c => <option key={c.id} value={c.id} className="bg-slate-900">{c.label}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-slate-400 block mb-1">Price (₹)</label>
+              <input type="number" value={sForm.price} onChange={e => setSForm({ ...sForm, price: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+            </div>
+          </div>
+          
+          <div>
+            <label className="text-xs text-slate-400 block mb-2 font-bold">Select Tests to Bundle</label>
+            <div className="bg-black/30 border border-white/10 rounded-lg max-h-64 overflow-y-auto p-2 space-y-1">
+              {tests.length === 0 ? (
+                <p className="text-slate-500 text-xs text-center py-4">No tests available.</p>
+              ) : tests.map(t => (
+                <label key={t.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer border border-transparent hover:border-white/5">
+                  <input type="checkbox" checked={sForm.testIds.includes(t.id)} onChange={() => toggleTestInSeries(t.id)}
+                    className="w-4 h-4 accent-green-brand" />
+                  <div>
+                    <div className="text-sm text-white font-medium">{t.title}</div>
+                    <div className="text-[10px] text-slate-500">{CATEGORIES.find(c=>c.id===t.category)?.label} • {t.questions?.length||0} Qs</div>
+                  </div>
+                </label>
+              ))}
+            </div>
+            <p className="text-xs text-green-400 mt-2 font-medium">{sForm.testIds.length} tests selected</p>
+          </div>
+
+          {/* Visibility & Expiry */}
+          <div className="border-t border-white/10 pt-4 mt-2">
+            <label className="text-xs text-slate-400 block mb-2 font-bold">Visibility & Expiry</label>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Visibility</label>
+                <select value={sForm.visibility} onChange={e => setSForm({ ...sForm, visibility: e.target.value, visibilityCourseIds: e.target.value !== 'course' ? [] : sForm.visibilityCourseIds })}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                  {VISIBILITY_OPTIONS.map(v => <option key={v.id} value={v.id} className="bg-slate-900">{v.icon} {v.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Access Expiry</label>
+                <select value={sForm.expiryType} onChange={e => setSForm({ ...sForm, expiryType: e.target.value, expiryDate: e.target.value === 'lifetime' ? '' : sForm.expiryDate })}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
+                  <option value="lifetime" className="bg-slate-900">♾ Lifetime Access</option>
+                  <option value="date" className="bg-slate-900">📅 Specific Expiry Date</option>
+                </select>
+              </div>
+              {sForm.expiryType === 'date' && (
+                <div>
+                  <label className="text-[10px] text-slate-400 block mb-1">Expiry Date</label>
+                  <input type="date" value={sForm.expiryDate} onChange={e => setSForm({ ...sForm, expiryDate: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+                </div>
+              )}
+              {sForm.visibility === 'course' && (
+                <div className="col-span-2">
+                  <label className="text-[10px] text-slate-400 block mb-1">Link to Courses</label>
+                  <CoursePicker selectedIds={sForm.visibilityCourseIds} onChange={ids => setSForm({ ...sForm, visibilityCourseIds: ids })} courses={courses} />
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t border-white/10">
+            <button onClick={closeSeriesModal} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-lg">Cancel</button>
+            <button onClick={saveSeries} className="flex-1 bg-green-brand hover:bg-green-600 text-white font-bold py-2 rounded-lg">
+              Save Series
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* JSON Modal */}
       <Modal isOpen={jsonModal} onClose={() => setJsonModal(false)} title="Bulk Import Questions (JSON)" size="lg">
         <div className="space-y-3">
-          <p className="text-xs text-slate-400">
-            Paste JSON array. Each item: <code className="bg-black/30 px-1 rounded">{`{question, options:[a,b,c,d], correctIndex, section?, explanation?, imageUrl?}`}</code>
-          </p>
-          <textarea value={jsonText} onChange={e => setJsonText(e.target.value)}
-            rows={14} placeholder={`[\n  {"question":"2+2?","options":["3","4","5","6"],"correctIndex":1,"section":"Math"}\n]`}
-            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono" />
+          <p className="text-xs text-slate-400">Paste JSON array...</p>
+          <textarea value={jsonText} onChange={e => setJsonText(e.target.value)} rows={10} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-mono" />
           <div className="flex gap-2">
             <button onClick={() => setJsonModal(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-lg">Cancel</button>
             <button onClick={bulkImport} className="flex-1 bg-green-brand hover:bg-green-600 text-white font-bold py-2 rounded-lg">Import</button>

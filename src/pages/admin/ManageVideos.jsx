@@ -17,12 +17,14 @@ export default function ManageVideos() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [uploading, setUploading] = useState(false)
-  const [inputMode, setInputMode] = useState('url') // 'url' or 'file'
 
   const handleVideoUpload = async (e) => {
     const file = e.target.files?.[0]
     if (!file) return
-    if (!file.type.startsWith('video/')) { toast.error('Video files only'); return }
+    if (!file.type.startsWith('video/') && !file.type.startsWith('audio/') && file.type !== 'application/pdf') { 
+      toast.error('Supported types: video, audio, pdf'); 
+      return; 
+    }
     if (file.size > 500 * 1024 * 1024) { toast('Large file — upload may take time', { icon: 'info' }) }
     setUploading(true)
     try {
@@ -138,36 +140,28 @@ export default function ManageVideos() {
             <div><label className="text-sm font-medium text-slate-300 mb-1 block">Teacher</label><input className="input-field" value={form.teacher} onChange={e => setForm({...form, teacher: e.target.value})} /></div>
           </div>
 
-          {/* Video Source Toggle */}
-          <div className="flex gap-3">
-            <button type="button" onClick={() => setInputMode('url')} className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all cursor-pointer ${inputMode === 'url' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-slate-700'}`}>
-              YouTube URL
-            </button>
-            <button type="button" onClick={() => setInputMode('file')} className={`flex-1 py-2 px-4 rounded-xl text-sm font-medium transition-all cursor-pointer ${inputMode === 'file' ? 'bg-green-brand text-white' : 'bg-white/5 text-slate-400 border border-slate-700'}`}>
-              Upload Video
-            </button>
+          {/* Unified Media URL / File Upload */}
+          <div>
+            <label className="text-sm font-medium text-slate-300 mb-1 block">Media URL / File</label>
+            <div className="flex gap-2 relative">
+              <input 
+                className="input-field flex-1 pr-24" 
+                placeholder="Paste URL here..." 
+                value={form.videoUrl} 
+                onChange={e => setForm({...form, videoUrl: e.target.value})} 
+              />
+              <div className="absolute right-1 top-1 bottom-1 flex items-center">
+                <label className="px-3 h-full rounded text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-slate-300 hover:text-white cursor-pointer transition-colors border border-slate-700 hover:border-green-brand flex items-center justify-center">
+                  {uploading ? '...' : 'Upload'}
+                  <input type="file" accept="video/*,audio/*,application/pdf" className="hidden" onChange={handleVideoUpload} disabled={uploading} />
+                </label>
+              </div>
+            </div>
+            {form.videoUrl && !form.videoUrl.startsWith('http') && (
+              <p className="text-xs text-green-400 mt-1 truncate">File attached: {form.videoUrl.split('/').pop().split('?')[0]}</p>
+            )}
+            <p className="text-xs text-slate-500 mt-1">Paste any link or click upload. Large files may take time.</p>
           </div>
-
-          {inputMode === 'url' ? (
-            <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">YouTube URL</label>
-              <input className="input-field" placeholder="https://www.youtube.com/watch?v=..." value={form.videoUrl} onChange={e => setForm({...form, videoUrl: e.target.value})} />
-              <p className="text-xs text-slate-500 mt-1">Paste any YouTube link (watch, share, or embed)</p>
-            </div>
-          ) : (
-            <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">Upload Video (files over 500MB may take time)</label>
-              <label className="border-2 border-dashed border-slate-600 rounded-xl p-4 text-center cursor-pointer hover:border-green-brand transition-colors block">
-                {form.videoUrl && !form.videoUrl.includes('youtube') ? (
-                  <p className="text-sm text-green-brand">{form.videoUrl.split('/').pop().split('?')[0]}</p>
-                ) : (
-                  <p className="text-sm text-slate-400">{uploading ? 'Uploading...' : 'Click to select video file'}</p>
-                )}
-                <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} disabled={uploading} />
-              </label>
-              <p className="text-xs text-slate-500 mt-1">MP4, WebM, MOV supported. Large files take time to upload.</p>
-            </div>
-          )}
 
           {/* Thumbnail */}
           <div>

@@ -5,6 +5,7 @@ import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firesto
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { openCheckout } from '../../lib/razorpay';
+import { sendCoursePaymentSuccessEmail } from '../../lib/emailUtils';
 import HlsPlayer from '../../components/HlsPlayer';
 import { Skeleton } from '../../components/ui/Skeleton';
 import toast from 'react-hot-toast';
@@ -168,13 +169,16 @@ export default function BasicCourseDetail() {
       variantMonths: selectedVariant.months,
       variantPrice: selectedVariant.price,
       user,
-      onSuccess: (result) => {
+      onSuccess: async (result) => {
         setEnrollment({
           id: result.enrollmentId,
           uid: user.uid,
           courseId: course.id,
           paymentId: result.paymentId,
         });
+        try {
+          await sendCoursePaymentSuccessEmail(user.name, user.email, course.title, selectedVariant.price, result.paymentId)
+        } catch(e) { console.error('Failed to send success email', e) }
         toast.success('🎉 Enrolled successfully! Start learning now.');
         setBuying(false);
       },
@@ -478,7 +482,7 @@ export default function BasicCourseDetail() {
             <button
               onClick={handleBuy}
               disabled={(!course.isFree && !selectedVariant) || buying || (course.courseType === 'batch' && user?.batchStatus === 'pending')}
-              className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-95"
             >
               {buying ? (
                 <>

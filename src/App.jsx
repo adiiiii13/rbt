@@ -49,6 +49,7 @@ const Payment = lazy(() => import('./pages/student/Payment'))
 const Invoices = lazy(() => import('./pages/student/Invoices'))
 const StudentDoubts = lazy(() => import('./pages/student/Doubts'))
 const StudentMockResults = lazy(() => import('./pages/student/MockResults'))
+const StudentMyTests = lazy(() => import('./pages/student/MyTests'))
 const StudentProfile = lazy(() => import('./pages/student/Profile'))
 
 // Basic Pages (lazy)
@@ -207,6 +208,7 @@ function AppContent() {
                     <Route path="test-papers" element={<TestPapers />} />
                     <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
                     <Route path="test-papers/mock" element={<TestPapersMock />} />
+                    <Route path="my-tests" element={<StudentMyTests />} />
                     <Route path="pdfs" element={<StudentPdfs />} />
                     <Route path="study-material" element={<StudyMaterial />} />
                     <Route path="videos" element={<StudentVideos />} />

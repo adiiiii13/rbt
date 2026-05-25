@@ -199,6 +199,9 @@ export default function StudentDetail() {
       await updateDocument('enrollments', enr.id, { status: newStatus });
       setEnrollments(prev => prev.map(e => e.id === enr.id ? { ...e, status: newStatus } : e));
       toast.success(`Course ${newStatus === 'revoked' ? 'revoked' : 'reactivated'}`);
+      if (student?.email) {
+        await sendStudentStatusEmail(student.name, student.email, newStatus === 'revoked' ? 'revoked' : 'granted', enr.courseTitle || 'a course');
+      }
     } catch (err) { toast.error(err.message); }
   };
 

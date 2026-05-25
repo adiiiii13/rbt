@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { getCollectionWhere, addDocument } from '../lib/firebaseHelpers'
 import { generateInvoiceNumber, formatCurrency } from '../lib/invoice'
 import { useRealtimeCollection } from '../lib/useRealtimeCollection'
+import { sendInvoiceCreatedEmail } from '../lib/emailUtils'
 import Modal from './Modal'
 import toast from 'react-hot-toast'
 
@@ -152,6 +153,17 @@ export default function CreateInvoiceModal({ isOpen, onClose, students, invoices
             read: false,
           })
         } catch(e) { console.error(e) }
+
+        try {
+          await sendInvoiceCreatedEmail(
+            form.studentName,
+            form.studentEmail,
+            num,
+            item.amount,
+            item.dueDate,
+            item.courseName
+          )
+        } catch (e) { console.error('Email failed:', e) }
       }
       invoiceOk = true
       toast.success(`${toCreate.length} Invoice(s) created + student notified`)

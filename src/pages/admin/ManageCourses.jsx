@@ -23,6 +23,9 @@ const ytThumb = (url) => { const id = ytId(url); return id ? `https://i.ytimg.co
 export default function ManageCourses() {
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses })
   const courses = coursesRaw?.length ? coursesRaw : defaultCourses
+  
+  const { data: testsRaw } = useRealtimeCollection('mock_tests', { fallback: [] })
+  const { data: seriesRaw } = useRealtimeCollection('test_series', { fallback: [] })
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [step, setStep] = useState(1) // 1-4
@@ -421,7 +424,33 @@ export default function ManageCourses() {
                 </button>
               </>
             )}
-            <div className="flex gap-3">
+
+            {editing?.id && (testsRaw.filter(t => t.visibilityCourseIds?.includes(editing.id)).length > 0 || seriesRaw.filter(s => s.visibilityCourseIds?.includes(editing.id)).length > 0) && (
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4 mt-6">
+                <h4 className="text-blue-400 font-bold mb-2 flex items-center gap-2">
+                  <span>ℹ️</span> Included Paid Tests & Series (Bundle Value)
+                </h4>
+                <p className="text-sm text-slate-300 mb-3">
+                  This course is linked to the following tests/series. Consider their individual prices when setting the course price above.
+                </p>
+                <div className="space-y-2">
+                  {testsRaw.filter(t => t.visibilityCourseIds?.includes(editing.id)).map(t => (
+                    <div key={t.id} className="flex justify-between text-sm bg-black/20 p-2 rounded border border-white/5">
+                      <span className="text-white">{t.title} <span className="text-[10px] bg-slate-800 px-1 py-0.5 rounded ml-1">TEST</span></span>
+                      <span className="text-slate-400 font-medium">₹{t.price || 0}</span>
+                    </div>
+                  ))}
+                  {seriesRaw.filter(s => s.visibilityCourseIds?.includes(editing.id)).map(s => (
+                    <div key={s.id} className="flex justify-between text-sm bg-black/20 p-2 rounded border border-white/5">
+                      <span className="text-white">{s.title} <span className="text-[10px] bg-blue-900 px-1 py-0.5 rounded ml-1">SERIES</span></span>
+                      <span className="text-slate-400 font-medium">₹{s.price || 0}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-3 mt-4">
               <button onClick={() => setStep(1)} className="flex-1 py-2.5 rounded-lg bg-white/5 text-white cursor-pointer">← Back</button>
               <button onClick={() => setStep(3)} className="flex-1 btn-primary">Next: Lessons →</button>
             </div>
@@ -477,6 +506,7 @@ export default function ManageCourses() {
                           <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider
                             ${itm.type==='video' ? 'bg-blue-500/20 text-blue-400' : 
                               itm.type==='pdf' ? 'bg-red-500/20 text-red-400' : 
+                              itm.type==='audio' ? 'bg-amber-500/20 text-amber-400' : 
                               itm.type==='text' ? 'bg-green-brand/20 text-green-brand' : 'bg-purple-500/20 text-purple-400'}`}>
                             {itm.type}
                           </span>
@@ -498,24 +528,40 @@ export default function ManageCourses() {
                           </div>
                         </div>
 
-                        {itm.type === 'video' && (
-                          <div className="flex gap-3 items-center mb-3">
-                            <div className="flex-1">
-                              <label className="text-xs text-slate-400 block mb-1">YouTube URL</label>
-                              <input className="input-field text-sm" value={itm.data} onChange={e => {
-                                const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, data: e.target.value }; setModules(v)
-                              }} placeholder="https://youtube.com/watch?v=..." />
-                            </div>
-                            {thumb && <img src={thumb} alt="" className="w-16 h-10 rounded object-cover mt-4" />}
-                          </div>
-                        )}
-
-                        {itm.type === 'pdf' && (
+                        {(itm.type === 'video' || itm.type === 'pdf' || itm.type === 'audio') && (
                           <div className="mb-3">
-                            <label className="text-xs text-slate-400 block mb-1">PDF URL / Drive Link</label>
-                            <input className="input-field text-sm" value={itm.data} onChange={e => {
-                              const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, data: e.target.value }; setModules(v)
-                            }} placeholder="https://..." />
+                            <label className="text-xs text-slate-400 block mb-1">{itm.type === 'video' ? 'Video URL / File' : itm.type === 'pdf' ? 'PDF URL / File' : 'Audio URL / File'}</label>
+                            <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+                              <div className="flex-1 flex gap-2 items-center relative">
+                                <input className="input-field text-sm flex-1 pr-24" value={itm.data} onChange={e => {
+                                  const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, data: e.target.value }; setModules(v)
+                                }} placeholder={`Paste ${itm.type.toUpperCase()} link here...`} />
+                                
+                                <div className="absolute right-1 top-1 bottom-1 flex items-center">
+                                  <label className="px-3 h-full rounded text-[10px] font-bold uppercase tracking-wide bg-slate-800 text-slate-300 hover:text-white cursor-pointer transition-colors border border-slate-700 hover:border-green-brand flex items-center justify-center">
+                                    {itm.uploading ? '...' : 'Upload'}
+                                    <input type="file" accept={itm.type === 'pdf' ? 'application/pdf' : itm.type === 'video' ? 'video/*' : 'audio/*'} className="hidden" 
+                                      onChange={async (e) => {
+                                        const file = e.target.files?.[0];
+                                        if (!file) return;
+                                        if (file.size > 100 * 1024 * 1024) { toast.error('Max 100MB'); return; }
+                                        const v = [...modules]; v[mIdx].items[iIdx] = { ...itm, uploading: true }; setModules(v);
+                                        try {
+                                          const path = `public/course_files/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.]/g, '')}`;
+                                          const url = await uploadFile(path, file);
+                                          const v2 = [...modules]; v2[mIdx].items[iIdx] = { ...v2[mIdx].items[iIdx], data: url, uploading: false }; setModules(v2);
+                                          toast.success('File uploaded');
+                                        } catch(err) {
+                                          toast.error(err.message);
+                                          const v2 = [...modules]; v2[mIdx].items[iIdx] = { ...v2[mIdx].items[iIdx], uploading: false }; setModules(v2);
+                                        }
+                                      }}
+                                      disabled={itm.uploading} />
+                                  </label>
+                                </div>
+                              </div>
+                              {itm.type === 'video' && thumb && <img src={thumb} alt="" className="w-16 h-10 rounded object-cover" />}
+                            </div>
                           </div>
                         )}
 
@@ -552,6 +598,7 @@ export default function ManageCourses() {
                   <div className="flex flex-wrap gap-2 pt-2">
                     <button onClick={() => addItem(mIdx, 'video')} className="px-3 py-1.5 rounded-lg bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 text-xs font-bold transition-colors cursor-pointer">+ Video</button>
                     <button onClick={() => addItem(mIdx, 'pdf')} className="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 text-xs font-bold transition-colors cursor-pointer">+ PDF</button>
+                    <button onClick={() => addItem(mIdx, 'audio')} className="px-3 py-1.5 rounded-lg bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 text-xs font-bold transition-colors cursor-pointer">+ Audio</button>
                     <button onClick={() => addItem(mIdx, 'text')} className="px-3 py-1.5 rounded-lg bg-green-brand/10 text-green-brand hover:bg-green-brand/20 text-xs font-bold transition-colors cursor-pointer">+ Text Note</button>
                     <button onClick={() => addItem(mIdx, 'link')} className="px-3 py-1.5 rounded-lg bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 text-xs font-bold transition-colors cursor-pointer">+ Link</button>
                   </div>

@@ -141,12 +141,12 @@ export default function ManagePdfs() {
             </button>
           </div>
 
-          {/* Upload PDF file */}
+          {/* Upload file */}
           <div>
-            <label className="text-sm font-medium text-slate-300 mb-2 block">PDF File (max 50MB)</label>
+            <label className="text-sm font-medium text-slate-300 mb-2 block">File (max 50MB)</label>
             {form.url && form.fileName ? (
               <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-3 flex items-center gap-3">
-                <div className="w-12 h-14 rounded bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-300 font-bold text-xs">PDF</div>
+                <div className="w-12 h-14 rounded bg-green-500/20 border border-green-500/30 flex items-center justify-center text-green-300 font-bold text-xs">FILE</div>
                 <div className="flex-1 min-w-0">
                   <div className="text-sm text-white font-medium truncate">{form.fileName}</div>
                   <div className="text-xs text-slate-400">{fmtSize(form.fileSize) || 'Uploaded'}</div>
@@ -162,12 +162,12 @@ export default function ManagePdfs() {
                   </div>
                 ) : (
                   <>
-                    <div className="text-3xl mb-1">📄</div>
-                    <p className="text-sm text-slate-300 font-medium">Click to select PDF</p>
-                    <p className="text-xs text-slate-500 mt-1">Max 50MB · PDF only</p>
+                    <div className="text-3xl mb-1">📁</div>
+                    <p className="text-sm text-slate-300 font-medium">Click to select File</p>
+                    <p className="text-xs text-slate-500 mt-1">Max 50MB · Any file type</p>
                   </>
                 )}
-                <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
+                <input type="file" accept="video/*,audio/*,image/*,application/pdf" className="hidden" onChange={handleFileUpload} disabled={uploading} />
               </label>
             )}
           </div>
@@ -181,7 +181,7 @@ export default function ManagePdfs() {
           <input className="input-field" value={form.url} onChange={e => setForm({...form, url: e.target.value})} placeholder="https://drive.google.com/file/d/..." />
           <p className="text-xs text-slate-500">Drive share links auto-converted. Use URL for large files to skip storage cost.</p>
 
-          <button onClick={save} disabled={uploading} className="btn-primary w-full disabled:opacity-50">{editing ? 'Update' : 'Add'} PDF</button>
+          <button onClick={save} disabled={uploading} className="btn-primary w-full disabled:opacity-50">{editing ? 'Update' : 'Add'} File</button>
         </div>
       </Modal>
     </div>

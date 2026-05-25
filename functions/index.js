@@ -139,6 +139,76 @@ async function sendWelcomeEmail(toEmail, toName) {
   }
 }
 
+// ─── Email Verification ─────────────────────────────────────────────────────
+
+export const sendSignupOTP = onCall(async (request) => {
+  const { email } = request.data || {};
+  if (!email) throw new HttpsError('invalid-argument', 'Email required');
+
+  // Check if user already exists
+  try {
+    await auth.getUserByEmail(email);
+    throw new HttpsError('already-exists', 'Email is already registered.');
+  } catch (err) {
+    if (err.code !== 'auth/user-not-found' && err.code !== 'already-exists') {
+      throw new HttpsError('internal', 'Error checking email.');
+    }
+    if (err.code === 'already-exists') throw err;
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6 digits
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+  await db.collection('signupOtps').doc(email.toLowerCase()).set({
+    otp,
+    expiresAt,
+  });
+
+  await db.collection('mail').add({
+    to: email,
+    message: {
+      subject: `Your RBT Mission Signup Verification Code`,
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+          <h2 style="color: #2563eb;">Verify your email</h2>
+          <p>Your verification code for RBT Mission Learning is:</p>
+          <div style="font-size: 32px; font-weight: bold; letter-spacing: 4px; color: #111; margin: 20px 0;">${otp}</div>
+          <p>This code expires in 10 minutes. If you did not request this, please ignore this email.</p>
+          <br/>
+          <p>Best regards,<br/><strong>RBT Mission Learning Team</strong></p>
+        </div>
+      `
+    }
+  });
+
+  return { success: true };
+});
+
+export const verifySignupOTP = onCall(async (request) => {
+  const { email, otp } = request.data || {};
+  if (!email || !otp) throw new HttpsError('invalid-argument', 'Email and OTP required');
+
+  const docRef = db.collection('signupOtps').doc(email.toLowerCase());
+  const docSnap = await docRef.get();
+
+  if (!docSnap.exists) {
+    throw new HttpsError('not-found', 'OTP expired or not requested.');
+  }
+
+  const data = docSnap.data();
+  if (data.otp !== otp.toString()) {
+    throw new HttpsError('permission-denied', 'Invalid OTP.');
+  }
+
+  if (data.expiresAt.toDate() < new Date()) {
+    await docRef.delete();
+    throw new HttpsError('permission-denied', 'OTP has expired.');
+  }
+
+  await docRef.delete();
+  return { success: true };
+});
+
 // ─── User Management ────────────────────────────────────────────────────────
 
 // Admin bootstrap: one-time elevate the first admin manually via Firebase Console,

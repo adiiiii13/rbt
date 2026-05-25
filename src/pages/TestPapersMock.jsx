@@ -5,6 +5,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { useAuth } from '../context/AuthContext';
 import { openCheckout } from '../lib/razorpay';
+import { sendCoursePaymentSuccessEmail } from '../lib/emailUtils';
 import { addDocument } from '../lib/firebaseHelpers';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../lib/firebase';
@@ -29,30 +30,48 @@ export default function TestPapersMock() {
   const backTo = isDashboard ? location.pathname.replace(/\/mock\/?$/, '') : '/test-papers';
   const basePath = location.pathname.replace(/\/?$/, '');
 
-  const { data: tests, loading } = useRealtimeCollection('mockTests', { fallback: [] });
+  const { data: tests, loading: testsLoading } = useRealtimeCollection('mockTests', { fallback: [] });
+  const { data: series, loading: seriesLoading } = useRealtimeCollection('testSeries', { fallback: [] });
+  
   const [selectedCat, setSelectedCat] = useState('all');
-  const [accessSet, setAccessSet] = useState(new Set());
+  const [activeTab, setActiveTab] = useState('tests'); // 'tests' | 'series'
+  
+  const [testAccessSet, setTestAccessSet] = useState(new Set());
+  const [seriesAccessSet, setSeriesAccessSet] = useState(new Set());
+  const [courseAccessSet, setCourseAccessSet] = useState(new Set());
   const [loadingAccess, setLoadingAccess] = useState(true);
-  const [payingTestId, setPayingTestId] = useState(null);
+  const [payingId, setPayingId] = useState(null);
 
-  // Load mock test access for current user
+  // Load access for current user
   useEffect(() => {
     if (!user?.uid) { setLoadingAccess(false); return; }
     (async () => {
       try {
-        const snap = await getDocs(query(collection(db, 'mockTestAccess'), where('uid', '==', user.uid)));
-        setAccessSet(new Set(snap.docs.map(d => d.data().testId)));
+        const [testSnap, seriesSnap, courseSnap] = await Promise.all([
+          getDocs(query(collection(db, 'mockTestAccess'), where('uid', '==', user.uid))),
+          getDocs(query(collection(db, 'testSeriesAccess'), where('uid', '==', user.uid))),
+          getDocs(query(collection(db, 'courseAccess'), where('uid', '==', user.uid)))
+        ]);
+        setTestAccessSet(new Set(testSnap.docs.map(d => d.data().testId)));
+        setSeriesAccessSet(new Set(seriesSnap.docs.map(d => d.data().seriesId)));
+        setCourseAccessSet(new Set(courseSnap.docs.map(d => d.data().courseId)));
       } catch {}
       setLoadingAccess(false);
     })();
   }, [user?.uid]);
 
-  const handlePay = (test) => {
+  const userCourseIds = Array.from(courseAccessSet);
+  const hasCourseAccess = (item) => {
+    if (!item.visibilityCourseIds || !Array.isArray(item.visibilityCourseIds)) return false;
+    return item.visibilityCourseIds.some(cid => userCourseIds.includes(cid));
+  };
+
+  const handlePayTest = (test) => {
     if (!user) {
       toast.error('Please sign in to purchase');
       return;
     }
-    setPayingTestId(test.id);
+    setPayingId(test.id);
     openCheckout({
       amount: test.price,
       courseId: `mockTest_${test.id}`,
@@ -61,7 +80,7 @@ export default function TestPapersMock() {
       variantMonths: 0,
       variantPrice: test.price,
       user,
-      onSuccess: async () => {
+      onSuccess: async (result) => {
         try {
           await addDocument('mockTestAccess', {
             uid: user.uid,
@@ -73,20 +92,76 @@ export default function TestPapersMock() {
             studentName: user.name || '',
             studentEmail: user.email || '',
           });
-          setAccessSet(prev => new Set([...prev, test.id]));
+          setTestAccessSet(prev => new Set([...prev, test.id]));
+          try {
+            await sendCoursePaymentSuccessEmail(user.name, user.email, test.title, test.price, result.paymentId)
+          } catch(e) { console.error('Failed to send success email', e) }
           toast.success(`Unlocked: ${test.title}`);
         } catch (err) {
           toast.error(err.message);
         }
-        setPayingTestId(null);
+        setPayingId(null);
       },
-      onDismiss: () => setPayingTestId(null),
+      onFailure: () => setPayingId(null),
     });
   };
 
-  const filtered = selectedCat === 'all'
-    ? tests
-    : tests.filter(t => t.category === selectedCat);
+  const handlePaySeries = (s) => {
+    if (!user) {
+      toast.error('Please sign in to purchase');
+      return;
+    }
+    setPayingId(s.id);
+    openCheckout({
+      amount: s.price,
+      courseId: `testSeries_${s.id}`,
+      courseTitle: s.title,
+      variantLabel: 'Test Series Access',
+      variantMonths: 0,
+      variantPrice: s.price,
+      user,
+      onSuccess: async (result) => {
+        try {
+          await addDocument('testSeriesAccess', {
+            uid: user.uid,
+            seriesId: s.id,
+            seriesTitle: s.title,
+            status: 'active',
+            enrolledAt: new Date().toISOString(),
+            paymentType: 'razorpay',
+            studentName: user.name || '',
+            studentEmail: user.email || '',
+          });
+          setSeriesAccessSet(prev => new Set([...prev, s.id]));
+          try {
+            await sendCoursePaymentSuccessEmail(user.name, user.email, s.title, s.price, result.paymentId)
+          } catch(e) { console.error('Failed to send success email', e) }
+          toast.success(`Unlocked: ${s.title}`);
+        } catch (err) {
+          toast.error(err.message);
+        }
+        setPayingId(null);
+      },
+      onFailure: () => setPayingId(null),
+    });
+  };
+
+  const nowStr = new Date().toISOString().split('T')[0];
+
+  const validTests = tests.filter(t => {
+    if (t.visibility === 'course' || t.visibility === 'batch') return false;
+    if (t.expiryType === 'date' && t.expiryDate && t.expiryDate < nowStr) return false;
+    return true;
+  });
+
+  const validSeries = series.filter(s => {
+    if (s.visibility === 'course' || s.visibility === 'batch') return false;
+    if (s.expiryType === 'date' && s.expiryDate && s.expiryDate < nowStr) return false;
+    return true;
+  });
+
+  const filteredTests = selectedCat === 'all' ? validTests : validTests.filter(t => t.category === selectedCat);
+  const filteredSeries = selectedCat === 'all' ? validSeries : validSeries.filter(s => s.category === selectedCat);
 
   return (
     <div className={`${isDashboard ? 'bg-[#0a0a0a]' : 'bg-black'} pb-16 min-h-screen relative`}>
@@ -96,146 +171,206 @@ export default function TestPapersMock() {
           Back to Test Papers
         </Link>
 
-        <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Online Mock Tests</h1>
-          <p className="text-slate-400">Timed MCQ tests with instant scoring. Select an exam category below.</p>
+        <div className="flex justify-between items-end mb-8 flex-wrap gap-4">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Buy Test Series / Papers</h1>
+            <p className="text-slate-400">Unlock individual mock tests or complete test series.</p>
+          </div>
+          
+          <div className="flex gap-2 bg-white/5 p-1 rounded-xl border border-white/10">
+            <button 
+              onClick={() => setActiveTab('series')} 
+              className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'series' ? 'bg-green-brand text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Test Series
+            </button>
+            <button 
+              onClick={() => setActiveTab('tests')} 
+              className={`px-5 py-2.5 text-sm font-bold rounded-lg transition-all ${activeTab === 'tests' ? 'bg-green-brand text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}`}
+            >
+              Individual Tests
+            </button>
+          </div>
         </div>
 
-        {/* Education Level Filter Chips */}
-        <div className="mb-8">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Filter by Category</p>
-          <div className="flex flex-wrap gap-2.5">
+        {/* Category Filter */}
+        <div className="mb-8 overflow-x-auto pb-2 scrollbar-hide">
+          <div className="flex gap-2 min-w-max">
             <button
               onClick={() => setSelectedCat('all')}
-              className={`group relative inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-300 ${
+              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                 selectedCat === 'all'
-                  ? 'bg-green-brand text-white border border-green-400/40'
-                  : 'bg-white/[0.04] text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
+                  ? 'bg-white text-black'
+                  : 'bg-white/5 text-slate-400 hover:bg-white/10'
               }`}
             >
-              <span className={`w-2 h-2 rounded-full transition-all ${
-                selectedCat === 'all' ? 'bg-white' : 'bg-slate-600 group-hover:bg-slate-400'
-              }`} />
-              All Tests
+              All Categories
             </button>
             {CATEGORIES.map(c => (
               <button
                 key={c.id}
                 onClick={() => setSelectedCat(c.id)}
-                className={`group relative inline-flex items-center gap-2 px-4 py-2 rounded-md text-sm font-semibold transition-all duration-300 ${
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                   selectedCat === c.id
-                    ? 'text-white border'
-                    : 'bg-white/[0.04] text-slate-400 border border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
+                    ? 'text-white'
+                    : 'bg-white/5 text-slate-400 hover:bg-white/10'
                 }`}
-                style={selectedCat === c.id ? {
-                  background: `linear-gradient(135deg, ${c.color}dd, ${c.color}99)`,
-                  borderColor: `${c.color}50`,
-                } : {}}
+                style={selectedCat === c.id ? { backgroundColor: c.color } : {}}
               >
-                <span
-                  className="w-2 h-2 rounded-full transition-all flex-shrink-0"
-                  style={{ background: selectedCat === c.id ? 'rgba(255,255,255,0.9)' : c.color }}
-                />
                 {c.label}
               </button>
             ))}
           </div>
         </div>
 
-        {loading && <GridSkeleton count={6} type="card" />}
+        {activeTab === 'series' && (
+          <>
+            {seriesLoading ? <GridSkeleton count={3} type="card" /> : filteredSeries.length === 0 ? (
+              <div className="text-center py-16">
+                <FileTextIcon size={48} className="mx-auto text-slate-600 mb-3" />
+                <p className="text-slate-400">No test series available in this category yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredSeries.map((s, idx) => {
+                  const cat = CATEGORIES.find(c => c.id === s.category) || { label: s.category, color: '#6366f1' };
+                  const isPaid = s.price > 0;
+                  const hasAccess = !isPaid || seriesAccessSet.has(s.id) || hasCourseAccess(s);
+                  const isPaying = payingId === s.id;
 
-        {!loading && filtered.length === 0 && (
-          <div className="text-center py-16">
-            <FileTextIcon size={48} className="mx-auto text-slate-600 mb-3" />
-            <p className="text-slate-400">No mock tests available in this category yet.</p>
-            <p className="text-slate-500 text-sm mt-2">Admin can add mock tests from the admin panel.</p>
-          </div>
+                  return (
+                    <motion.div key={s.id}
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
+                      className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 overflow-hidden flex flex-col"
+                    >
+                      <div className="h-2" style={{ background: cat.color }} />
+                      <div className="p-6 flex flex-col flex-grow">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: `${cat.color}20`, color: cat.color }}>
+                            {cat.label}
+                          </span>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasAccess ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                            {hasAccess ? 'Unlocked' : (isPaid ? `₹${s.price}` : 'Free')}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">{s.title}</h3>
+                        <p className="text-sm text-slate-400 mb-4 line-clamp-2">{s.description}</p>
+                        
+                        <div className="bg-black/30 rounded-lg p-3 text-center mb-6">
+                          <div className="text-2xl font-bold text-white">{s.testIds?.length || 0}</div>
+                          <div className="text-xs text-slate-500 uppercase tracking-widest mt-1">Tests Included</div>
+                        </div>
+
+                        {hasAccess ? (
+                          <Link to="/student/my-tests" className="mt-auto w-full bg-green-brand/20 hover:bg-green-brand/30 text-green-400 font-bold py-3 px-4 rounded-xl text-center transition-all border border-green-brand/30">
+                            View in My Tests
+                          </Link>
+                        ) : (
+                          <button onClick={() => handlePaySeries(s)} disabled={payingId === s.id || !user}
+                            className="mt-auto w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95">
+                            {payingId === s.id ? (
+                              <>
+                                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.4" strokeLinecap="round" /></svg>
+                                Processing...
+                              </>
+                            ) : `Pay ₹${s.price} to Unlock Series`}
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((test, idx) => {
-            const cat = CATEGORIES.find(c => c.id === test.category) || { label: test.category, color: '#6366f1' };
-            const isPaid = test.price > 0;
-            const hasAccess = !isPaid || accessSet.has(test.id);
-            const isPaying = payingTestId === test.id;
+        {activeTab === 'tests' && (
+          <>
+            {testsLoading ? <GridSkeleton count={6} type="card" /> : filteredTests.length === 0 ? (
+              <div className="text-center py-16">
+                <FileTextIcon size={48} className="mx-auto text-slate-600 mb-3" />
+                <p className="text-slate-400">No mock tests available in this category yet.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredTests.map((test, idx) => {
+                  const cat = CATEGORIES.find(c => c.id === test.category) || { label: test.category, color: '#6366f1' };
+                  const isPaid = test.price > 0;
+                  
+                  // Check if they have direct access OR series access
+                  let hasSeriesAccess = false;
+                  if (series && series.length > 0) {
+                    for (const s of series) {
+                      if ((seriesAccessSet.has(s.id) || hasCourseAccess(s)) && s.testIds?.includes(test.id)) {
+                        hasSeriesAccess = true;
+                        break;
+                      }
+                    }
+                  }
+                  const hasAccess = !isPaid || testAccessSet.has(test.id) || hasCourseAccess(test) || hasSeriesAccess;
+                  const isPaying = payingId === test.id;
 
-            return (
-              <motion.div
-                key={test.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.05 }}
-                whileHover={{ y: -4 }}
-                className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-green-brand/30 transition-all overflow-hidden flex flex-col"
-              >
-                <div className="h-2" style={{ background: cat.color }} />
-                <div className="p-6 flex flex-col flex-grow">
-                  <div className="flex justify-between items-start mb-3">
-                    <span
-                      className="text-xs font-bold px-2.5 py-1 rounded-full"
-                      style={{ background: `${cat.color}20`, color: cat.color }}
+                  return (
+                    <motion.div key={test.id}
+                      initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }}
+                      className="bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-white/20 transition-all overflow-hidden flex flex-col"
                     >
-                      {cat.label}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      {isPaid && (
-                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasAccess ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
-                          {hasAccess ? 'Unlocked' : `₹${test.price}`}
-                        </span>
-                      )}
-                      {!isPaid && (
-                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Free</span>
-                      )}
-                      {test.difficulty && (
-                        <span className="text-xs text-slate-400">{test.difficulty}</span>
-                      )}
-                    </div>
-                  </div>
+                      <div className="h-2" style={{ background: cat.color }} />
+                      <div className="p-6 flex flex-col flex-grow">
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="text-xs font-bold px-2.5 py-1 rounded-full" style={{ background: `${cat.color}20`, color: cat.color }}>
+                            {cat.label}
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasAccess ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                              {hasAccess ? 'Unlocked' : (isPaid ? `₹${test.price}` : 'Free')}
+                            </span>
+                          </div>
+                        </div>
 
-                  <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{test.title}</h3>
-                  <p className="text-sm text-slate-400 mb-4 line-clamp-2">{test.description}</p>
+                        <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{test.title}</h3>
+                        <p className="text-sm text-slate-400 mb-4 line-clamp-2">{test.description}</p>
 
-                  <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                    <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-white font-bold">{test.questions?.length || test.totalQuestions || 0}</div>
-                      <div className="text-[10px] text-slate-500 uppercase">Questions</div>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-white font-bold">{test.duration || 30}</div>
-                      <div className="text-[10px] text-slate-500 uppercase">Mins</div>
-                    </div>
-                    <div className="bg-white/5 rounded-lg p-2">
-                      <div className="text-white font-bold">{test.maxMarks || (test.questions?.length || 0) * 4}</div>
-                      <div className="text-[10px] text-slate-500 uppercase">Marks</div>
-                    </div>
-                  </div>
+                        <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                          <div className="bg-white/5 rounded-lg p-2">
+                            <div className="text-white font-bold">{test.questions?.length || test.totalQuestions || 0}</div>
+                            <div className="text-[10px] text-slate-500 uppercase">Questions</div>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2">
+                            <div className="text-white font-bold">{test.duration || 30}</div>
+                            <div className="text-[10px] text-slate-500 uppercase">Mins</div>
+                          </div>
+                          <div className="bg-white/5 rounded-lg p-2">
+                            <div className="text-white font-bold">{test.maxMarks || (test.questions?.length || 0) * 4}</div>
+                            <div className="text-[10px] text-slate-500 uppercase">Marks</div>
+                          </div>
+                        </div>
 
-                  {hasAccess ? (
-                    <Link
-                      to={`${basePath}/${test.id}`}
-                      className="mt-auto w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center no-underline inline-flex items-center justify-center gap-2"
-                    >
-                      Start Test
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={() => handlePay(test)}
-                      disabled={isPaying || !user}
-                      className="mt-auto w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center inline-flex items-center justify-center gap-2 disabled:opacity-50"
-                    >
-                      {isPaying ? 'Processing...' : `Pay ₹${test.price} to Unlock`}
-                      {!isPaying && (
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                      )}
-                    </button>
-                  )}
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                        {hasAccess ? (
+                          <Link to={`/student/mock/${test.id}`} className="mt-auto w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                            Start Test
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                          </Link>
+                        ) : (
+                          <button onClick={() => handlePayTest(test)} disabled={payingId === test.id || !user}
+                            className="mt-auto w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95">
+                            {payingId === test.id ? (
+                              <>
+                                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" strokeDasharray="31.4" strokeLinecap="round" /></svg>
+                                Processing...
+                              </>
+                            ) : `Pay ₹${test.price} to Unlock`}
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

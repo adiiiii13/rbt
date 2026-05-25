@@ -8,6 +8,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import toast from 'react-hot-toast';
 
 function formatTime(s) {
+  if (s < 0) s = 0;
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const r = s % 60;
@@ -39,7 +40,7 @@ export default function MockTestRunner() {
   const [phase, setPhase] = useState('instructions');
   const [agreed, setAgreed] = useState(false);
 
-  const [answers, setAnswers] = useState({}); // {qid: selectedIndex}
+  const [answers, setAnswers] = useState({}); // {qid: value}. Value can be string, number, or array.
   const [marked, setMarked] = useState({});   // {qid: true}
   const [visited, setVisited] = useState({}); // {qid: true}
   const [currentQ, setCurrentQ] = useState(0);
@@ -85,19 +86,22 @@ export default function MockTestRunner() {
           setLoading(false);
           return;
         }
-        // Normalize Q shape: ensure id + options array (old tests may lack these)
+        
+        // Normalize Q shape
         data.questions = data.questions.map((q, i) => ({
           id: q.id || `q_${i}_${Math.random().toString(36).slice(2, 7)}`,
           question: q.question || '',
-          options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ['', '', '', ''],
+          options: Array.isArray(q.options) && q.options.length > 0 ? q.options : (q.questionType !== 'text' ? ['', '', '', ''] : []),
           correctIndex: typeof q.correctIndex === 'number' ? q.correctIndex : 0,
+          correctIndices: Array.isArray(q.correctIndices) ? q.correctIndices : [],
           imageUrl: q.imageUrl || q.image || '',
           explanation: q.explanation || '',
           section: q.section || '',
           marks: q.marks ?? null,
+          questionType: q.questionType || 'mcq-single',
           ...q,
-          id: q.id || `q_${i}_${Math.random().toString(36).slice(2, 7)}`,
         }));
+        
         setTest(data);
         setTimeLeft((data.duration || 30) * 60);
         setLoading(false);
@@ -121,11 +125,19 @@ export default function MockTestRunner() {
 
   const totalQ = test?.questions?.length || 0;
 
+  const qHasAnswer = (qid) => {
+    const a = answers[qid];
+    if (a === undefined || a === null) return false;
+    if (Array.isArray(a)) return a.length > 0;
+    if (typeof a === 'string') return a.trim().length > 0;
+    return true; // number
+  };
+
   const stats = useMemo(() => {
     if (!test?.questions) return { answered: 0, notAnswered: 0, notVisited: 0, marked: 0 };
     let answered = 0, notAnswered = 0, notVisited = 0, markedCount = 0;
     for (const q of test.questions) {
-      const hasAns = answers[q.id] !== undefined;
+      const hasAns = qHasAnswer(q.id);
       const isVisited = visited[q.id];
       const isMarked = marked[q.id];
       if (hasAns) answered++;
@@ -137,7 +149,7 @@ export default function MockTestRunner() {
   }, [answers, marked, visited, test]);
 
   const qStatus = (qid) => {
-    const hasAns = answers[qid] !== undefined;
+    const hasAns = qHasAnswer(qid);
     const isMarked = marked[qid];
     const isVisited = visited[qid];
     if (hasAns && isMarked) return 'answered-marked';
@@ -154,9 +166,9 @@ export default function MockTestRunner() {
     setVisited(prev => prev[qid] ? prev : { ...prev, [qid]: true });
   }, [currentQ, phase, test]);
 
-  const handleSelect = (qid, optionIdx) => {
+  const handleSelect = (qid, val) => {
     if (submittedRef.current) return;
-    setAnswers(prev => ({ ...prev, [qid]: optionIdx }));
+    setAnswers(prev => ({ ...prev, [qid]: val }));
   };
 
   const handleClear = (qid) => {
@@ -185,18 +197,58 @@ export default function MockTestRunner() {
 
     const t = testRef.current;
     const ans = answersRef.current;
-    let correct = 0, wrong = 0, unattempted = 0;
+    
+    let correct = 0, wrong = 0, unattempted = 0, score = 0, maxMarks = 0;
     const breakdown = [];
+    
     for (const q of t.questions) {
       const a = ans[q.id];
-      if (a === undefined) { unattempted++; breakdown.push({ qid: q.id, status: 'unattempted', selectedIndex: null }); continue; }
-      if (a === q.correctIndex) { correct++; breakdown.push({ qid: q.id, status: 'correct', selectedIndex: a }); }
-      else { wrong++; breakdown.push({ qid: q.id, status: 'wrong', selectedIndex: a }); }
+      const qMarks = q.marks ?? t.marksPerQuestion ?? 4;
+      const negMarks = t.negativeMarks ?? 1;
+      maxMarks += qMarks;
+
+      if (!qHasAnswer(q.id)) {
+        unattempted++;
+        breakdown.push({ qid: q.id, status: 'unattempted', selectedIndex: null, marksAwarded: 0 });
+        continue;
+      }
+      
+      let status = 'wrong';
+      let marksAwarded = 0;
+
+      if (q.questionType === 'text') {
+        status = 'review_pending';
+        marksAwarded = 0;
+        breakdown.push({ qid: q.id, status, textAnswer: a, marksAwarded });
+      } else if (q.questionType === 'mcq-multi') {
+        const correctArr = q.correctIndices || [];
+        const isCorrect = Array.isArray(a) && a.length === correctArr.length && a.every(val => correctArr.includes(val));
+        if (isCorrect) {
+          status = 'correct';
+          marksAwarded = qMarks;
+          correct++;
+        } else {
+          status = 'wrong';
+          marksAwarded = -negMarks;
+          wrong++;
+        }
+        breakdown.push({ qid: q.id, status, selectedIndices: a, marksAwarded });
+      } else {
+        // mcq-single
+        if (a === q.correctIndex) {
+          status = 'correct';
+          marksAwarded = qMarks;
+          correct++;
+        } else {
+          status = 'wrong';
+          marksAwarded = -negMarks;
+          wrong++;
+        }
+        breakdown.push({ qid: q.id, status, selectedIndex: a, marksAwarded });
+      }
+      score += marksAwarded;
     }
-    const marksPerQ = t.marksPerQuestion ?? 4;
-    const negativeMarks = t.negativeMarks ?? 1;
-    const score = correct * marksPerQ - wrong * negativeMarks;
-    const maxMarks = t.questions.length * marksPerQ;
+    
     const percentage = maxMarks ? (score / maxMarks) * 100 : 0;
     const timeTaken = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
     const violationsLog = violationsOverride || violations;
@@ -207,7 +259,11 @@ export default function MockTestRunner() {
       violations: violationsLog,
       timeTaken,
       status: cheating ? 'auto-submitted-cheating' : (timeOut ? 'auto-submitted-timeout' : 'completed'),
+      // By default tests are not published if resultMode is manual, otherwise yes.
+      // If we don't have resultMode, default to published=true
+      published: t.resultMode === 'manual' ? false : true,
     };
+    
     setResult(r);
 
     if (user) {
@@ -279,16 +335,21 @@ export default function MockTestRunner() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
               <Stat label="Questions" value={totalQ} color="text-green-brand" />
               <Stat label="Minutes" value={test.duration || 30} color="text-blue-400" />
-              <Stat label="Max Marks" value={totalQ * (test.marksPerQuestion ?? 4)} color="text-amber-400" />
-              <Stat label="Negative" value={`-${test.negativeMarks ?? 1}`} color="text-red-400" />
+              <Stat label="Total Marks" value={test.questions.reduce((sum, q) => sum + (q.marks ?? test.marksPerQuestion ?? 4), 0)} color="text-amber-400" />
+              <Stat label="Result Mode" value={test.resultMode === 'manual' ? 'Manual Grading' : 'Auto Score'} color="text-indigo-400" />
             </div>
 
             <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-5 mb-6">
-              <h3 className="text-amber-400 font-bold mb-3">Marking Scheme</h3>
+              <h3 className="text-amber-400 font-bold mb-3">Important Information</h3>
               <ul className="text-sm text-slate-300 space-y-1.5">
-                <li>• <span className="text-green-brand">+{test.marksPerQuestion ?? 4}</span> for correct answer</li>
-                <li>• <span className="text-red-400">-{test.negativeMarks ?? 1}</span> for wrong answer</li>
-                <li>• <span className="text-slate-400">0</span> for unattempted</li>
+                <li>• This test has {test.questions.filter(q => q.questionType === 'text').length} text answer questions.</li>
+                <li>• MCQ (Single) or MCQ (Multi) questions will be auto-graded immediately.</li>
+                {test.resultMode === 'manual' && (
+                  <li>• Results will be hidden until published by an admin after manual review.</li>
+                )}
+                {test.testType === 'live' && (
+                  <li>• This is a live test. Time constraints are strict.</li>
+                )}
               </ul>
             </div>
 
@@ -394,27 +455,38 @@ export default function MockTestRunner() {
               {result.cheatingFlagged ? 'Test Terminated' : 'Test Submitted'}
             </h2>
             <p className="text-slate-400 text-center mb-8">{test.title}</p>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <ResultStat label="Correct" value={result.correct} color="text-green-brand" bg="bg-green-brand/10" />
-              <ResultStat label="Wrong" value={result.wrong} color="text-red-400" bg="bg-red-500/10" />
-              <ResultStat label="Skipped" value={result.unattempted} color="text-slate-400" bg="bg-slate-500/10" />
-              <ResultStat label="Score %" value={`${result.percentage.toFixed(1)}%`} color="text-blue-400" bg="bg-blue-500/10" />
-            </div>
-
-            <div className="bg-white/5 rounded-xl p-6 mb-6 text-center">
-              <div className="text-sm text-slate-400 mb-1">Final Score</div>
-              <div className="text-5xl font-extrabold text-white">
-                {result.score}<span className="text-2xl text-slate-500">/{result.maxMarks}</span>
+            
+            {!result.published && (
+              <div className="bg-blue-500/20 border border-blue-500/40 rounded-xl p-4 mb-6 text-center text-blue-300">
+                <p className="font-bold">Results are pending review.</p>
+                <p className="text-sm mt-1">Your test included text answers or is set to manual grading. You will be able to see your detailed results once an admin reviews them.</p>
               </div>
-              <div className="text-xs text-slate-500 mt-2">Time taken: {formatTime(result.timeTaken)}</div>
-            </div>
+            )}
+
+            {result.published && (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+                  <ResultStat label="Correct" value={result.correct} color="text-green-brand" bg="bg-green-brand/10" />
+                  <ResultStat label="Wrong" value={result.wrong} color="text-red-400" bg="bg-red-500/10" />
+                  <ResultStat label="Skipped" value={result.unattempted} color="text-slate-400" bg="bg-slate-500/10" />
+                  <ResultStat label="Score %" value={`${result.percentage.toFixed(1)}%`} color="text-blue-400" bg="bg-blue-500/10" />
+                </div>
+
+                <div className="bg-white/5 rounded-xl p-6 mb-6 text-center">
+                  <div className="text-sm text-slate-400 mb-1">Current Auto-Score</div>
+                  <div className="text-5xl font-extrabold text-white">
+                    {result.score}<span className="text-2xl text-slate-500">/{result.maxMarks}</span>
+                  </div>
+                  <div className="text-xs text-slate-500 mt-2">Time taken: {formatTime(result.timeTaken)}</div>
+                </div>
+              </>
+            )}
 
             <div className="flex gap-3">
               <button onClick={() => navigate('/student/test-papers/mock')} className="flex-1 bg-white/10 hover:bg-white/20 text-white font-bold py-3 rounded-xl">
                 More Tests
               </button>
-              {!result.cheatingFlagged && (
+              {!result.cheatingFlagged && test.allowRetakes && (
                 <button onClick={() => window.location.reload()} className="flex-1 bg-green-brand hover:bg-green-600 text-white font-bold py-3 rounded-xl">
                   Retake
                 </button>
@@ -487,41 +559,77 @@ export default function MockTestRunner() {
       <div className="grid lg:grid-cols-[1fr_320px] gap-0 min-h-[calc(100vh-56px)]">
         {/* Question pane */}
         <main className="bg-white p-6 md:p-8 flex flex-col">
-          <div className="flex justify-between items-center mb-4 pb-3 border-b">
-            <h2 className="text-lg font-bold text-slate-900">Question {currentQ + 1}</h2>
+          <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
+            <h2 className="text-lg font-bold text-slate-900 flex items-center gap-3">
+              Question {currentQ + 1}
+              {q.questionType === 'mcq-multi' && (
+                <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded font-medium">Multiple Correct</span>
+              )}
+              {q.questionType === 'text' && (
+                <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">Descriptive</span>
+              )}
+            </h2>
             <div className="text-xs text-slate-500">
-              Marks: <span className="text-green-700 font-bold">+{test.marksPerQuestion ?? 4}</span>,
-              {' '}<span className="text-red-600 font-bold">-{test.negativeMarks ?? 1}</span>
+              Marks: <span className="text-green-700 font-bold">+{q.marks ?? test.marksPerQuestion ?? 4}</span>
+              {q.questionType !== 'text' && (
+                <>, <span className="text-red-600 font-bold">-{test.negativeMarks ?? 1}</span></>
+              )}
             </div>
           </div>
 
-          <p className="text-slate-900 text-base md:text-lg leading-relaxed mb-6 whitespace-pre-wrap">
+          <p className="text-slate-900 text-base md:text-lg leading-relaxed mb-6 whitespace-pre-wrap font-medium">
             {q.question}
           </p>
 
           {(q.imageUrl || q.image) && (
-            <img src={q.imageUrl || q.image} alt="" className="max-w-full max-h-80 object-contain mb-6 rounded border border-slate-200" />
+            <img src={q.imageUrl || q.image} alt="" className="max-w-full max-h-80 object-contain mb-6 rounded border border-slate-200 shadow-sm" />
           )}
 
           <div className="space-y-3 mb-auto">
-            {q.options.map((opt, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSelect(q.id, idx)}
-                className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
-                  selected === idx
-                    ? 'bg-blue-50 border-blue-500 text-slate-900'
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
-                }`}
-              >
-                <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold mr-3 text-sm ${
-                  selected === idx ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-600'
-                }`}>
-                  {String.fromCharCode(65 + idx)}
-                </span>
-                {opt}
-              </button>
-            ))}
+            {q.questionType === 'text' ? (
+              <textarea
+                value={selected || ''}
+                onChange={(e) => handleSelect(q.id, e.target.value)}
+                placeholder="Type your answer here..."
+                rows={6}
+                className="w-full border-2 border-slate-200 rounded-lg p-4 text-slate-700 focus:border-blue-500 focus:ring-0 transition-colors"
+              />
+            ) : (
+              q.options.map((opt, idx) => {
+                const isMulti = q.questionType === 'mcq-multi';
+                const isSelected = isMulti ? (selected || []).includes(idx) : selected === idx;
+                
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      if (isMulti) {
+                        const curr = selected || [];
+                        if (curr.includes(idx)) {
+                          handleSelect(q.id, curr.filter(i => i !== idx));
+                        } else {
+                          handleSelect(q.id, [...curr, idx]);
+                        }
+                      } else {
+                        handleSelect(q.id, idx);
+                      }
+                    }}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
+                      isSelected
+                        ? 'bg-blue-50 border-blue-500 text-slate-900'
+                        : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                    }`}
+                  >
+                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold mr-3 text-sm ${
+                      isSelected ? 'bg-blue-500 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {String.fromCharCode(65 + idx)}
+                    </span>
+                    {opt}
+                  </button>
+                );
+              })
+            )}
           </div>
 
           {/* NTA-style action bar */}
@@ -529,7 +637,7 @@ export default function MockTestRunner() {
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
-                  if (selected !== undefined) handleToggleMark(q.id);
+                  if (qHasAnswer(q.id)) handleToggleMark(q.id);
                   setCurrentQ(c => (c + 1) % totalQ);
                 }}
                 className="px-4 py-2 rounded bg-purple-600 hover:bg-purple-700 text-white text-sm font-bold"
@@ -553,7 +661,7 @@ export default function MockTestRunner() {
               </button>
               <button
                 onClick={() => {
-                  // Wraps to Q1 from last question — student requested
+                  // Wraps to Q1 from last question
                   setCurrentQ(c => (c + 1) % totalQ);
                 }}
                 className="px-5 py-2 rounded bg-green-600 hover:bg-green-700 text-white text-sm font-bold"
@@ -565,9 +673,9 @@ export default function MockTestRunner() {
         </main>
 
         {/* Right sidebar — palette */}
-        <aside className="bg-slate-50 border-l border-slate-200 p-4 flex flex-col">
+        <aside className="bg-slate-50 border-l border-slate-200 p-4 flex flex-col h-full overflow-hidden">
           {/* Status counts */}
-          <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+          <div className="grid grid-cols-2 gap-2 mb-4 text-xs shrink-0">
             <Counter label="Answered" value={stats.answered} bg="bg-green-600" />
             <Counter label="Not Answered" value={stats.notAnswered} bg="bg-red-500" />
             <Counter label="Marked" value={stats.marked} bg="bg-purple-600" />
@@ -575,9 +683,9 @@ export default function MockTestRunner() {
           </div>
 
           {/* Palette grid */}
-          <div className="bg-white rounded-lg p-3 border border-slate-200 mb-4">
-            <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase">Questions</h3>
-            <div className="grid grid-cols-5 gap-1.5">
+          <div className="bg-white rounded-lg p-3 border border-slate-200 mb-4 flex-1 flex flex-col min-h-0">
+            <h3 className="text-xs font-bold text-slate-700 mb-3 uppercase shrink-0">Questions</h3>
+            <div className="grid grid-cols-5 gap-1.5 overflow-y-auto pr-1">
               {test.questions.map((qq, idx) => {
                 const status = qStatus(qq.id);
                 const isCurrent = idx === currentQ;
@@ -586,7 +694,7 @@ export default function MockTestRunner() {
                     key={qq.id}
                     onClick={() => setCurrentQ(idx)}
                     className={`aspect-square rounded text-xs font-bold transition-all ${STATUS_COLORS[status]} ${
-                      isCurrent ? 'ring-2 ring-blue-500 ring-offset-1' : ''
+                      isCurrent ? 'ring-2 ring-blue-500 ring-offset-1 scale-105' : ''
                     }`}
                     title={status.replace('-', ' ')}
                   >
@@ -604,7 +712,7 @@ export default function MockTestRunner() {
               }
             }}
             disabled={submitting}
-            className="w-full mt-auto bg-red-500 hover:bg-red-600 disabled:bg-slate-400 text-white font-bold py-3 rounded-lg text-sm"
+            className="w-full shrink-0 bg-red-500 hover:bg-red-600 disabled:bg-slate-400 text-white font-bold py-3 rounded-lg text-sm"
           >
             {submitting ? 'Submitting...' : 'Submit Test'}
           </button>
@@ -617,7 +725,7 @@ export default function MockTestRunner() {
 // ─── Tiny presentational helpers ───
 function Stat({ label, value, color }) {
   return (
-    <div className="bg-white/5 rounded-xl p-4 text-center">
+    <div className="bg-white/5 border border-white/10 rounded-xl p-4 text-center">
       <div className={`text-2xl font-bold ${color}`}>{value}</div>
       <div className="text-xs text-slate-500 uppercase mt-1">{label}</div>
     </div>
@@ -626,7 +734,7 @@ function Stat({ label, value, color }) {
 
 function Rule({ num, text, warning }) {
   return (
-    <div className={`flex gap-3 p-3 rounded-lg ${warning ? 'bg-red-500/10 border border-red-500/30' : 'bg-white/5'}`}>
+    <div className={`flex gap-3 p-3 rounded-lg ${warning ? 'bg-red-500/10 border border-red-500/30' : 'bg-white/5 border border-white/10'}`}>
       <span className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
         warning ? 'bg-red-500 text-white' : 'bg-white/10 text-slate-300'
       }`}>{num}</span>
@@ -655,11 +763,11 @@ function ResultStat({ label, value, color, bg }) {
 
 function Counter({ label, value, bg }) {
   return (
-    <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2">
+    <div className="bg-white border border-slate-200 rounded p-2 flex items-center gap-2 shadow-sm">
       <div className={`w-7 h-7 rounded-full ${bg} text-white flex items-center justify-center font-bold text-xs`}>
         {value}
       </div>
-      <span className="text-slate-700 font-medium">{label}</span>
+      <span className="text-slate-700 font-medium leading-none">{label}</span>
     </div>
   );
 }

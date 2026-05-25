@@ -2,11 +2,15 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebase';
 
 export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [step, setStep] = useState(1);
+  const [otp, setOtp] = useState('');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -36,11 +40,38 @@ export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
 
     setIsLoading(true);
     try {
+      const sendOTP = httpsCallable(functions, 'sendSignupOTP');
+      await sendOTP({ email });
+      setStep(2);
+    } catch (err) {
+      setError(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    if (otp.length !== 6) {
+      setError('Please enter a 6-digit OTP.');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const verifyOTP = httpsCallable(functions, 'verifySignupOTP');
+      await verifyOTP({ email, otp });
+      
       const result = await signupStudent(email, password, name);
       if (result.success) finishSignup();
-      else setError(result.message);
+      else {
+        setError(result.message);
+        setStep(1);
+      }
     } catch (err) {
-      setError('Signup failed. Please try again.');
+      setError(err.message || 'Invalid OTP. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -104,38 +135,58 @@ export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
         )}
 
         <div className="space-y-4 relative z-10">
-          <button onClick={handleGoogleSignup} disabled={isLoading} className="w-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
-            {isLoading ? (
-              <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-            ) : (
-              <GoogleIcon />
-            )}
-            Sign up with Google
-          </button>
+          {step === 1 ? (
+            <>
+              <button onClick={handleGoogleSignup} disabled={isLoading} className="w-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-white font-bold py-3.5 px-4 rounded-xl transition-all flex items-center justify-center gap-3 cursor-pointer disabled:opacity-50">
+                {isLoading ? (
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                ) : (
+                  <GoogleIcon />
+                )}
+                Sign up with Google
+              </button>
 
-          <div className="relative flex items-center py-5">
-            <div className="flex-grow border-t border-white/10"></div>
-            <span className="flex-shrink-0 mx-4 text-slate-500 text-sm">or register with email</span>
-            <div className="flex-grow border-t border-white/10"></div>
-          </div>
+              <div className="relative flex items-center py-5">
+                <div className="flex-grow border-t border-white/10"></div>
+                <span className="flex-shrink-0 mx-4 text-slate-500 text-sm">or register with email</span>
+                <div className="flex-grow border-t border-white/10"></div>
+              </div>
 
-          <form onSubmit={handleEmailSignup} className="space-y-3">
-            <input required type="text" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
-            <input required type="email" autoComplete="email" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} />
+              <form onSubmit={handleEmailSignup} className="space-y-3">
+                <input required type="text" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Full Name" value={name} onChange={(e) => setName(e.target.value)} />
+                <input required type="email" autoComplete="email" className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Email Address" value={email} onChange={(e) => setEmail(e.target.value)} />
 
-            <div className="relative">
-              <input required type={showPassword ? "text" : "password"} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs" tabIndex="-1">{showPassword ? 'HIDE' : 'SHOW'}</button>
-            </div>
+                <div className="relative">
+                  <input required type={showPassword ? "text" : "password"} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs cursor-pointer" tabIndex="-1">{showPassword ? 'HIDE' : 'SHOW'}</button>
+                </div>
 
-            <div className="relative">
-              <input required type={showPassword ? "text" : "password"} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-            </div>
+                <div className="relative">
+                  <input required type={showPassword ? "text" : "password"} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 pr-12 text-white placeholder:text-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all text-sm" placeholder="Confirm Password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                </div>
 
-            <button type="submit" disabled={isLoading} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm cursor-pointer disabled:opacity-50 mt-2">
-              {isLoading ? 'Creating account...' : 'Create Account'}
-            </button>
-          </form>
+                <button type="submit" disabled={isLoading} className="w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm cursor-pointer disabled:opacity-50 mt-2">
+                  {isLoading ? 'Sending code...' : 'Continue'}
+                </button>
+              </form>
+            </>
+          ) : (
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <div className="text-center">
+                <p className="text-sm text-slate-300 mb-2">We sent a verification code to</p>
+                <p className="font-medium text-white mb-4">{email}</p>
+              </div>
+              <input required type="text" maxLength={6} className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-center tracking-widest text-2xl font-bold text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all" placeholder="000000" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} />
+              
+              <button type="submit" disabled={isLoading} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-sm cursor-pointer disabled:opacity-50 mt-2">
+                {isLoading ? 'Verifying...' : 'Verify & Create Account'}
+              </button>
+              
+              <button type="button" disabled={isLoading} onClick={() => setStep(1)} className="w-full text-slate-400 text-sm hover:text-white transition-colors cursor-pointer pt-2">
+                Back to signup
+              </button>
+            </form>
+          )}
         </div>
       </div>
 
