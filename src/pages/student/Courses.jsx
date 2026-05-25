@@ -35,7 +35,7 @@ export default function StudentCourses() {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {courses.length === 0 ? (
           <div className="col-span-full py-12 text-center text-slate-400 bg-white/5 rounded-2xl border border-white/10">
-            You haven't enrolled in any courses yet. Go to Buy Courses to browse available courses.
+            You haven't enrolled in any courses yet.
           </div>
         ) : courses.map(c => {
           const IconComponent = iconMap[c.image] || BookOpenIcon;

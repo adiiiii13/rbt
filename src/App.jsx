@@ -38,7 +38,6 @@ const ApplyTeacher = lazy(() => import('./pages/ApplyTeacher'))
 // Student Pages (lazy)
 const StudentDashboard = lazy(() => import('./pages/student/Dashboard'))
 const StudentCourses = lazy(() => import('./pages/student/Courses'))
-const StudentBuyCourses = lazy(() => import('./pages/student/BuyCourses'))
 const StudentPdfs = lazy(() => import('./pages/student/Pdfs'))
 const StudyMaterial = lazy(() => import('./pages/student/StudyMaterial'))
 const StudentVideos = lazy(() => import('./pages/student/Videos'))
@@ -52,7 +51,6 @@ const StudentMockResults = lazy(() => import('./pages/student/MockResults'))
 const StudentProfile = lazy(() => import('./pages/student/Profile'))
 
 // Basic Pages (lazy)
-const BasicCourses = lazy(() => import('./pages/basic/Courses'))
 const BasicCourseDetail = lazy(() => import('./pages/basic/CourseDetail'))
 const StudentInitialization = lazy(() => import('./pages/basic/StudentInitialization'))
 const BatchUpgradeForm = lazy(() => import('./pages/student/BatchUpgradeForm'))
@@ -207,7 +205,7 @@ function AppContent() {
                   {/* Student Routes — unified (basic + batch in one dashboard) */}
                   <Route path="/student" element={<ProtectedRoute role="student"><DashboardLayout type="student" /></ProtectedRoute>}>
                     <Route index element={<StudentDashboard />} />
-                    <Route path="buy-courses" element={<StudentBuyCourses />} />
+                    <Route path="buy-courses" element={<Navigate to="/student/courses" replace />} />
                     <Route path="courses" element={<StudentCourses />} />
                     <Route path="courses/:id" element={<CourseDetail />} />
                     <Route path="test-papers" element={<TestPapers />} />
@@ -224,7 +222,7 @@ function AppContent() {
                     <Route path="doubts" element={<StudentDoubts />} />
                     <Route path="mock-results" element={<StudentMockResults />} />
                     <Route path="profile" element={<StudentProfile />} />
-                    <Route path="basic-courses" element={<BasicCourses />} />
+                    <Route path="basic-courses" element={<Navigate to="/student/courses" replace />} />
                     <Route path="basic-courses/:id" element={<BasicCourseDetail />} />
                     <Route path="upgrade-batch" element={<BatchUpgradeForm />} />
                   </Route>

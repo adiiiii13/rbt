@@ -24,14 +24,11 @@ export default function StudentDashboard() {
   const { data: allCoursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses })
   const { data: allPdfsRaw } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
   const { data: allNoticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices })
-  const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c => {
-    // Batch student: show assigned-batch courses
-    if (user?.batch && user?.assignedBatchId) {
-      return c.courseType !== 'batch' || c.batchId === user.assignedBatchId
-    }
-    // Basic user: show public/non-batch courses
-    return c.courseType !== 'batch'
+  const { data: enrollments } = useRealtimeCollection('enrollments', {
+    where: user?.uid ? [['uid', '==', user.uid]] : []
   })
+  const enrolledIds = new Set((enrollments || []).map(e => e.courseId))
+  const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c => enrolledIds.has(c.id))
   const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
   const allNotices = allNoticesRaw?.length ? allNoticesRaw : defaultNotices
   const courses = allCourses.slice(0, 4)
@@ -60,7 +57,7 @@ export default function StudentDashboard() {
   }, [user])
 
   const stats = [
-    { label: 'Courses', value: courses.length, icon: <BookOpenIcon size={22} />, link: '/student/basic-courses' },
+    { label: 'Courses', value: courses.length, icon: <BookOpenIcon size={22} />, link: '/student/courses' },
     { label: 'Test Papers', value: pdfs.length, icon: <FileTextIcon size={22} />, link: '/student/pdfs' },
     { label: 'Payments', value: payments.length, icon: <CreditCardIcon size={22} />, link: '/student/invoices' },
     { label: 'Sessions', value: bookings.length, icon: <CalendarIcon size={22} />, link: '/student/counselling' },
@@ -220,13 +217,13 @@ export default function StudentDashboard() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-white flex items-center gap-2">
-                <BookOpenIcon size={18} className="text-blue-400" /> Available Courses
+                <BookOpenIcon size={18} className="text-blue-400" /> My Courses
               </h3>
-              <Link to="/student/basic-courses" className="text-xs text-green-brand hover:text-green-light no-underline">View all →</Link>
+              <Link to="/student/courses" className="text-xs text-green-brand hover:text-green-light no-underline">View all →</Link>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               {courses.length === 0 ? (
-                <p className="text-slate-500 text-sm col-span-2">No courses available yet</p>
+                <p className="text-slate-500 text-sm col-span-2">No enrolled courses yet</p>
               ) : courses.map((c) => (
                 <div key={c.id} className="p-4 rounded-xl bg-white/3 border border-white/6 hover:border-green-brand/20 transition-all group">
                   <h4 className="font-semibold text-white text-sm mb-1 group-hover:text-green-light transition-colors">{c.title}</h4>

@@ -81,7 +81,7 @@ export default function DashboardLayout({ type }) {
 
   const studentLinks = [
     { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
-    { to: '/student/basic-courses', label: 'My Courses', icon: <IC.book size={18} /> },
+    { to: '/student/courses', label: 'My Courses', icon: <IC.book size={18} /> },
     { to: '/student/test-papers', label: 'Test Papers', icon: <IC.file size={18} /> },
     { to: '/student/study-material', label: 'Study Material', icon: <IC.pdf size={18} /> },
     { to: '/student/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
