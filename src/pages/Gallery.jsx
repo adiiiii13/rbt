@@ -1,43 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRealtimeCollection } from '../lib/useRealtimeCollection';
-
-const fadeUp = {
-  initial: { opacity: 0, y: 30 },
-  whileInView: { opacity: 1, y: 0 },
-  viewport: { once: true, margin: '-50px' },
-  transition: { duration: 0.6 },
-};
 
 const itemVariants = {
   hidden: { opacity: 0, scale: 0.8, y: 30 },
   show: { opacity: 1, scale: 1, y: 0, transition: { type: "spring", stiffness: 120, damping: 14 } }
 };
 
+/* Resolve whichever URL field the doc has */
+const getUrl = (img) => img?.imageUrl || img?.src || '';
+
 export default function Gallery() {
   const { data: images } = useRealtimeCollection('gallery');
   const [selectedImage, setSelectedImage] = useState(null);
   const [activeCategory, setActiveCategory] = useState("All");
+  const [failedUrls, setFailedUrls] = useState(new Set());
+
+  /* Only show images that actually have a URL and haven't hard-failed */
+  const validImages = images.filter(img => {
+    const url = getUrl(img);
+    return url && url.trim() !== '' && !failedUrls.has(img.id);
+  });
 
   const filteredImages = activeCategory === "All"
-    ? images
-    : images.filter(img => img.category === activeCategory);
+    ? validImages
+    : validImages.filter(img => img.category === activeCategory);
 
   const selectedIndex = selectedImage
     ? filteredImages.findIndex(img => img.id === selectedImage.id)
     : -1;
 
-  const goNext = () => {
+  const goNext = useCallback(() => {
     if (selectedIndex < filteredImages.length - 1) {
       setSelectedImage(filteredImages[selectedIndex + 1]);
     }
-  };
+  }, [selectedIndex, filteredImages]);
 
-  const goPrev = () => {
+  const goPrev = useCallback(() => {
     if (selectedIndex > 0) {
       setSelectedImage(filteredImages[selectedIndex - 1]);
     }
-  };
+  }, [selectedIndex, filteredImages]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -48,10 +51,15 @@ export default function Gallery() {
     };
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
-  }, [selectedImage]);
+  }, [goNext, goPrev]);
+
+  /* Mark an image as broken so the grid hides it */
+  const handleImageError = (imgId) => {
+    setFailedUrls(prev => new Set(prev).add(imgId));
+  };
 
   // Build categories from all images
-  const allCategories = [...new Set(images.map(i => i.category).filter(Boolean))];
+  const allCategories = [...new Set(validImages.map(i => i.category).filter(Boolean))];
   const categories = ["All", ...allCategories];
 
   return (
@@ -125,7 +133,7 @@ export default function Gallery() {
         </motion.div>
 
         {/* Gallery Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pb-16">
           {filteredImages.map((image) => (
             <motion.div
               key={image.id}
@@ -137,9 +145,14 @@ export default function Gallery() {
               className="group relative rounded-2xl overflow-hidden cursor-pointer aspect-[4/3] bg-white/5 shadow-lg hover:shadow-[0_20px_40px_rgba(34,197,94,0.2)]"
               onClick={() => setSelectedImage(image)}
             >
-              <div
-                className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105 z-0"
-                style={{ backgroundImage: `url(${image.imageUrl || image.src})` }}
+              {/* Use real <img> instead of background-image so missing URLs are handled properly */}
+              <img
+                src={getUrl(image)}
+                alt={image.title || image.alt || 'Gallery image'}
+                loading="lazy"
+                decoding="async"
+                onError={() => handleImageError(image.id)}
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 z-0"
               />
               <div className="absolute inset-0 bg-green-brand/20 opacity-0 group-hover:opacity-100 transition-opacity z-10 mix-blend-overlay"></div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-20 flex flex-col justify-end p-6 translate-y-4 group-hover:translate-y-0">
@@ -194,22 +207,20 @@ export default function Gallery() {
             </div>
 
             <motion.div
+              key={selectedImage.id}
               initial={{ scale: 0.8, y: 50, opacity: 0 }}
               animate={{ scale: 1, y: 0, opacity: 1 }}
               exit={{ scale: 0.8, y: 50, opacity: 0 }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="relative max-w-5xl w-full max-h-[85vh] rounded-2xl overflow-hidden shadow-2xl"
+              className="relative max-w-5xl w-full flex flex-col items-center"
               onClick={(e) => e.stopPropagation()}
             >
               <img
-                key={selectedImage.id}
-                src={selectedImage.imageUrl || selectedImage.src}
+                src={getUrl(selectedImage)}
                 alt={selectedImage.title || selectedImage.alt}
-                className="w-full h-full object-contain bg-black/50"
+                className="max-w-full max-h-[80vh] w-auto h-auto rounded-2xl shadow-2xl object-contain"
               />
-              <div
-                className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/90 via-black/60 to-transparent"
-              >
+              <div className="w-full max-w-3xl mt-4 text-center">
                 <h3 className="text-white font-medium text-lg">{selectedImage.title || selectedImage.alt}</h3>
                 <p className="text-green-brand text-xs font-bold uppercase tracking-wider mt-1">{selectedImage.category}</p>
               </div>
@@ -220,3 +231,4 @@ export default function Gallery() {
     </div>
   );
 }
+
