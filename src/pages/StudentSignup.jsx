@@ -13,7 +13,7 @@ export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  const { loginWithGoogle, signupStudent } = useAuth();
+  const { loginWithGoogle, signupStudent, upgradeToBatch } = useAuth();
   const navigate = useNavigate();
 
   const handleEmailSignup = async (e, isBatch = false) => {
@@ -53,8 +53,18 @@ export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
       const result = await loginWithGoogle(isBatch);
       if (result.success) {
         if (onClose) onClose();
-        const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
+        const isBatchFlow = result.user?.batch || ['pending', 'approved', 'revoked'].includes(result.user?.batchStatus);
+        const dest = isBatchFlow ? '/student-initialization' : '/basic';
         navigate(dest, { replace: true });
+      } else if (result.requireUpgrade) {
+        // Since they explicitly clicked Batch Signup, auto-upgrade them if they are basic
+        const upgradeRes = await upgradeToBatch();
+        if (upgradeRes.success) {
+          if (onClose) onClose();
+          navigate('/student-initialization', { replace: true });
+        } else {
+          setError('Failed to upgrade account to batch. Please try logging in normally and upgrading.');
+        }
       } else {
         setError(result.message);
       }

@@ -95,12 +95,12 @@ function ProtectedRoute({ children, role, batch }) {
   if (role && user.role !== role) return <Navigate to="/" replace />
 
   // Force pending batch students, and approved students who haven't paid yet, to the initialization page (unless they are accessing the basic dashboard)
-  if (user.role === 'student' && (['pending', 'revoked'].includes(user.batchStatus) || (user.batchStatus === 'approved' && !user.batch)) && location.pathname !== '/student-initialization' && !location.pathname.startsWith('/basic')) {
+  if (user.role === 'student' && (['pending', 'revoked'].includes(user.batchStatus) || (user.batchStatus === 'approved' && !user.batch && !user.hasPaidBatchFee)) && location.pathname !== '/student-initialization' && !location.pathname.startsWith('/basic')) {
     return <Navigate to="/student-initialization" replace />
   }
 
-  // Batch dashboard requires batch: true
-  if (batch && !user.batch) {
+  // Batch dashboard requires batch: true (or an approved user who has paid)
+  if (batch && !user.batch && !(user.batchStatus === 'approved' && user.hasPaidBatchFee)) {
     if (['pending', 'approved', 'revoked'].includes(user.batchStatus)) {
       return <Navigate to="/student-initialization" replace />
     }

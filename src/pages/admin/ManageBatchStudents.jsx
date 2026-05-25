@@ -78,9 +78,10 @@ export default function ManageBatchStudents() {
 
     try {
       const isFree = batch.isFree !== false;
+      const shouldHaveBatchAccess = isFree || !!selectedStudent.hasPaidBatchFee;
       await updateDocument('students', selectedStudent.id, { 
         batchStatus: 'approved', 
-        batch: isFree,
+        batch: shouldHaveBatchAccess,
         assignedBatchId: batch.id,
         assignedBatchName: batch.name || batch.className || '',
         assignedBatchCode: batch.batchCode
