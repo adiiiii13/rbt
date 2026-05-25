@@ -74,7 +74,6 @@ const ManageMockTests = lazy(() => import('./pages/admin/ManageMockTests'))
 const MockResults = lazy(() => import('./pages/admin/MockResults'))
 const ManageStudyMaterial = lazy(() => import('./pages/admin/ManageStudyMaterial'))
 const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
-const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications'))
 const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
 const ManageBatchRequests = lazy(() => import('./pages/admin/ManageBatchRequests'))
 const ManageProfileForm = lazy(() => import('./pages/admin/ManageProfileForm'))
@@ -263,7 +262,6 @@ function AppContent() {
                     <Route path="offers" element={<ManageOffers />} />
                     <Route path="inquiries" element={<ManageInquiries />} />
                     <Route path="doubts" element={<ManageDoubts />} />
-                    <Route path="notifications" element={<ManageNotifications />} />
                     <Route path="invoices" element={<ManageInvoices />} />
                     <Route path="profile-form" element={<ManageProfileForm />} />
                     <Route path="teachers" element={<ManageTeachers />} />

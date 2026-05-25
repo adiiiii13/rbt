@@ -9,10 +9,10 @@ import Modal from '../../components/Modal'
 import ExportButton from '../../components/ExportButton'
 
 const AUDIENCES = [
-  { id: 'all', label: '📢 All Students', desc: 'Every student sees this' },
-  { id: 'class', label: '🎓 Specific Class', desc: 'Only students from one class (e.g. Class 10)' },
-  { id: 'batch', label: '📚 Specific Batch', desc: 'Only students from one specific batch' },
-  { id: 'specific', label: '👤 Specific Students', desc: 'Hand-picked recipients' },
+  { id: 'all', label: '📢 All Students' },
+  { id: 'class', label: '🎓 Whole Class' },
+  { id: 'batch', label: '📚 Whole Batch' },
+  { id: 'specific', label: '👤 Specific Students' },
 ]
 
 const CLASS_OPTIONS = ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'JEE Dropper', 'NEET Dropper']
@@ -30,12 +30,16 @@ export default function ManageNotices() {
   const [editing, setEditing] = useState(null)
   const [form, setForm] = useState(emptyForm)
   const [search, setSearch] = useState('')
-  const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
 
   const filteredStudents = useMemo(() => {
     if (!search) return students
     const q = search.toLowerCase()
-    return students.filter(s => (s.name || '').toLowerCase().includes(q) || (s.email || '').toLowerCase().includes(q) || (s.studentId || '').toLowerCase().includes(q))
+    return students.filter(s => 
+      (s.name || '').toLowerCase().includes(q) || 
+      (s.email || '').toLowerCase().includes(q) || 
+      (s.studentId || '').toLowerCase().includes(q)
+    )
   }, [students, search])
 
   const targetStudents = useMemo(() => {
@@ -47,20 +51,23 @@ export default function ManageNotices() {
   }, [form.audience, form.targetBatch, form.targetClass, form.targetStudentIds, students])
 
   const save = async () => {
-    if (!form.title || !form.content) { toast.error('Title and content required'); return }
-    if (form.audience === 'class' && !form.targetClass) { toast.error('Please select a class'); return }
-    if (form.audience === 'batch' && !form.targetBatch) { toast.error('Please select a batch'); return }
-    if (form.audience === 'specific' && !form.targetStudentIds.length) { toast.error('Please select at least one student'); return }
+    if (!form.title || !form.content) { toast.error('Title and message required'); return }
+    if (form.audience === 'class' && !form.targetClass) { toast.error('Select a class'); return }
+    if (form.audience === 'batch' && !form.targetBatch) { toast.error('Select a batch'); return }
+    if (form.audience === 'specific' && !form.targetStudentIds.length) { toast.error('Select students'); return }
 
+    setBusy(true)
     try {
       if (editing) {
         await updateDocument('notices', editing.id, form)
-        toast.success('Updated')
+        toast.success('Notice Updated')
       } else {
-        await addDocument('notices', { ...form, date: new Date().toISOString().split('T')[0], createdAt: new Date() })
-        toast.success('Published')
+        const noticeRef = await addDocument('notices', { 
+          ...form, 
+          date: new Date().toISOString().split('T')[0], 
+          createdAt: new Date() 
+        })
 
-        // Send notification to targeted students (up to 500)
         const recipients = targetStudents.slice(0, 500)
         if (recipients.length > 0) {
           await Promise.all(recipients.map(s => addDocument('notifications', {
@@ -71,22 +78,26 @@ export default function ManageNotices() {
             audience: form.audience,
             read: false,
             createdAt: new Date(),
+            noticeId: noticeRef.id 
           })))
-          toast.success(`Sent to ${recipients.length} student(s)`)
+          toast.success(`Sent & Pushed to ${recipients.length} students`)
+        } else {
+          toast.success('Notice Published')
         }
       }
       closeModal()
     } catch (err) { toast.error(err.message) }
+    finally { setBusy(false) }
   }
 
   const remove = async (id) => {
-    if (!confirm('Delete?')) return
+    if (!confirm('Delete this notice?')) return
     try { await deleteItemSmart('notices', id); toast.success('Deleted') }
     catch (err) { toast.error(err.message) }
   }
 
-  const openEdit = (n) => { setEditing(n); setForm({ title: n.title, content: n.content, priority: n.priority, category: n.category, audience: n.audience || 'all', targetClass: n.targetClass || '', targetBatch: n.targetBatch || '', targetStudentIds: n.targetStudentIds || [] }); setModal(true) }
-  const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); setSearch(''); setDropdownOpen(false) }
+  const openEdit = (n) => { setEditing(n); setForm({ ...n }); setModal(true) }
+  const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); setSearch('') }
 
   const toggleStudent = (id) => {
     setForm(f => {
@@ -96,115 +107,128 @@ export default function ManageNotices() {
   }
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div><h1 className="text-2xl font-bold text-white">Manage Notices</h1><p className="text-sm text-slate-400">{notices.length} notices</p></div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">Notices & Announcements</h1>
+          <p className="text-sm text-slate-400">Send announcements directly to student dashboards</p>
+        </div>
         <div className="flex gap-2">
-          <ExportButton data={notices} filename="notices" columns={[
-            { key: 'title', label: 'Title' },
-            { key: 'content', label: 'Content' },
-            { key: 'priority', label: 'Priority' },
-            { key: 'category', label: 'Category' },
-            { key: 'audience', label: 'Audience' },
-            { key: 'targetClass', label: 'Target Class' },
-            { key: 'targetBatch', label: 'Target Batch' },
-            { key: 'date', label: 'Date' },
-          ]} />
-          <button onClick={() => setModal(true)} className="btn-primary">+ Add Notice</button>
+          <ExportButton data={notices} filename="notices" columns={[{ key: 'title', label: 'Title' }, { key: 'date', label: 'Date' }, { key: 'audience', label: 'Sent To' }]} />
+          <button onClick={() => setModal(true)} className="btn-primary">+ Create New Notice</button>
         </div>
       </div>
+
       {loading && <TableSkeleton />}
 
-      <div className="space-y-4">
+      <div className="grid gap-4">
+        {notices.length === 0 && !loading && (
+          <div className="bg-[#111111] rounded-2xl p-12 text-center border border-dashed border-slate-800">
+            <p className="text-slate-500">No notices sent yet. Click "Create New Notice" to start.</p>
+          </div>
+        )}
         {notices.map(n => (
-          <div key={n.id} className="bg-[#111111] rounded-2xl p-5 border border-slate-800">
+          <div key={n.id} className="bg-[#111111] rounded-2xl p-5 border border-slate-800 hover:border-slate-700 transition-colors">
             <div className="flex items-start justify-between">
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${n.priority === 'high' ? 'bg-red-500' : n.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-500'}`} />
-                <h3 className="font-bold text-white">{n.title}</h3>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-2 h-2 rounded-full ${n.priority === 'high' ? 'bg-red-500' : n.priority === 'medium' ? 'bg-amber-500' : 'bg-slate-500'}`} />
+                  <h3 className="font-bold text-white text-lg">{n.title}</h3>
+                </div>
+                <p className="text-sm text-slate-400 mb-3 whitespace-pre-wrap">{n.content}</p>
+                <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider font-bold">
+                  <span className="text-slate-500">{n.date}</span>
+                  <span className="badge badge-navy px-2 py-0.5">{n.category}</span>
+                  <span className="text-green-brand">To: {n.audience === 'all' ? 'All Students' : n.targetClass || n.targetBatch || `${n.targetStudentIds?.length || 0} students`}</span>
+                </div>
               </div>
-              <div className="flex gap-2 shrink-0 ml-4">
-                <button onClick={() => openEdit(n)} className="text-sm text-blue-400 cursor-pointer">Edit</button>
-                <button onClick={() => remove(n.id)} className="text-sm text-red-400 cursor-pointer">Delete</button>
+              <div className="flex gap-4 ml-4">
+                <button onClick={() => openEdit(n)} className="text-sm text-blue-400 font-bold hover:underline cursor-pointer">Edit</button>
+                <button onClick={() => remove(n.id)} className="text-sm text-red-400 font-bold hover:underline cursor-pointer">Delete</button>
               </div>
-            </div>
-            <p className="text-sm text-slate-300 mb-2">{n.content}</p>
-            <div className="flex items-center gap-3 text-xs text-slate-500">
-              <span>{n.date}</span>
-              <span className="badge badge-navy">{n.category}</span>
-              <span className={`badge ${n.priority === 'high' ? 'badge-red' : n.priority === 'medium' ? 'badge-gold' : 'badge-green'}`}>{n.priority}</span>
-              {n.audience && n.audience !== 'all' && <span className="badge badge-navy">{n.audience}: {n.targetClass || n.targetBatch || `${n.targetStudentIds?.length || 0} students`}</span>}
             </div>
           </div>
         ))}
       </div>
 
-      <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Edit Notice' : 'Add Notice'} size="lg">
+      <Modal isOpen={modal} onClose={closeModal} title={editing ? 'Update Notice' : 'Send New Notice'} size="lg">
         <div className="space-y-4">
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Title</label><input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} /></div>
-          <div><label className="text-sm font-medium text-slate-300 mb-1 block">Content</label><textarea className="input-field resize-none" rows={4} value={form.content} onChange={e => setForm({...form, content: e.target.value})} /></div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Priority</label><select className="input-field" value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div>
-            <div><label className="text-sm font-medium text-slate-300 mb-1 block">Category</label><select className="input-field" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>{['General','Academic','Exam','Holiday','Event','Fee'].map(c => <option key={c}>{c}</option>)}</select></div>
+          <div>
+            <label className="text-sm font-bold text-slate-400 mb-1 block">Title</label>
+            <input className="input-field" value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="e.g., Holiday Announcement" />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-slate-400 mb-1 block">Message Content</label>
+            <textarea className="input-field resize-none" rows={5} value={form.content} onChange={e => setForm({...form, content: e.target.value})} placeholder="Write the full notice details here..." />
           </div>
 
-          {/* Audience */}
-          <div>
-            <label className="text-sm font-medium text-slate-300 mb-2 block">Send To</label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-bold text-slate-400 mb-1 block">Category</label>
+              <select className="input-field" value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                {['General','Academic','Exam','Holiday','Fee'].map(c => <option key={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-bold text-slate-400 mb-1 block">Priority</label>
+              <select className="input-field" value={form.priority} onChange={e => setForm({...form, priority: e.target.value})}>
+                <option value="low">Low (Gray)</option>
+                <option value="medium">Medium (Amber)</option>
+                <option value="high">High (Red)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-white/5">
+            <label className="text-sm font-bold text-slate-400 mb-3 block text-center">Who should receive this?</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
               {AUDIENCES.map(a => (
-                <button key={a.id} onClick={() => setForm({...form, audience: a.id, targetClass: '', targetBatch: '', targetStudentIds: [] })}
-                  className={`p-3 rounded-xl text-left cursor-pointer transition-all ${form.audience === a.id ? 'bg-green-brand/15 border-2 border-green-brand' : 'bg-white/5 border-2 border-transparent'}`}>
-                  <p className="text-white text-[10px] font-bold">{a.label}</p>
+                <button key={a.id} type="button" onClick={() => setForm({...form, audience: a.id, targetClass: '', targetBatch: '', targetStudentIds: [] })}
+                  className={`p-3 rounded-xl text-center transition-all ${form.audience === a.id ? 'bg-green-brand/20 border-2 border-green-brand text-white' : 'bg-white/5 border-2 border-transparent text-slate-500 hover:text-slate-300'}`}>
+                  <p className="text-[10px] font-bold uppercase">{a.label}</p>
                 </button>
               ))}
             </div>
-          </div>
 
-          {form.audience === 'class' && (
-            <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">Select Class</label>
-              <select className="input-field" value={form.targetClass} onChange={e => setForm({...form, targetClass: e.target.value})}>
-                <option value="">Pick Class...</option>
+            {form.audience === 'class' && (
+              <select className="input-field animate-in fade-in slide-in-from-top-2" value={form.targetClass} onChange={e => setForm({...form, targetClass: e.target.value})}>
+                <option value="">-- Select Class --</option>
                 {CLASS_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              {form.targetClass && <p className="text-xs text-green-brand mt-1">{targetStudents.length} student(s) in this class</p>}
-            </div>
-          )}
+            )}
 
-          {form.audience === 'batch' && (
-            <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">Select Batch</label>
-              <select className="input-field" value={form.targetBatch} onChange={e => setForm({...form, targetBatch: e.target.value})}>
-                <option value="">Pick Batch...</option>
+            {form.audience === 'batch' && (
+              <select className="input-field animate-in fade-in slide-in-from-top-2" value={form.targetBatch} onChange={e => setForm({...form, targetBatch: e.target.value})}>
+                <option value="">-- Select Batch --</option>
                 {batchesList.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
               </select>
-              {form.targetBatch && <p className="text-xs text-green-brand mt-1">{targetStudents.length} student(s) in this batch</p>}
-            </div>
-          )}
+            )}
 
-
-
-          {form.audience === 'specific' && (
-            <div>
-              <label className="text-sm font-medium text-slate-300 mb-1 block">Search & Select Students</label>
-              <input className="input-field mb-2" placeholder="Search by name, email, ID..." value={search} onChange={e => setSearch(e.target.value)} onFocus={() => setDropdownOpen(true)} />
-              {dropdownOpen && filteredStudents.length > 0 && (
-                <div className="max-h-40 overflow-y-auto bg-[#111111] border border-slate-700 rounded-xl">
-                  {filteredStudents.slice(0, 15).map(s => (
-                    <button key={s.id || s.uid} onClick={() => toggleStudent(s.id || s.uid)}
-                      className={`w-full text-left px-4 py-2 flex items-center justify-between text-sm cursor-pointer ${form.targetStudentIds.includes(s.id || s.uid) ? 'bg-green-brand/10 text-green-brand' : 'hover:bg-white/5 text-white'}`}>
-                      <span>{s.name} <span className="text-xs text-slate-500">{s.email}</span></span>
-                      {form.targetStudentIds.includes(s.id || s.uid) && <span>✓</span>}
-                    </button>
+            {form.audience === 'specific' && (
+              <div className="animate-in fade-in slide-in-from-top-2">
+                <input className="input-field mb-2" placeholder="Search student name..." value={search} onChange={e => setSearch(e.target.value)} />
+                <div className="max-h-40 overflow-y-auto bg-black/40 rounded-xl p-2 border border-white/5 space-y-1">
+                  {filteredStudents.map(s => (
+                    <label key={s.id || s.uid} className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer ${form.targetStudentIds.includes(s.id || s.uid) ? 'bg-green-brand/10' : 'hover:bg-white/5'}`}>
+                      <input type="checkbox" checked={form.targetStudentIds.includes(s.id || s.uid)} onChange={() => toggleStudent(s.id || s.uid)} className="accent-green-brand" />
+                      <span className="text-sm text-white">{s.name}</span>
+                      <span className="text-[10px] text-slate-500 ml-auto">{s.className || s.class}</span>
+                    </label>
                   ))}
                 </div>
-              )}
-              <p className="text-xs text-green-brand mt-1">{form.targetStudentIds.length} student(s) selected</p>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
-          <button onClick={save} className="btn-primary w-full">{editing ? 'Update' : 'Publish'} Notice</button>
+          <div className="bg-green-brand/5 border border-green-brand/20 rounded-xl p-4 text-center">
+            <p className="text-xs text-green-brand font-bold">
+              Target: {targetStudents.length} student(s) will receive a dashboard notice and a bell notification.
+            </p>
+          </div>
+
+          <button onClick={save} disabled={busy} className="btn-primary w-full py-4 text-lg shadow-xl shadow-green-brand/20 disabled:opacity-50">
+            {busy ? 'Processing...' : editing ? 'Update Notice' : '🚀 Publish & Send Notice'}
+          </button>
         </div>
       </Modal>
     </div>
