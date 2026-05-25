@@ -15,7 +15,7 @@ const AUDIENCES = [
   { id: 'specific', label: '👤 Specific Students', desc: 'Hand-picked recipients' },
 ]
 
-const CLASS_OPTIONS = ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Dropper']
+const CLASS_OPTIONS = ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'JEE Dropper', 'NEET Dropper']
 
 const emptyForm = {
   title: '', content: '', priority: 'medium', category: 'General',
