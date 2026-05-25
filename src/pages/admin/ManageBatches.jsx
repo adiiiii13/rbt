@@ -264,7 +264,7 @@ export default function ManageBatches() {
                   {b.type === 'online' ? 'Online' : 'Offline'}
                 </span>
               </div>
-              {b.location && <p className="text-sm text-slate-400 mb-1">📍 {b.location}</p>}
+              {b.location && <p className="text-sm text-slate-400 mb-1">{b.type === 'online' ? '🔗' : '📍'} {b.location}</p>}
               {b.schedule && <p className="text-sm text-slate-400 mb-1">🕐 {b.schedule}</p>}
               {b.description && <p className="text-xs text-slate-500 mb-3">{b.description}</p>}
               <div className="flex items-center justify-between text-xs text-slate-500 mb-3">
@@ -431,11 +431,13 @@ export default function ManageBatches() {
             </div>
           </div>
           <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Location</label>
+            <label className="text-sm font-bold text-white mb-1.5 block">
+              {form.type === 'online' ? 'Platform / Meeting Link' : 'Location'}
+            </label>
             <input
               type="text"
               className="input-field w-full"
-              placeholder="e.g. RBT Coaching Center, Room 201"
+              placeholder={form.type === 'online' ? 'e.g. Zoom Link or App Live' : 'e.g. RBT Coaching Center, Room 201'}
               value={form.location}
               onChange={e => setForm({ ...form, location: e.target.value })}
             />
