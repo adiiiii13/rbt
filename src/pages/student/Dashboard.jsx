@@ -114,9 +114,19 @@ export default function StudentDashboard() {
               <h1 className="text-xl lg:text-2xl font-bold text-white">Welcome back, {user?.name || 'Student'}</h1>
               <p className="text-slate-400 text-sm">{user?.course || 'Enrolled Student'} • {user?.studentId || user?.id || ''}</p>
               {user?.assignedBatchName && (
-                <p className="text-emerald-400 text-sm font-medium mt-1">
-                  Batch / Class: {user.assignedBatchName} {user.assignedBatchCode ? `(${user.assignedBatchCode})` : ''}
-                </p>
+                <div className="flex flex-wrap items-center gap-2 mt-1">
+                  <p className="text-emerald-400 text-sm font-medium">
+                    Batch / Class: {user.assignedBatchName} {user.assignedBatchCode ? `(${user.assignedBatchCode})` : ''}
+                  </p>
+                  {user.batchPaymentMode?.startsWith('offline-') && (
+                    <span className="badge badge-green text-[10px]">
+                      OFFLINE • {user.batchPaymentMode.replace('offline-', '').toUpperCase()}
+                    </span>
+                  )}
+                  {user.hasPaidBatchFee && (
+                    <span className="badge badge-blue text-[10px]">FEE PAID</span>
+                  )}
+                </div>
               )}
             </div>
           </div>

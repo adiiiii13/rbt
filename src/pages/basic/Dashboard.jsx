@@ -56,14 +56,38 @@ export default function BasicDashboard() {
         <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl relative overflow-hidden">
           <div className="relative z-10 flex items-center justify-between">
             <div>
-              <h3 className="text-amber-400 font-bold mb-1">Batch Request Pending</h3>
-              <p className="text-sm text-amber-200/80">Your request to join the batch is waiting for Admin approval. You will get full access once approved.</p>
+              <h3 className="text-amber-400 font-bold mb-1">Batch Application Pending</h3>
+              <p className="text-sm text-amber-200/80">Your offline batch application is under review. RBT team will call you within 24h.</p>
             </div>
             <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
           </div>
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+        </div>
+      )}
+
+      {user?.batchStatus === 'called' && (
+        <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl relative overflow-hidden">
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <h3 className="text-blue-400 font-bold mb-1">Application Under Review</h3>
+              <p className="text-sm text-blue-200/80">We have contacted you. Please visit the institution to complete enrollment.</p>
+            </div>
+            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-500">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.37 1.9.72 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.91.35 1.85.59 2.81.72A2 2 0 0 1 22 16.92z"/></svg>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {user?.batchStatus === 'rejected' && (
+        <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+          <h3 className="text-red-400 font-bold mb-1">Batch Application Rejected</h3>
+          <p className="text-sm text-red-200/80 mb-3">Your previous application was rejected. You can apply again with updated details.</p>
+          <Link to="/basic/upgrade-batch" className="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-sm no-underline">
+            Apply Again
+          </Link>
         </div>
       )}
 
@@ -175,7 +199,7 @@ export default function BasicDashboard() {
       </div>
 
       {/* Upgrade CTA */}
-      {(!user?.batchStatus || user.batchStatus === 'none' || user.batchStatus === 'rejected') && (
+      {(!user?.batchStatus || user.batchStatus === 'none') && (
         <div className="bg-linear-to-br from-green-brand/10 to-green-dark/5 rounded-2xl p-6 border border-green-brand/20 text-center">
           <h3 className="text-white font-bold mb-2">Want Offline Batch Access?</h3>
           <p className="text-sm text-slate-400 mb-4">Apply for offline classroom batch. Get counselling, notices, achievements, invoices and full institutional access.</p>
