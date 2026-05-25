@@ -252,7 +252,6 @@ function AppContent() {
                     <Route path="achievements" element={<ManageAchievements />} />
                     <Route path="students" element={<ManageStudents />} />
                     <Route path="students/:studentId" element={<StudentDetail />} />
-                    <Route path="batches" element={<Navigate to="/admin" replace />} />
                     <Route path="batch-students" element={<Navigate to="/admin/students" replace />} />
                     <Route path="batch-requests" element={<ManageBatchRequests />} />
                     <Route path="offline-enrollments" element={<ManageBatchRequests />} />

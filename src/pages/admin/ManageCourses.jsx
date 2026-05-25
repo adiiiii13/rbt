@@ -26,6 +26,7 @@ export default function ManageCourses() {
   
   const { data: testsRaw } = useRealtimeCollection('mock_tests', { fallback: [] })
   const { data: seriesRaw } = useRealtimeCollection('test_series', { fallback: [] })
+  const { data: batches } = useRealtimeCollection('batches', { fallback: [] })
   const [modal, setModal] = useState(false)
   const [editing, setEditing] = useState(null)
   const [step, setStep] = useState(1) // 1-4
@@ -178,7 +179,7 @@ export default function ManageCourses() {
       duration: finalDuration,
       isFree: basic.isFree,
       courseType: 'basic',
-      batchId: null,
+      batchId: basic.batchId || null,
       variants: pricing.map(v => ({ ...v, months: Number(v.months), price: Number(v.price), originalPrice: Number(v.originalPrice) })),
       modules: modules.map((m, i) => ({ ...m, order: i + 1, items: m.items.map((itm, j) => ({ ...itm, order: j + 1 })) })),
       lessons: [] // Clear old format
@@ -218,6 +219,7 @@ export default function ManageCourses() {
             { key: 'isFree', label: 'Free' },
             { key: 'variants', label: 'Pricing Plans', format: (v) => Array.isArray(v) ? v.map(x => `${x.months}mo:₹${x.price}`).join(' | ') : '' },
             { key: 'modules', label: 'Modules Count', format: (v) => Array.isArray(v) ? v.length : 0 },
+            { key: 'batchId', label: 'Assigned Batch' },
             { key: 'description', label: 'Description' },
           ]} />
           <button onClick={openCreate} className="btn-primary">+ Add Course</button>
@@ -322,6 +324,16 @@ export default function ManageCourses() {
             <div>
               <label className="text-sm text-slate-300 font-medium mb-1 block">Subjects (comma separated)</label>
               <input className="input-field" value={basic.subjects} onChange={e => setBasic({ ...basic, subjects: e.target.value })} placeholder="Physics, Chemistry, Maths" />
+            </div>
+            <div>
+              <label className="text-sm text-slate-300 font-medium mb-1 block">Assign to Batch (Optional)</label>
+              <select className="input-field" value={basic.batchId} onChange={e => setBasic({ ...basic, batchId: e.target.value })}>
+                <option value="">-- No Batch Assigned --</option>
+                {batches?.map(b => (
+                  <option key={b.id} value={b.id}>{b.name} {b.classId ? `(${b.classId})` : ''}</option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">If assigned, only students in this batch will automatically get access, or it can be used for batch-specific reporting.</p>
             </div>
             <div>
               <label className="text-sm text-slate-300 font-medium mb-1 block">Thumbnail (optional)</label>
