@@ -21,3 +21,8 @@ eslint-errors.json
 
 # One-off migration scripts
 fix-tailwind.js
+
+# Secrets / API keys
+rzp-key.csv
+*.csv
+serviceAccountKey*.json

@@ -32,6 +32,7 @@ service cloud.firestore {
     match /notices/{doc}      { allow read: if true; allow write: if isAdmin(); }
     match /pdfs/{doc}         { allow read: if true; allow write: if isAdmin(); }
     match /mockTests/{doc}    { allow read: if true; allow write: if isAdmin(); }
+    match /testSeries/{doc}   { allow read: if true; allow write: if isAdmin(); }
     match /studyMaterial/{doc}{ allow read: if true; allow write: if isAdmin(); }
     match /batches/{doc}      { allow read: if true; allow write: if isAdmin(); }
     match /offers/{doc}       { allow read: if true; allow write: if isAdmin(); }
@@ -46,6 +47,20 @@ service cloud.firestore {
 
     // Mock Test Access: student create own (payment); admin full; student read own
     match /mockTestAccess/{doc} {
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Test Series Access: student create own (payment); admin full; student read own
+    match /testSeriesAccess/{doc} {
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // Course Access: student create own; admin full; student read own
+    match /courseAccess/{doc} {
       allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
       allow update, delete: if isAdmin();

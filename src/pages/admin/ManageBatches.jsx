@@ -15,6 +15,7 @@ const emptyBatch = {
   schedule: '',
   description: '',
   type: 'offline',
+  courseIds: [],
 }
 
 const CLASS_OPTIONS = ['Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Dropper']
@@ -25,6 +26,7 @@ export default function ManageBatches() {
   const { data: students } = useRealtimeCollection('students', { fallback: [] })
   const { data: contacts } = useRealtimeCollection('inquiries', { fallback: [] })
   const { data: counsellingBookings } = useRealtimeCollection('counsellingBookings', { fallback: [] })
+  const { data: courses } = useRealtimeCollection('courses', { fallback: [] })
 
   const [tab, setTab] = useState('batches') // batches | students | contacts
   const [batchModal, setBatchModal] = useState(false)
@@ -86,6 +88,7 @@ export default function ManageBatches() {
       schedule: b.schedule || '',
       description: b.description || '',
       type: b.type || 'offline',
+      courseIds: b.courseIds || [],
     })
     setBatchModal(true)
   }
@@ -96,6 +99,7 @@ export default function ManageBatches() {
       const payload = {
         ...form,
         type: form.type || 'offline',
+        courseIds: form.courseIds || [],
       }
       if (editing) {
         await updateDocument('batches', editing.id, payload)
@@ -426,6 +430,35 @@ export default function ManageBatches() {
               value={form.description}
               onChange={e => setForm({ ...form, description: e.target.value })}
             />
+          </div>
+          <div>
+            <label className="text-sm font-bold text-white mb-1.5 block">Link Courses</label>
+            <div className="bg-[#111111] border border-slate-800 p-3 rounded-xl max-h-40 overflow-y-auto space-y-2">
+              {courses.length === 0 ? (
+                <p className="text-xs text-slate-500">No courses available.</p>
+              ) : (
+                courses.map(c => (
+                  <label key={c.id} className="flex items-center gap-3 cursor-pointer hover:bg-white/5 p-2 rounded">
+                    <input 
+                      type="checkbox" 
+                      className="w-4 h-4 accent-green-brand"
+                      checked={form.courseIds.includes(c.id)}
+                      onChange={e => {
+                        const newIds = e.target.checked 
+                          ? [...form.courseIds, c.id]
+                          : form.courseIds.filter(id => id !== c.id);
+                        setForm({ ...form, courseIds: newIds })
+                      }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-white font-medium truncate">{c.title}</p>
+                      <p className="text-xs text-slate-500">{c.level}</p>
+                    </div>
+                  </label>
+                ))
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Students assigned to this batch will automatically get access to these courses.</p>
           </div>
           <button onClick={saveBatch} className="btn-primary w-full bg-green-500 hover:bg-green-600">
             {editing ? 'Update Batch' : 'Create Batch'}

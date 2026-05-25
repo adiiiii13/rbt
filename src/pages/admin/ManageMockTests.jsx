@@ -83,17 +83,17 @@ function isQComplete(q) {
   return q.options.every(o => o.trim());
 }
 
-// Smart searchable course picker component
-function CoursePicker({ selectedIds, onChange, courses }) {
+// Smart searchable picker component
+function ItemPicker({ selectedIds, onChange, items, placeholder = "Search...", emptyText = "No items found", itemLabel = "item(s)" }) {
   const [search, setSearch] = useState('');
-  const filtered = courses.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = items.filter(c => c.title?.toLowerCase().includes(search.toLowerCase()));
   return (
     <div className="mt-2">
       <input value={search} onChange={e => setSearch(e.target.value)}
-        placeholder="🔍 Search courses..." className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-2" />
+        placeholder={placeholder} className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-2" />
       <div className="bg-black/30 border border-white/10 rounded-lg max-h-40 overflow-y-auto p-2 space-y-1">
         {filtered.length === 0 ? (
-          <p className="text-slate-500 text-xs text-center py-3">No courses found</p>
+          <p className="text-slate-500 text-xs text-center py-3">{emptyText}</p>
         ) : filtered.map(c => (
           <label key={c.id} className="flex items-center gap-3 p-2 hover:bg-white/5 rounded cursor-pointer">
             <input type="checkbox" checked={selectedIds.includes(c.id)}
@@ -108,7 +108,7 @@ function CoursePicker({ selectedIds, onChange, courses }) {
           </label>
         ))}
       </div>
-      {selectedIds.length > 0 && <p className="text-xs text-green-400 mt-1 font-medium">{selectedIds.length} course(s) linked</p>}
+      {selectedIds.length > 0 && <p className="text-xs text-green-400 mt-1 font-medium">{selectedIds.length} {itemLabel} linked</p>}
     </div>
   );
 }
@@ -126,6 +126,7 @@ export default function ManageMockTests() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [filter, setFilter] = useState('all');
+  const [batchFilter, setBatchFilter] = useState('all');
   const [activeQIdx, setActiveQIdx] = useState(0);
   const [jsonModal, setJsonModal] = useState(false);
   const [jsonText, setJsonText] = useState('');
@@ -154,7 +155,11 @@ export default function ManageMockTests() {
   };
 
   // --- Tests Logic ---
-  const filtered = filter === 'all' ? tests : tests.filter(t => t.category === filter);
+  const filtered = tests.filter(t => {
+    if (filter !== 'all' && t.category !== filter) return false;
+    if (batchFilter !== 'all' && !(t.visibilityBatchIds || []).includes(batchFilter)) return false;
+    return true;
+  });
   const activeQ = form.questions[activeQIdx];
 
   const sections = useMemo(() => {
@@ -410,7 +415,19 @@ export default function ManageMockTests() {
                 );
               })}
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center flex-wrap">
+              {batches && batches.length > 0 && (
+                <select
+                  value={batchFilter}
+                  onChange={e => setBatchFilter(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-medium focus:outline-none focus:border-green-brand"
+                >
+                  <option value="all" className="bg-slate-900">All Batches</option>
+                  {batches.map(b => (
+                    <option key={b.id} value={b.id} className="bg-slate-900">{b.name}</option>
+                  ))}
+                </select>
+              )}
               <ExportButton data={tests} filename="mock_tests" columns={[ { key: 'title', label: 'Title' }, { key: 'category', label: 'Category' }, { key: 'testType', label: 'Type' } ]} />
               <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">+ New Test</button>
             </div>
@@ -485,8 +502,22 @@ export default function ManageMockTests() {
       {activeTab === 'series' && (
         <>
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-white font-bold">Test Bundles</h2>
-            <button onClick={openCreateSeries} className="bg-green-brand hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">+ New Series</button>
+            <h2 className="text-lg font-bold text-white">Test Series</h2>
+            <div className="flex gap-2 items-center flex-wrap">
+              {batches && batches.length > 0 && (
+                <select
+                  value={batchFilter}
+                  onChange={e => setBatchFilter(e.target.value)}
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs font-medium focus:outline-none focus:border-green-brand"
+                >
+                  <option value="all" className="bg-slate-900">All Batches</option>
+                  {batches.map(b => (
+                    <option key={b.id} value={b.id} className="bg-slate-900">{b.name}</option>
+                  ))}
+                </select>
+              )}
+              <button onClick={openCreateSeries} className="bg-green-brand hover:bg-green-600 text-white font-bold px-4 py-2 rounded-lg text-sm">+ New Series</button>
+            </div>
           </div>
           
           {seriesLoading ? <TableSkeleton /> : series.length === 0 ? (
@@ -496,7 +527,10 @@ export default function ManageMockTests() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {series.map(s => {
+              {series.filter(s => {
+                if (batchFilter !== 'all' && !(s.visibilityBatchIds || []).includes(batchFilter)) return false;
+                return true;
+              }).map(s => {
                 const vis = VISIBILITY_OPTIONS.find(v => v.id === (s.visibility || 'public'));
                 const isExpired = s.expiryType === 'date' && s.expiryDate && new Date(s.expiryDate) < new Date();
                 return (
@@ -551,15 +585,15 @@ export default function ManageMockTests() {
             </select>
             
             <div className="flex gap-2 items-center bg-black/40 border border-white/10 rounded-lg px-2 col-span-2 md:col-span-1">
-              <label className="flex items-center gap-1 text-xs text-slate-300 cursor-pointer">
-                <input type="checkbox" checked={!form.isFree} onChange={e => setForm({ ...form, isFree: !e.target.checked })}
-                  className="w-4 h-4 accent-green-brand" />
-                Paid
-              </label>
+              <select value={form.isFree ? 'free' : 'paid'} onChange={e => setForm({ ...form, isFree: e.target.value === 'free', price: e.target.value === 'free' ? 0 : form.price })}
+                className="bg-transparent text-white text-sm outline-none cursor-pointer">
+                <option value="free" className="bg-slate-900">Free</option>
+                <option value="paid" className="bg-slate-900">Paid</option>
+              </select>
               {!form.isFree && (
                 <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
-                  placeholder="₹" title="Price"
-                  className="w-20 bg-black/40 border border-white/10 rounded px-2 py-1 text-white text-sm" />
+                  placeholder="₹ Price" title="Price"
+                  className="w-20 bg-black/40 border border-white/10 rounded px-2 py-1 text-white text-sm ml-auto" />
               )}
             </div>
             
@@ -636,7 +670,15 @@ export default function ManageMockTests() {
             <div className="col-span-2 md:col-span-4 lg:col-span-6 border-t border-white/10 pt-3 mt-1 grid grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <label className="text-[10px] text-slate-400 block mb-1">Visibility</label>
-                <select value={form.visibility} onChange={e => setForm({ ...form, visibility: e.target.value, visibilityCourseIds: e.target.value !== 'course' ? [] : form.visibilityCourseIds })}
+                <select value={form.visibility} onChange={e => {
+                  const vis = e.target.value;
+                  setForm({ 
+                    ...form, 
+                    visibility: vis, 
+                    visibilityCourseIds: vis === 'course' ? (form.visibilityCourseIds || []) : [],
+                    visibilityBatchIds: vis === 'batch' ? (form.visibilityBatchIds || []) : []
+                  });
+                }}
                   className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
                   {VISIBILITY_OPTIONS.map(v => <option key={v.id} value={v.id} className="bg-slate-900">{v.icon} {v.label}</option>)}
                 </select>
@@ -659,13 +701,27 @@ export default function ManageMockTests() {
               {form.visibility === 'batch' && (
                 <div className="md:col-span-2">
                   <label className="text-[10px] text-slate-400 block mb-1">Link to Batches</label>
-                  <CoursePicker selectedIds={form.visibilityBatchIds} onChange={ids => setForm({ ...form, visibilityBatchIds: ids })} courses={batches.map(b => ({id: b.id, title: b.name, level: 'Batch'}))} />
+                  <ItemPicker 
+                    selectedIds={form.visibilityBatchIds || []} 
+                    onChange={ids => setForm({ ...form, visibilityBatchIds: ids })} 
+                    items={batches.map(b => ({id: b.id, title: b.name, level: 'Batch'}))} 
+                    placeholder="🔍 Search batches..." 
+                    emptyText="No batches found" 
+                    itemLabel="batch(es)" 
+                  />
                 </div>
               )}
               {form.visibility === 'course' && (
                 <div className="md:col-span-2">
                   <label className="text-[10px] text-slate-400 block mb-1">Link to Courses</label>
-                  <CoursePicker selectedIds={form.visibilityCourseIds} onChange={ids => setForm({ ...form, visibilityCourseIds: ids })} courses={courses} />
+                  <ItemPicker 
+                    selectedIds={form.visibilityCourseIds || []} 
+                    onChange={ids => setForm({ ...form, visibilityCourseIds: ids })} 
+                    items={courses} 
+                    placeholder="🔍 Search courses..." 
+                    emptyText="No courses found" 
+                    itemLabel="course(s)" 
+                  />
                 </div>
               )}
             </div>
@@ -893,18 +949,17 @@ export default function ManageMockTests() {
             </div>
             <div>
               <label className="text-xs text-slate-400 block mb-1">Pricing</label>
-              <div className="flex gap-2 items-center bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
-                <label className="flex items-center gap-1 cursor-pointer">
-                  <input type="checkbox" checked={!sForm.isFree} onChange={e => setSForm({ ...sForm, isFree: !e.target.checked })}
-                    className="w-4 h-4 accent-green-brand" />
-                  Paid
-                </label>
-                {!sForm.isFree && (
-                  <input type="number" value={sForm.price} onChange={e => setSForm({ ...sForm, price: e.target.value })}
-                    placeholder="₹"
-                    className="w-20 bg-black/40 border border-white/10 rounded px-2 py-0.5 text-white text-sm" />
-                )}
-              </div>
+              <div className="flex gap-2 items-center">
+                  <select value={sForm.isFree ? 'free' : 'paid'} onChange={e => setSForm({ ...sForm, isFree: e.target.value === 'free', price: e.target.value === 'free' ? 0 : sForm.price })}
+                    className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm outline-none cursor-pointer">
+                    <option value="free" className="bg-slate-900">Free</option>
+                    <option value="paid" className="bg-slate-900">Paid</option>
+                  </select>
+                  {!sForm.isFree && (
+                    <input type="number" value={sForm.price} onChange={e => setSForm({ ...sForm, price: e.target.value })}
+                      placeholder="₹ Price" className="w-24 bg-black/40 border border-white/10 rounded px-3 py-2 text-white text-sm" />
+                  )}
+                </div>
             </div>
           </div>
           
@@ -933,7 +988,15 @@ export default function ManageMockTests() {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[10px] text-slate-400 block mb-1">Visibility</label>
-                <select value={sForm.visibility} onChange={e => setSForm({ ...sForm, visibility: e.target.value, visibilityCourseIds: e.target.value !== 'course' ? [] : sForm.visibilityCourseIds })}
+                <select value={sForm.visibility} onChange={e => {
+                  const vis = e.target.value;
+                  setSForm({ 
+                    ...sForm, 
+                    visibility: vis, 
+                    visibilityCourseIds: vis === 'course' ? (sForm.visibilityCourseIds || []) : [],
+                    visibilityBatchIds: vis === 'batch' ? (sForm.visibilityBatchIds || []) : []
+                  });
+                }}
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">
                   {VISIBILITY_OPTIONS.map(v => <option key={v.id} value={v.id} className="bg-slate-900">{v.icon} {v.label}</option>)}
                 </select>
@@ -956,13 +1019,27 @@ export default function ManageMockTests() {
               {sForm.visibility === 'batch' && (
                 <div className="col-span-2">
                   <label className="text-[10px] text-slate-400 block mb-1">Link to Batches</label>
-                  <CoursePicker selectedIds={sForm.visibilityBatchIds} onChange={ids => setSForm({ ...sForm, visibilityBatchIds: ids })} courses={batches.map(b => ({id: b.id, title: b.name, level: 'Batch'}))} />
+                  <ItemPicker 
+                    selectedIds={sForm.visibilityBatchIds || []} 
+                    onChange={ids => setSForm({ ...sForm, visibilityBatchIds: ids })} 
+                    items={batches.map(b => ({id: b.id, title: b.name, level: 'Batch'}))} 
+                    placeholder="🔍 Search batches..." 
+                    emptyText="No batches found" 
+                    itemLabel="batch(es)" 
+                  />
                 </div>
               )}
               {sForm.visibility === 'course' && (
                 <div className="col-span-2">
                   <label className="text-[10px] text-slate-400 block mb-1">Link to Courses</label>
-                  <CoursePicker selectedIds={sForm.visibilityCourseIds} onChange={ids => setSForm({ ...sForm, visibilityCourseIds: ids })} courses={courses} />
+                  <ItemPicker 
+                    selectedIds={sForm.visibilityCourseIds || []} 
+                    onChange={ids => setSForm({ ...sForm, visibilityCourseIds: ids })} 
+                    items={courses} 
+                    placeholder="🔍 Search courses..." 
+                    emptyText="No courses found" 
+                    itemLabel="course(s)" 
+                  />
                 </div>
               )}
             </div>

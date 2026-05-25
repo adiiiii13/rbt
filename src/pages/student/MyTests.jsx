@@ -56,17 +56,24 @@ export default function MyTests() {
     if (!item.visibilityCourseIds || !Array.isArray(item.visibilityCourseIds)) return false;
     return item.visibilityCourseIds.some(cid => userCourseIds.includes(cid));
   };
+  
+  const hasBatchAccess = (item) => {
+    if (!user?.assignedBatchId) return false;
+    if (!item.visibilityBatchIds || !Array.isArray(item.visibilityBatchIds)) return false;
+    return item.visibilityBatchIds.includes(user.assignedBatchId);
+  };
 
   const nowStr = new Date().toISOString().split('T')[0];
   const isExpired = (item) => item.expiryType === 'date' && item.expiryDate && item.expiryDate < nowStr;
 
   // Derived accessible data
-  const accessibleSeries = series.filter(s => s.price === 0 || seriesAccessSet.has(s.id) || hasCourseAccess(s));
+  const accessibleSeries = series.filter(s => s.isFree || s.price === 0 || s.visibility === 'public' || seriesAccessSet.has(s.id) || hasCourseAccess(s) || hasBatchAccess(s));
   
   const accessibleTests = tests.filter(t => {
-    if (t.price === 0) return true;
+    if (t.isFree || t.price === 0 || t.visibility === 'public') return true;
     if (testAccessSet.has(t.id)) return true;
     if (hasCourseAccess(t)) return true;
+    if (hasBatchAccess(t)) return true;
     // Check if test belongs to an accessible series
     return accessibleSeries.some(s => s.testIds?.includes(t.id));
   });
@@ -256,7 +263,7 @@ export default function MyTests() {
                             Access Expired
                           </button>
                         ) : (
-                          <Link to={`/student/mock/${test.id}`} className="mt-auto w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-2">
+                          <Link to={`/student/test-papers/mock/${test.id}`} className="mt-auto w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center flex items-center justify-center gap-2">
                             Start Test
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
                           </Link>

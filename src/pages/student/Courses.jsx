@@ -14,14 +14,19 @@ export default function StudentCourses() {
   });
 
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const { data: batches } = useRealtimeCollection('batches', { fallback: [] });
   
   const enrolledCourseIds = new Set((enrollments || []).map(e => e.courseId));
-  const isBatchStudent = user?.batch === true;
+  const isBatchStudent = user?.batch === true || !!user?.assignedBatchId;
   const manualCourseTitle = user?.course?.trim();
   const matchedManualCourse = manualCourseTitle ? (coursesRaw?.length ? coursesRaw : defaultCourses).find(c => c.title.toLowerCase() === manualCourseTitle.toLowerCase()) : null;
 
+  const assignedBatch = batches.find(b => b.id === user?.assignedBatchId);
+  const batchCourseIds = new Set(assignedBatch?.courseIds || []);
+
   const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => {
     if (enrolledCourseIds.has(c.id)) return true;
+    if (batchCourseIds.has(c.id)) return true;
     if (isBatchStudent && c.courseType === 'batch') return true;
     if (matchedManualCourse && c.id === matchedManualCourse.id) return true;
     return false;

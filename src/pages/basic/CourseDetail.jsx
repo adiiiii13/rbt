@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, collection, query, where, getDocs, updateDoc, increment } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAuth } from '../../context/AuthContext';
 import { openCheckout } from '../../lib/razorpay';
@@ -132,6 +132,8 @@ export default function BasicCourseDetail() {
           studentName: user.name || '',
           studentEmail: user.email || '',
         })
+
+        await updateDoc(doc(db, 'courses', course.id), { students: increment(1) })
 
         // Auto-create invoice
         const invoiceNum = generateInvoiceNumber(enrolRef.id)

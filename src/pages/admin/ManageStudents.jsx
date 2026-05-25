@@ -20,6 +20,7 @@ export default function ManageStudents() {
   const navigate = useNavigate();
   const { data: students, loading } = useRealtimeCollection('students', { orderField: 'createdAt' });
   const { data: courses } = useRealtimeCollection('courses', { orderField: 'createdAt' });
+  const { data: batches } = useRealtimeCollection('batches', { orderField: 'createdAt' });
   const { data: allEnrollments } = useRealtimeCollection('enrollments', { orderField: 'enrolledAt' });
   const [modal, setModal] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -34,6 +35,13 @@ export default function ManageStudents() {
   const [selectedInvoice, setSelectedInvoice] = useState(null);
 
   const [selected, setSelected] = useState([]);
+  const [filterBatch, setFilterBatch] = useState('all');
+
+  const filteredStudents = students.filter(s => {
+    if (filterBatch === 'all') return true;
+    if (filterBatch === 'none') return !s.assignedBatchId;
+    return s.assignedBatchId === filterBatch;
+  });
 
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
 
@@ -279,6 +287,19 @@ export default function ManageStudents() {
               Delete Selected ({selected.length})
             </button>
           )}
+          
+          <select 
+            value={filterBatch} 
+            onChange={e => setFilterBatch(e.target.value)}
+            className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition-colors outline-none cursor-pointer"
+          >
+            <option value="all">All Batches</option>
+            <option value="none">No Batch</option>
+            {batches.map(b => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+
           <ExportButton
             data={students}
             filename="students"
@@ -312,7 +333,7 @@ export default function ManageStudents() {
                     <input 
                       type="checkbox" 
                       className="rounded border-slate-700 bg-white/5 text-green-brand focus:ring-green-brand"
-                      checked={students.length > 0 && selected.length === students.length}
+                      checked={filteredStudents.length > 0 && selected.length === filteredStudents.length}
                       onChange={handleSelectAll}
                     />
                   </th>
@@ -325,7 +346,7 @@ export default function ManageStudents() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800">
-                {students.map(s => (
+                {filteredStudents.map(s => (
                   <tr key={s.id} className={`hover:bg-white/5 transition-colors ${selected.includes(s.id) ? 'bg-white/5' : ''}`}>
                     <td className="text-center">
                       <input 
