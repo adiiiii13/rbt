@@ -1,5 +1,5 @@
 import { useState, useEffect, lazy, Suspense } from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './context/AuthContext'
@@ -52,12 +52,10 @@ const StudentMockResults = lazy(() => import('./pages/student/MockResults'))
 const StudentProfile = lazy(() => import('./pages/student/Profile'))
 
 // Basic Pages (lazy)
-const BasicDashboard = lazy(() => import('./pages/basic/Dashboard'))
 const BasicCourses = lazy(() => import('./pages/basic/Courses'))
 const BasicCourseDetail = lazy(() => import('./pages/basic/CourseDetail'))
-const BasicPayment = lazy(() => import('./pages/basic/Payment'))
 const StudentInitialization = lazy(() => import('./pages/basic/StudentInitialization'))
-const BatchUpgradeForm = lazy(() => import('./pages/basic/BatchUpgradeForm'))
+const BatchUpgradeForm = lazy(() => import('./pages/student/BatchUpgradeForm'))
 
 // Admin Pages (lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -86,7 +84,7 @@ const ManageProfileForm = lazy(() => import('./pages/admin/ManageProfileForm'))
 const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
-function ProtectedRoute({ children, role, batch }) {
+function ProtectedRoute({ children, role }) {
   const { user, loading } = useAuth()
   const location = useLocation()
   if (loading) return <LoadingScreen />
@@ -95,11 +93,6 @@ function ProtectedRoute({ children, role, batch }) {
     return <Navigate to={dest} replace state={{ from: location.pathname + location.search }} />
   }
   if (role && user.role !== role) return <Navigate to="/" replace />
-
-  // Batch dashboard requires explicit batch=true (admin-approved active batch student)
-  if (batch && !user.batch) {
-    return <Navigate to="/basic" replace />
-  }
   return children
 }
 
@@ -113,6 +106,16 @@ function ScrollToTop() {
     }
   }, [pathname])
   return null
+}
+
+function BasicCourseRedirect() {
+  const { id } = useParams()
+  return <Navigate to={`/student/basic-courses/${id}`} replace />
+}
+
+function MockRunnerRedirect() {
+  const { testId } = useParams()
+  return <Navigate to={`/student/test-papers/mock/${testId}`} replace />
 }
 
 function RouteFallback() {
@@ -190,7 +193,7 @@ function AppContent() {
                   {/* Mock test runner — top-level, no nav/sidebar (NTA-style fullscreen) */}
                   <Route path="/test-papers/mock/:testId" element={<ProtectedRoute role="student"><MockTestRunner /></ProtectedRoute>} />
                   <Route path="/student/test-papers/mock/:testId" element={<ProtectedRoute role="student"><MockTestRunner /></ProtectedRoute>} />
-                  <Route path="/basic/test-papers/mock/:testId" element={<ProtectedRoute role="student"><MockTestRunner /></ProtectedRoute>} />
+                  <Route path="/basic/test-papers/mock/:testId" element={<MockRunnerRedirect />} />
                   <Route path="/privacy" element={<><PrivacyPolicy /><Footer /></>} />
                   <Route path="/terms" element={<><TermsOfService /><Footer /></>} />
                   <Route path="/student-login" element={<StudentLogin />} />
@@ -201,8 +204,8 @@ function AppContent() {
                     <Route index element={<StudentInitialization />} />
                   </Route>
 
-                  {/* Student Routes (Batch — full access) */}
-                  <Route path="/student" element={<ProtectedRoute role="student" batch><DashboardLayout type="student" /></ProtectedRoute>}>
+                  {/* Student Routes — unified (basic + batch in one dashboard) */}
+                  <Route path="/student" element={<ProtectedRoute role="student"><DashboardLayout type="student" /></ProtectedRoute>}>
                     <Route index element={<StudentDashboard />} />
                     <Route path="buy-courses" element={<StudentBuyCourses />} />
                     <Route path="courses" element={<StudentCourses />} />
@@ -223,20 +226,19 @@ function AppContent() {
                     <Route path="profile" element={<StudentProfile />} />
                     <Route path="basic-courses" element={<BasicCourses />} />
                     <Route path="basic-courses/:id" element={<BasicCourseDetail />} />
-                  </Route>
-
-                  {/* Basic Routes (limited access) */}
-                  <Route path="/basic" element={<ProtectedRoute role="student"><DashboardLayout type="basic" /></ProtectedRoute>}>
-                    <Route index element={<BasicDashboard />} />
-                    <Route path="courses" element={<BasicCourses />} />
-                    <Route path="courses/:id" element={<BasicCourseDetail />} />
-                    <Route path="videos" element={<StudentVideos />} />
-                    <Route path="test-papers" element={<TestPapers />} />
-                    <Route path="test-papers/downloadable" element={<TestPapersDownloadable />} />
-                    <Route path="test-papers/mock" element={<TestPapersMock />} />
-                    <Route path="payment" element={<BasicPayment />} />
                     <Route path="upgrade-batch" element={<BatchUpgradeForm />} />
                   </Route>
+
+                  {/* /basic legacy redirects — keep old bookmarks alive */}
+                  <Route path="/basic" element={<Navigate to="/student" replace />} />
+                  <Route path="/basic/courses" element={<Navigate to="/student/basic-courses" replace />} />
+                  <Route path="/basic/courses/:id" element={<BasicCourseRedirect />} />
+                  <Route path="/basic/videos" element={<Navigate to="/student/videos" replace />} />
+                  <Route path="/basic/test-papers" element={<Navigate to="/student/test-papers" replace />} />
+                  <Route path="/basic/test-papers/downloadable" element={<Navigate to="/student/test-papers/downloadable" replace />} />
+                  <Route path="/basic/test-papers/mock" element={<Navigate to="/student/test-papers/mock" replace />} />
+                  <Route path="/basic/payment" element={<Navigate to="/student/payment" replace />} />
+                  <Route path="/basic/upgrade-batch" element={<Navigate to="/student/upgrade-batch" replace />} />
 
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout type="admin" /></ProtectedRoute>}>

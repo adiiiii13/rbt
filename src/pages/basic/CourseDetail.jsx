@@ -15,7 +15,7 @@ export default function BasicCourseDetail() {
   const location = useLocation();
   const { user } = useAuth();
   
-  const backLink = location.pathname.startsWith('/student') ? '/student/basic-courses' : '/basic/courses';
+  const backLink = '/student/basic-courses';
 
   const [course, setCourse] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function BasicCourseDetail() {
       try {
         const snap = await getDoc(doc(db, 'courses', id));
         if (!alive) return;
-        if (!snap.exists()) { toast.error('Course not found'); navigate('/basic/courses'); return; }
+        if (!snap.exists()) { toast.error('Course not found'); navigate('/student/basic-courses'); return; }
         const data = { id: snap.id, ...snap.data() };
         setCourse(data);
         if (data.variants?.length) setSelectedVariant(data.variants[0]);
@@ -193,7 +193,7 @@ export default function BasicCourseDetail() {
 
   const handleConfirmUpgrade = () => {
     setShowUpgradeModal(false);
-    navigate('/basic/upgrade-batch');
+    navigate('/student/upgrade-batch');
   };
 
   // ─── Loading ───

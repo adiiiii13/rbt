@@ -24,9 +24,14 @@ export default function StudentDashboard() {
   const { data: allCoursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses })
   const { data: allPdfsRaw } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
   const { data: allNoticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices })
-  const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c =>
-    c.courseType === 'batch' && c.batchId === user?.assignedBatchId
-  )
+  const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c => {
+    // Batch student: show assigned-batch courses
+    if (user?.batch && user?.assignedBatchId) {
+      return c.courseType !== 'batch' || c.batchId === user.assignedBatchId
+    }
+    // Basic user: show public/non-batch courses
+    return c.courseType !== 'batch'
+  })
   const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
   const allNotices = allNoticesRaw?.length ? allNoticesRaw : defaultNotices
   const courses = allCourses.slice(0, 4)
@@ -70,7 +75,7 @@ export default function StudentDashboard() {
 
   return (
     <div className="space-y-6">
-      {!user?.profileCompleted && user?.batchStatus !== 'pending' && (
+      {user?.batch && !user?.profileCompleted && user?.batchStatus !== 'pending' && (
         <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl relative overflow-hidden flex items-center justify-between">
           <div className="relative z-10 flex-1">
             <h3 className="text-amber-400 font-bold mb-1">Profile Incomplete</h3>
@@ -84,17 +89,45 @@ export default function StudentDashboard() {
           <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
         </div>
       )}
-      
+
       {user?.batchStatus === 'pending' && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl relative overflow-hidden flex items-center justify-between">
-          <div className="relative z-10">
-            <h3 className="text-amber-400 font-bold mb-1">Batch Request Pending</h3>
-            <p className="text-sm text-amber-200/80">Your request to join the batch is waiting for Admin approval. You will get full access once approved.</p>
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between">
+          <div>
+            <h3 className="text-amber-400 font-bold mb-1">Batch Application Pending</h3>
+            <p className="text-sm text-amber-200/80">Your offline batch application is under review. RBT team will call you within 24h.</p>
           </div>
-          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
           </div>
-          <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl"></div>
+        </div>
+      )}
+
+      {user?.batchStatus === 'called' && (
+        <div className="p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+          <h3 className="text-blue-400 font-bold mb-1">Application Under Review</h3>
+          <p className="text-sm text-blue-200/80">We have contacted you. Visit the institution to complete enrollment.</p>
+        </div>
+      )}
+
+      {user?.batchStatus === 'rejected' && (
+        <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
+          <h3 className="text-red-400 font-bold mb-1">Batch Application Rejected</h3>
+          <p className="text-sm text-red-200/80 mb-3">Your previous application was rejected. You can apply again with updated details.</p>
+          <Link to="/student/upgrade-batch" className="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-sm no-underline">
+            Apply Again
+          </Link>
+        </div>
+      )}
+
+      {!user?.batch && (!user?.batchStatus || user.batchStatus === 'none') && (
+        <div className="p-5 bg-linear-to-br from-green-brand/10 to-green-dark/5 rounded-2xl border border-green-brand/20 flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h3 className="text-white font-bold mb-1">Want Offline Batch Access?</h3>
+            <p className="text-sm text-slate-400">Apply for offline classroom batch — counselling, notices, full institutional access.</p>
+          </div>
+          <Link to="/student/upgrade-batch" className="px-5 py-2.5 bg-green-brand hover:bg-green-600 text-white font-bold rounded-xl text-sm no-underline">
+            Apply for Batch →
+          </Link>
         </div>
       )}
       {/* Welcome Header */}

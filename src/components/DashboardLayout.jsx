@@ -77,29 +77,26 @@ export default function DashboardLayout({ type }) {
     })
   }
 
+  const isBatch = user?.batch === true
+
   const studentLinks = [
     { to: '/student', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
-    { to: '/student/buy-courses', label: 'Buy Courses', icon: <IC.card size={18} /> },
-    { to: '/student/courses', label: 'My Courses', icon: <IC.book size={18} /> },
-    { to: '/student/basic-courses', label: 'Basic Courses', icon: <IC.book size={18} /> },
+    { to: '/student/buy-courses', label: 'Catalog', icon: <IC.card size={18} /> },
+    { to: '/student/basic-courses', label: 'Courses', icon: <IC.book size={18} /> },
+    ...(isBatch ? [{ to: '/student/courses', label: 'My Batch Courses', icon: <IC.book size={18} /> }] : []),
     { to: '/student/test-papers', label: 'Test Papers', icon: <IC.file size={18} /> },
     { to: '/student/study-material', label: 'Study Material', icon: <IC.pdf size={18} /> },
     { to: '/student/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
-    { to: '/student/counselling', label: 'Counselling', icon: <IC.headset size={18} /> },
+    ...(isBatch ? [
+      { to: '/student/counselling', label: 'Counselling', icon: <IC.headset size={18} /> },
+      { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
+      { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
+      { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
+      { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
+    ] : []),
     { to: '/student/invoices', label: 'My Invoices', icon: <IC.receipt size={18} /> },
-    { to: '/student/notices', label: 'Notices', icon: <IC.bell size={18} /> },
-    { to: '/student/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
-    { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
-    { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
+    ...(!isBatch ? [{ to: '/student/upgrade-batch', label: 'Apply for Batch', icon: <IC.mail size={18} /> }] : []),
     { to: '/student/profile', label: 'Profile', icon: <IC.users size={18} /> },
-  ]
-
-  const basicLinks = [
-    { to: '/basic', label: 'Dashboard', icon: <IC.home size={18} />, end: true },
-    { to: '/basic/courses', label: 'Courses', icon: <IC.book size={18} /> },
-    { to: '/basic/videos', label: 'Demo Videos', icon: <IC.play size={18} /> },
-    { to: '/basic/test-papers', label: 'Free Test Series', icon: <IC.file size={18} /> },
-    { to: '/basic/payment', label: 'Payment', icon: <IC.card size={18} /> },
   ]
 
   const adminLinks = [
@@ -134,7 +131,7 @@ export default function DashboardLayout({ type }) {
     { to: '/student-initialization', label: 'Initialization', icon: <IC.users size={18} />, end: true }
   ]
 
-  const links = type === 'admin' ? adminLinks : type === 'basic' ? basicLinks : type === 'initialization' ? initializationLinks : studentLinks
+  const links = type === 'admin' ? adminLinks : type === 'initialization' ? initializationLinks : studentLinks
 
   const filteredLinks = links.filter(l => l.label.toLowerCase().includes(searchQuery.toLowerCase()))
 
@@ -299,7 +296,7 @@ export default function DashboardLayout({ type }) {
             </button>
             <div className="hidden sm:block">
               <h2 className="text-base font-semibold text-white">
-                {type === 'admin' ? 'Admin Panel' : type === 'basic' ? 'Basic Portal' : type === 'initialization' ? 'Batch Enrollment' : 'Student Portal'}
+                {type === 'admin' ? 'Admin Panel' : type === 'initialization' ? 'Batch Enrollment' : 'Student Portal'}
               </h2>
               <p className="text-xs text-slate-400">
                 {user?.name || 'User'}

@@ -18,7 +18,7 @@ export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
   const finishSignup = () => {
     if (onClose) onClose();
     setSessionMode('basic');
-    navigate('/basic', { replace: true });
+    navigate('/student', { replace: true });
   };
 
   const handleEmailSignup = async (e) => {
