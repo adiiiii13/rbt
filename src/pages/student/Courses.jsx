@@ -17,10 +17,14 @@ export default function StudentCourses() {
   
   const enrolledCourseIds = new Set((enrollments || []).map(e => e.courseId));
   const isBatchStudent = user?.batch === true;
+  const manualCourseTitle = user?.course?.trim().toLowerCase();
 
-  const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => 
-    enrolledCourseIds.has(c.id) || (isBatchStudent && c.courseType === 'batch')
-  );
+  const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => {
+    if (enrolledCourseIds.has(c.id)) return true;
+    if (isBatchStudent && c.courseType === 'batch') return true;
+    if (manualCourseTitle && c.title.toLowerCase() === manualCourseTitle) return true;
+    return false;
+  });
 
   return (
     <div>

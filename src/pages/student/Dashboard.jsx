@@ -28,7 +28,15 @@ export default function StudentDashboard() {
     where: user?.uid ? [['uid', '==', user.uid]] : []
   })
   const enrolledIds = new Set((enrollments || []).map(e => e.courseId))
-  const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c => enrolledIds.has(c.id))
+  const isBatchStudent = user?.batch === true
+  const manualCourseTitle = user?.course?.trim().toLowerCase()
+
+  const allCourses = (allCoursesRaw?.length ? allCoursesRaw : defaultCourses).filter(c => {
+    if (enrolledIds.has(c.id)) return true;
+    if (isBatchStudent && c.courseType === 'batch') return true;
+    if (manualCourseTitle && c.title.toLowerCase() === manualCourseTitle) return true;
+    return false;
+  })
   const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
   const allNotices = allNoticesRaw?.length ? allNoticesRaw : defaultNotices
   const courses = allCourses.slice(0, 4)
