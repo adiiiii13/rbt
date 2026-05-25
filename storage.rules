@@ -53,8 +53,8 @@ service firebase.storage {
 
     // Per-student private files (id proof, photos, payment screenshots)
     match /students/{uid}/{file} {
-      allow read: if isAdmin() || (isStudent() && request.auth.uid == uid);
-      allow write: if (isAdmin() || (isStudent() && request.auth.uid == uid))
+      allow read: if isAdmin() || (isSignedIn() && request.auth.uid == uid);
+      allow write: if (isAdmin() || (isSignedIn() && request.auth.uid == uid))
         && (isImage() || isPdf()) && sizeOk(5);
     }
 

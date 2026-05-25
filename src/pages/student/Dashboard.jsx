@@ -48,7 +48,13 @@ export default function StudentDashboard() {
     });
   }
   const allPdfs = allPdfsRaw?.length ? allPdfsRaw : defaultPdfs
-  const allNotices = allNoticesRaw?.length ? allNoticesRaw : defaultNotices
+  const allNotices = (allNoticesRaw?.length ? allNoticesRaw : defaultNotices).filter(n => {
+    if (!n.audience || n.audience === 'all' || n.audience === undefined) return true
+    if (n.audience === 'class') return n.targetClass === (user?.className || user?.class || '')
+    if (n.audience === 'batch') return n.targetBatch === (user?.assignedBatchId || user?.batchId || '')
+    if (n.audience === 'specific') return (n.targetStudentIds || []).includes(user?.uid || user?.id || '')
+    return true
+  })
   const courses = allCourses.slice(0, 4)
   const pdfs = allPdfs.slice(0, 3)
   const notices = allNotices.slice(0, 3)

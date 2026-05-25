@@ -671,6 +671,7 @@ export const verifyRazorpayPayment = onCall(async (request) => {
         amount: variantPrice || 0,
         status: 'active',
         enrolledAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         studentName: studentData.name || 'Student',
         studentEmail: studentData.email || '',
       })
@@ -691,6 +692,7 @@ export const verifyRazorpayPayment = onCall(async (request) => {
         orderId: razorpay_order_id,
         amount: variantPrice || 0,
         enrolledAt: FieldValue.serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
         expiresAt: expiresAt.toISOString(),
         studentName: studentData.name || 'Student',
       })
@@ -1120,6 +1122,7 @@ export const razorpayWebhook = onRequest(async (req, res) => {
           orderId,
           amount,
           enrolledAt: FieldValue.serverTimestamp(),
+          createdAt: FieldValue.serverTimestamp(),
           expiresAt: expiresAt.toISOString(),
           studentName: studentData.name || 'Student',
           studentEmail: studentData.email || '',

@@ -15,13 +15,13 @@ export default function StudentNotices() {
     if (!noticesRaw?.length) return []
     const uid = user?.uid || user?.id || ''
     const userClass = user?.className || user?.class || ''
-    const userBatch = user?.batch === true ? 'Batch Student' : (user?.batch || '')
+    const userBatchId = user?.assignedBatchId || user?.batchId || ''
 
     return noticesRaw.filter(n => {
       // Old notices without audience field — show to everyone
       if (!n.audience || n.audience === 'all' || n.audience === undefined) return true
       if (n.audience === 'class') return n.targetClass === userClass
-      if (n.audience === 'batch') return n.targetBatch === userBatch
+      if (n.audience === 'batch') return n.targetBatch === userBatchId
       if (n.audience === 'specific') return (n.targetStudentIds || []).includes(uid)
       // Unknown audience — show by default
       return true
