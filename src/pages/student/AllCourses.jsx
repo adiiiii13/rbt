@@ -31,8 +31,10 @@ export default function AllCourses() {
   const [priceTab, setPriceTab] = useState('all');
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
+  const [batchFilter, setBatchFilter] = useState('all');
   const [sortBy, setSortBy] = useState('newest');
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const { data: batches } = useRealtimeCollection('batches', { fallback: [] });
   const { data: enrollments } = useRealtimeCollection('enrollments', {
     where: user?.uid ? [['uid', '==', user.uid]] : []
   });
@@ -70,6 +72,11 @@ export default function AllCourses() {
         if (!matchTitle && !matchDesc && !matchSubjects && !matchLevel) return false;
       }
 
+      // Batch filter
+      if (batchFilter !== 'all') {
+        if (c.batchId !== batchFilter) return false;
+      }
+
       return true;
     });
 
@@ -86,7 +93,7 @@ export default function AllCourses() {
     });
 
     return result;
-  }, [allCourses, priceTab, levelFilter, search, sortBy]);
+  }, [allCourses, priceTab, levelFilter, search, sortBy, batchFilter]);
 
   return (
     <div>
@@ -132,6 +139,18 @@ export default function AllCourses() {
             className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:border-green-brand/50 focus:outline-none"
           >
             {LEVELS.map(l => <option key={l.id} value={l.id} className="bg-slate-900">{l.label}</option>)}
+          </select>
+
+          {/* Batch dropdown */}
+          <select
+            value={batchFilter}
+            onChange={e => setBatchFilter(e.target.value)}
+            className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:border-green-brand/50 focus:outline-none max-w-[200px] truncate"
+          >
+            <option value="all" className="bg-slate-900">All Batches</option>
+            {batches?.map(b => (
+              <option key={b.id} value={b.id} className="bg-slate-900">{b.name}</option>
+            ))}
           </select>
 
           {/* Sort dropdown */}
