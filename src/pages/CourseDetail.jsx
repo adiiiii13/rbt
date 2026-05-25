@@ -52,6 +52,10 @@ export default function CourseDetail() {
           const enrolQ = query(collection(db, 'enrollments'), where('uid', '==', user.uid), where('courseId', '==', id))
           const enrolSnap = await getDocs(enrolQ)
           if (!enrolSnap.empty) setEnrollment({ id: enrolSnap.docs[0].id, ...enrolSnap.docs[0].data() })
+          // If course is a batch course and user has batch access, treat as enrolled
+          if (enrolSnap.empty && data.courseType === 'batch' && user.batch === true) {
+            setEnrollment({ id: 'batch-access', uid: user.uid, courseId: id, months: 1200, amount: 0 })
+          }
 
           // Load per-course doubts
           const dQ = query(collection(db, 'courseDoubts'), where('courseId', '==', id), where('studentUid', '==', user.uid))
@@ -506,9 +510,23 @@ export default function CourseDetail() {
                 <p className="text-slate-400 text-sm mb-4">No plans configured.</p>
               )}
 
-              <button onClick={handleEnroll} disabled={buying || (!course.isFree && !selectedVariant)}
+              <button
+                onClick={() => {
+                  if (course.courseType === 'batch' && !user?.batch) {
+                    if (user) navigate('/student/upgrade-batch')
+                    else navigate('/student-login')
+                  } else {
+                    handleEnroll()
+                  }
+                }}
+                disabled={buying || (!course.isFree && !selectedVariant) || (course.courseType === 'batch' && user?.batchStatus === 'pending')}
                 className="w-full bg-green-brand hover:bg-green-600 disabled:bg-slate-700 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl transition-all">
-                {buying ? 'Enrolling...' : course.isFree ? 'Free, enroll now' : selectedVariant ? `Enroll — ${formatCurrency(selectedVariant.price)}` : 'Select a plan'}
+                {buying ? 'Enrolling...'
+                  : course.courseType === 'batch' && !user?.batch
+                    ? user?.batchStatus === 'pending' ? 'Batch Application Pending' : 'Apply for Offline Batch'
+                    : course.isFree ? 'Free, enroll now'
+                    : selectedVariant ? `Enroll — ${formatCurrency(selectedVariant.price)}`
+                    : 'Select a plan'}
               </button>
 
               <div className="mt-4 space-y-2 text-xs text-slate-400">

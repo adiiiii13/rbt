@@ -16,9 +16,10 @@ export default function StudentCourses() {
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
   
   const enrolledCourseIds = new Set((enrollments || []).map(e => e.courseId));
+  const isBatchStudent = user?.batch === true;
 
   const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => 
-    enrolledCourseIds.has(c.id)
+    enrolledCourseIds.has(c.id) || (isBatchStudent && c.courseType === 'batch')
   );
 
   return (

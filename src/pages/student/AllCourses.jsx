@@ -38,6 +38,8 @@ export default function AllCourses() {
   });
 
   const enrolledIds = new Set((enrollments || []).map(e => e.courseId));
+  const isBatchStudent = user?.batch === true;
+  const batchStatus = user?.batchStatus || 'none';
 
   const allCourses = coursesRaw?.length ? coursesRaw : defaultCourses;
 
@@ -173,7 +175,14 @@ export default function AllCourses() {
             const startingPrice = c.variants?.length
               ? Math.min(...c.variants.map(v => Number(v.price) || 0))
               : null;
-            const isEnrolled = enrolledIds.has(c.id);
+            const isBatchCourse = c.courseType === 'batch';
+            const isEnrolled = enrolledIds.has(c.id) || (isBatchCourse && isBatchStudent);
+            const canApplyBatch = isBatchCourse && !isBatchStudent && batchStatus !== 'pending';
+            const isBatchPending = isBatchCourse && batchStatus === 'pending';
+
+            const linkTarget = isBatchCourse && !isBatchStudent
+              ? '/student/upgrade-batch'
+              : `/student/courses/${c.id}`;
             return (
               <motion.div
                 key={c.id}
@@ -182,7 +191,7 @@ export default function AllCourses() {
                 transition={{ delay: idx * 0.05, duration: 0.3 }}
               >
                 <Link
-                  to={`/student/courses/${c.id}`}
+                  to={linkTarget}
                   className="bg-[#111111] rounded-2xl p-6 border border-slate-800 hover:border-green-brand/30 transition-all no-underline flex flex-col h-full group"
                 >
                   <div className="flex items-start justify-between mb-3">
@@ -194,6 +203,12 @@ export default function AllCourses() {
                     </div>
                     {isEnrolled && (
                       <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-brand/20 text-green-brand uppercase tracking-wider">Enrolled</span>
+                    )}
+                    {isBatchPending && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 uppercase tracking-wider">Pending</span>
+                    )}
+                    {canApplyBatch && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 uppercase tracking-wider">Batch</span>
                     )}
                   </div>
                   <h3 className="font-bold text-white mb-1 group-hover:text-green-brand transition-colors">{c.title}</h3>
@@ -215,7 +230,9 @@ export default function AllCourses() {
                     ) : (
                       <span className="text-slate-500 text-xs">Details</span>
                     )}
-                    <span className="text-xs text-white group-hover:translate-x-1 transition-transform">{isEnrolled ? 'Access →' : 'View →'}</span>
+                    <span className="text-xs text-white group-hover:translate-x-1 transition-transform">
+                      {isEnrolled ? 'Access →' : canApplyBatch ? 'Apply →' : isBatchPending ? 'Pending' : 'View →'}
+                    </span>
                   </div>
                 </Link>
               </motion.div>
