@@ -8,6 +8,9 @@ import { GridSkeleton } from '../../components/ui/Skeleton'
 export default function StudentNotices() {
   const { user } = useAuth()
   const { data: noticesRaw, loading } = useRealtimeCollection('notices')
+
+  const userClass = user?.className || user?.class || ''
+
   const notices = useMemo(() => {
     // If we have NO data from Firestore, show default notices for demo purposes
     if (!noticesRaw || (noticesRaw.length === 0 && !loading)) {
