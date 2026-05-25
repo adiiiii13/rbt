@@ -233,6 +233,36 @@ export default function ManageStudents() {
     return courseNames.join(', ');
   };
 
+  const fixOldEnrollments = async () => {
+    if (!confirm('This will find old enrollments without uid and link them to students using studentId. Proceed?')) return;
+    setBusy(true);
+    try {
+      const { collection, getDocs, updateDoc, doc } = await import('firebase/firestore');
+      const { db } = await import('../../lib/firebase');
+      
+      const enrollmentsSnap = await getDocs(collection(db, 'enrollments'));
+      let count = 0;
+      for (const enrollmentDoc of enrollmentsSnap.docs) {
+        const data = enrollmentDoc.data();
+        if (!data.uid && data.studentId) {
+          const studentMatch = students.find(s => s.studentId === data.studentId);
+          if (studentMatch) {
+            await updateDoc(doc(db, 'enrollments', enrollmentDoc.id), {
+              uid: studentMatch.id,
+              studentEmail: studentMatch.email || null
+            });
+            count++;
+          }
+        }
+      }
+      toast.success(`Fixed ${count} old enrollments.`);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to fix old enrollments');
+    }
+    setBusy(false);
+  };
+
     return (
     <div>
       <div className="flex items-center justify-between mb-6">
@@ -241,6 +271,9 @@ export default function ManageStudents() {
           <p className="text-sm text-slate-400">{students.length} students enrolled</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={fixOldEnrollments} disabled={busy} className="bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium border border-slate-700 transition-colors">
+            Fix Old Enrollments
+          </button>
           {selected.length > 0 && (
             <button onClick={handleBulkDelete} disabled={busy} className="bg-red-500/10 text-red-500 border border-red-500/20 px-4 py-2 rounded-xl text-sm font-bold hover:bg-red-500 hover:text-white transition-all disabled:opacity-50">
               Delete Selected ({selected.length})
