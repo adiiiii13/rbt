@@ -570,19 +570,31 @@ export default function ManageMockTests() {
             </label>
 
             <div className="col-span-2 md:col-span-4 lg:col-span-6 border-t border-white/10 pt-3 mt-1 grid grid-cols-2 md:grid-cols-4 gap-3">
-              <input type="number" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}
-                placeholder="Duration (min)" title="Duration (min)" className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-              <input type="number" value={form.marksPerQuestion} onChange={e => setForm({ ...form, marksPerQuestion: e.target.value })}
-                placeholder="Marks/Q" title="Marks per Q" className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-              <input type="number" value={form.negativeMarks} onChange={e => setForm({ ...form, negativeMarks: e.target.value })}
-                placeholder="-ve Marks" title="Negative marks" className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
-              <select value={form.defaultQuestionType} onChange={e => setForm({ ...form, defaultQuestionType: e.target.value })}
-                className="bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" title="Default Question Type">
-                <option value="mcq-single" className="bg-slate-900">Default: MCQ (Single Correct)</option>
-                <option value="mcq-multi" className="bg-slate-900">Default: MCQ (Multiple Correct)</option>
-                <option value="text" className="bg-slate-900">Default: Text Input</option>
-                <option value="custom" className="bg-slate-900">Custom Per Question</option>
-              </select>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Duration (mins)</label>
+                <input type="number" value={form.duration} onChange={e => setForm({ ...form, duration: e.target.value })}
+                  placeholder="Duration (min)" title="Duration (min)" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Marks / Question</label>
+                <input type="number" value={form.marksPerQuestion} onChange={e => setForm({ ...form, marksPerQuestion: e.target.value })}
+                  placeholder="Marks/Q" title="Marks per Q" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Negative Marks</label>
+                <input type="number" value={form.negativeMarks} onChange={e => setForm({ ...form, negativeMarks: e.target.value })}
+                  placeholder="-ve Marks" title="Negative marks" className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+              </div>
+              <div>
+                <label className="text-[10px] text-slate-400 block mb-1">Default Question Type</label>
+                <select value={form.defaultQuestionType} onChange={e => setForm({ ...form, defaultQuestionType: e.target.value })}
+                  className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" title="Default Question Type">
+                  <option value="mcq-single" className="bg-slate-900">MCQ (Single Correct)</option>
+                  <option value="mcq-multi" className="bg-slate-900">MCQ (Multiple Correct)</option>
+                  <option value="text" className="bg-slate-900">Text Input</option>
+                  <option value="custom" className="bg-slate-900">Custom Per Question</option>
+                </select>
+              </div>
             </div>
 
             {/* Visibility & Expiry Row */}
