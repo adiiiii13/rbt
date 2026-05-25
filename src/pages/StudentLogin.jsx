@@ -31,7 +31,8 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
       const result = await loginStudent(email, password, isBatch, batchCode.trim());
       if (result.success) {
         if (onClose) onClose();
-        const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
+        const isBatchFlow = result.user?.batch || ['pending', 'approved', 'revoked'].includes(result.user?.batchStatus);
+        const dest = isBatchFlow ? '/student-initialization' : '/basic';
         navigate(dest, { replace: true });
       } else if (result.requireUpgrade) {
         setUpgradeConfirm(true);
@@ -58,7 +59,8 @@ export default function StudentLogin({ isPopup, onClose, onSwitchToSignup }) {
       
       if (result.success) {
         if (onClose) onClose();
-        const dest = (result.user?.batch || result.user?.batchStatus === 'pending') ? '/student-initialization' : (result.user?.batch ? '/student' : '/basic');
+        const isBatchFlow = result.user?.batch || ['pending', 'approved', 'revoked'].includes(result.user?.batchStatus);
+        const dest = isBatchFlow ? '/student-initialization' : '/basic';
         navigate(dest, { replace: true });
       } else if (result.requireUpgrade) {
         setUpgradeConfirm(true);
