@@ -59,8 +59,8 @@ async function buildUserFromToken(firebaseUser) {
     email: firebaseUser.email,
     name: firebaseUser.displayName || profile.name || (role === 'admin' ? 'Administrator' : 'Student'),
     photoURL: firebaseUser.photoURL || profile.photoURL || null,
-    // Existing students (batch: undefined) will default to true, new basic users will explicitly have batch: false
-    batch: profile.batch !== false,
+    // Everyone defaults to basic. Batch=true only set explicitly after admin approval.
+    batch: profile.batch === true,
     ...profile,
     role,
   }
@@ -138,24 +138,13 @@ export function AuthProvider({ children }) {
     }
   }, [])
 
-  const loginStudent = async (idOrEmail, password, isBatch = false, batchCode = '') => {
+  const loginStudent = async (idOrEmail, password) => {
     isAuthActionInProgress.current = true;
     try {
       const email = idOrEmail.includes('@')
         ? idOrEmail
         : `${idOrEmail.toLowerCase()}@students.rbtmission.com`
       const cred = await signInWithEmailAndPassword(auth, email, password)
-
-      if (isBatch) {
-        const snap = await getDoc(doc(db, 'students', cred.user.uid));
-        const data = snap.exists() ? snap.data() : null;
-        if (data && data.batchStatus === 'approved') {
-          if (!batchCode || data.assignedBatchCode !== batchCode) {
-            await signOut(auth);
-            return { success: false, message: 'Invalid Batch Code. Access Denied.' };
-          }
-        }
-      }
 
       const userData = await buildUserFromToken(cred.user)
       if (userData.role !== 'student') {
@@ -169,12 +158,6 @@ export function AuthProvider({ children }) {
         const newStudentId = 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase();
         updates.studentId = newStudentId;
         userData.studentId = newStudentId;
-      }
-
-      // Upgrade to batch if requested
-      if (isBatch && (!userData.batchStatus || userData.batchStatus === 'none') && !userData.batch) {
-        setUser(userData);
-        return { success: false, requireUpgrade: true, user: userData };
       }
 
       if (Object.keys(updates).length > 0) {
@@ -214,22 +197,14 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const loginWithGoogle = async (isBatch = false, batchCode = '') => {
+  const loginWithGoogle = async () => {
     isAuthActionInProgress.current = true;
     try {
       const provider = new GoogleAuthProvider()
       const cred = await signInWithPopup(auth, provider)
-      
+
       const studentRef = doc(db, 'students', cred.user.uid)
       const snap = await getDoc(studentRef)
-      const data = snap.exists() ? snap.data() : null;
-
-      if (isBatch && data && data.batchStatus === 'approved') {
-        if (!batchCode || data.assignedBatchCode !== batchCode) {
-          await signOut(auth);
-          return { success: false, message: 'Invalid Batch Code. Access Denied.' };
-        }
-      }
 
       if (!snap.exists()) {
         await setDoc(studentRef, {
@@ -238,7 +213,7 @@ export function AuthProvider({ children }) {
           photoURL: cred.user.photoURL || null,
           role: 'student',
           batch: false,
-          batchStatus: isBatch ? 'pending' : 'none',
+          batchStatus: 'none',
           status: 'active',
           studentId: 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase(),
           createdAt: new Date().toISOString()
@@ -253,24 +228,15 @@ export function AuthProvider({ children }) {
         if (!data.studentId || !data.studentId.match(/^RBT\d{2}[GEB]-/)) {
           updates.studentId = 'RBT26G-' + cred.user.uid.substring(0, 6).toUpperCase();
         }
-        
-        // Upgrade to batch if requested
-        if (isBatch && (!data.batchStatus || data.batchStatus === 'none') && !data.batch) {
-          // We will handle upgrade later, don't update here
-        } else if (Object.keys(updates).length > 0) {
+        if (Object.keys(updates).length > 0) {
           await updateDoc(studentRef, updates);
         }
       }
-      
+
       const userData = await buildUserFromToken(cred.user)
       if (userData.role !== 'student') {
         await signOut(auth)
         return { success: false, message: 'Not a student account' }
-      }
-      
-      if (isBatch && (!userData.batchStatus || userData.batchStatus === 'none') && !userData.batch) {
-        setUser(userData);
-        return { success: false, requireUpgrade: true, user: userData };
       }
 
       setUser(userData)
@@ -284,11 +250,11 @@ export function AuthProvider({ children }) {
     }
   }
 
-  const signupStudent = async (email, password, name, isBatch = false) => {
+  const signupStudent = async (email, password, name) => {
     isAuthActionInProgress.current = true;
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password)
-      
+
       const studentRef = doc(db, 'students', cred.user.uid)
       await setDoc(studentRef, {
         name: name || 'Student',
@@ -296,7 +262,7 @@ export function AuthProvider({ children }) {
         photoURL: null,
         role: 'student',
         batch: false,
-        batchStatus: isBatch ? 'pending' : 'none',
+        batchStatus: 'none',
         status: 'active',
         studentId: 'RBT26E-' + cred.user.uid.substring(0, 6).toUpperCase(),
         createdAt: new Date().toISOString()

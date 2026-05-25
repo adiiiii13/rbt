@@ -85,7 +85,7 @@ const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role, batch }) {
-  const { user, loading, sessionMode } = useAuth()
+  const { user, loading } = useAuth()
   const location = useLocation()
   if (loading) return <LoadingScreen />
   if (!user) {
@@ -94,31 +94,8 @@ function ProtectedRoute({ children, role, batch }) {
   }
   if (role && user.role !== role) return <Navigate to="/" replace />
 
-  // Session mode enforcement: prevent cross-dashboard navigation
-  if (user.role === 'student' && sessionMode) {
-    // If logged in as basic mode but trying to access batch routes
-    if (sessionMode === 'basic' && batch) {
-      return <Navigate to="/basic" replace />
-    }
-    // If logged in as batch mode but trying to access basic routes (except basic-courses inside batch dashboard)
-    if (sessionMode === 'batch' && !batch && location.pathname.startsWith('/basic')) {
-      if (user.batch || (user.batchStatus === 'approved' && user.hasPaidBatchFee)) {
-        return <Navigate to="/student" replace />
-      }
-      return <Navigate to="/student-initialization" replace />
-    }
-  }
-
-  // Force pending batch students, and approved students who haven't paid yet, to the initialization page (unless they are accessing the basic dashboard)
-  if (user.role === 'student' && (['pending', 'revoked'].includes(user.batchStatus) || (user.batchStatus === 'approved' && !user.batch && !user.hasPaidBatchFee)) && location.pathname !== '/student-initialization' && !location.pathname.startsWith('/basic')) {
-    return <Navigate to="/student-initialization" replace />
-  }
-
-  // Batch dashboard requires batch: true (or an approved user who has paid)
-  if (batch && !user.batch && !(user.batchStatus === 'approved' && user.hasPaidBatchFee)) {
-    if (['pending', 'approved', 'revoked'].includes(user.batchStatus)) {
-      return <Navigate to="/student-initialization" replace />
-    }
+  // Batch dashboard requires explicit batch=true (admin-approved active batch student)
+  if (batch && !user.batch) {
     return <Navigate to="/basic" replace />
   }
   return children
@@ -324,8 +301,8 @@ function AppContent() {
             {!initialLoading && !location.pathname.startsWith('/student') && !location.pathname.startsWith('/admin') && !location.pathname.startsWith('/basic') && !location.pathname.startsWith('/student-initialization') && !location.pathname.includes('login') && (
               <OfferPopup />
             )}
-            {/* Profile popup for batch students who haven't filled profile */}
-            {!initialLoading && user && user.role === 'student' && (user.batch || user.batchStatus === 'pending') && !user.profileCompleted && (
+            {/* Profile popup for active batch students who haven't filled profile */}
+            {!initialLoading && user && user.role === 'student' && user.batch && !user.profileCompleted && (
               <ProfilePopup />
             )}
           </motion.div>
