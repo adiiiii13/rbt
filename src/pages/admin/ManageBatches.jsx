@@ -258,7 +258,6 @@ export default function ManageBatches() {
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="text-white font-bold">{b.name}</h3>
-                  {b.classId && <span className="text-xs text-slate-500">{b.classId}</span>}
                 </div>
                 <span className={`text-xs font-bold px-2 py-0.5 rounded ${b.type === 'online' ? 'bg-blue-500/10 text-blue-400' : 'bg-amber-500/10 text-amber-400'}`}>
                   {b.type === 'online' ? 'Online' : 'Offline'}
@@ -409,49 +408,44 @@ export default function ManageBatches() {
             </select>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm font-bold text-white mb-1.5 block">Class</label>
-              <select
-                className="input-field w-full"
-                value={form.classId}
-                onChange={e => setForm({ ...form, classId: e.target.value })}
-              >
-                <option value="">-- Select --</option>
-                {CLASS_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-sm font-bold text-white mb-1.5 block">Max Students</label>
-              <input
-                type="number"
-                className="input-field w-full"
-                value={form.maxStudents}
-                onChange={e => setForm({ ...form, maxStudents: e.target.value })}
-              />
-            </div>
+            {form.type === 'offline' && (
+              <div>
+                <label className="text-sm font-bold text-white mb-1.5 block">Max Students</label>
+                <input
+                  type="number"
+                  className="input-field w-full"
+                  value={form.maxStudents}
+                  onChange={e => setForm({ ...form, maxStudents: e.target.value })}
+                />
+              </div>
+            )}
           </div>
-          <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">
-              {form.type === 'online' ? 'Platform / Meeting Link' : 'Location'}
-            </label>
-            <input
-              type="text"
-              className="input-field w-full"
-              placeholder={form.type === 'online' ? 'e.g. Zoom Link or App Live' : 'e.g. RBT Coaching Center, Room 201'}
-              value={form.location}
-              onChange={e => setForm({ ...form, location: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="text-sm font-bold text-white mb-1.5 block">Schedule</label>
-            <input
-              type="text"
-              className="input-field w-full"
-              placeholder="e.g. Mon-Sat, 8:00 AM - 10:00 AM"
-              value={form.schedule}
-              onChange={e => setForm({ ...form, schedule: e.target.value })}
-            />
-          </div>
+          {form.type === 'offline' && (
+            <>
+              <div>
+                <label className="text-sm font-bold text-white mb-1.5 block">
+                  Location
+                </label>
+                <input
+                  type="text"
+                  className="input-field w-full"
+                  placeholder="e.g. RBT Coaching Center, Room 201"
+                  value={form.location}
+                  onChange={e => setForm({ ...form, location: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-bold text-white mb-1.5 block">Schedule</label>
+                <input
+                  type="text"
+                  className="input-field w-full"
+                  placeholder="e.g. Mon-Sat, 8:00 AM - 10:00 AM"
+                  value={form.schedule}
+                  onChange={e => setForm({ ...form, schedule: e.target.value })}
+                />
+              </div>
+            </>
+          )}
           <div>
             <label className="text-sm font-bold text-white mb-1.5 block">Description</label>
             <textarea
