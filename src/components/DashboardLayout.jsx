@@ -114,7 +114,7 @@ export default function DashboardLayout({ type }) {
     { type: 'link', to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
     { type: 'link', to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
     { type: 'link', to: '/admin/offline-enrollments', label: 'Offline Enrolls', icon: <IC.mail size={18} /> },
-    { type: 'link', to: '/admin/offline-batches', label: 'Offline Batches', icon: <IC.users size={18} /> },
+    { type: 'link', to: '/admin/batches', label: 'Batch/Class', icon: <IC.users size={18} /> },
     { type: 'header', label: 'Engagement' },
     { type: 'link', to: '/admin/doubts', label: 'Doubts', icon: <IC.msg size={18} /> },
     { type: 'link', to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },
