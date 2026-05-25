@@ -147,6 +147,8 @@ export default function BasicCourseDetail() {
           status: 'paid',
           paidAt: paidAt,
           issuedDate: paidAt,
+          method: 'free',
+          enrollmentId: enrolRef.id,
           createdAt: serverTimestamp(),
         })
 

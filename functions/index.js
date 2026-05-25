@@ -62,6 +62,56 @@ async function sendReceiptEmail(toEmail, toName, amount, itemName, dateStr, orde
   }
 }
 
+const ADMIN_NOTIFY_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || 'rbtmissionlearning@gmail.com'
+
+async function sendAdminPaymentAlert({ studentName, studentEmail, amount, itemName, paymentId, orderId, method, invoiceNumber }) {
+  try {
+    await db.collection('mail').add({
+      to: ADMIN_NOTIFY_EMAIL,
+      message: {
+        subject: `New Payment: ${itemName} — ₹${amount} from ${studentName}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2 style="color: #2563eb;">New Payment Received</h2>
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 8px 0;"><strong>Student:</strong> ${studentName}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Email:</strong> ${studentEmail || '—'}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Item:</strong> ${itemName}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Amount:</strong> ₹${amount}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Method:</strong> ${method || 'Razorpay'}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Invoice #:</strong> ${invoiceNumber || '—'}</p>
+              <p style="margin: 0 0 8px 0;"><strong>Payment ID:</strong> ${paymentId || '—'}</p>
+              <p style="margin: 0;"><strong>Order ID:</strong> ${orderId || '—'}</p>
+            </div>
+            <p>Open admin panel to view full details.</p>
+          </div>
+        `
+      }
+    })
+    // also drop an adminAlerts doc for in-app admin notify center
+    await db.collection('adminAlerts').add({
+      type: 'payment',
+      studentName,
+      studentEmail: studentEmail || '',
+      itemName,
+      amount,
+      method: method || 'razorpay',
+      invoiceNumber: invoiceNumber || '',
+      paymentId: paymentId || '',
+      orderId: orderId || '',
+      read: false,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+  } catch (err) {
+    console.error('Error sending admin payment alert:', err)
+  }
+}
+
+function buildInvoiceNumber(seed) {
+  const s = String(seed || Date.now()).replace(/[^A-Za-z0-9]/g, '').slice(0, 8).toUpperCase()
+  return `RBT-INV-${s}`
+}
+
 async function sendWelcomeEmail(toEmail, toName) {
   if (!toEmail) return;
   try {
@@ -558,6 +608,7 @@ export const verifyRazorpayPayment = onCall(async (request) => {
     await db.collection('payments').add({
       type: 'razorpay',
       studentId: studentData.studentId || uid,
+      studentUid: uid,
       studentName: studentData.name || 'Student',
       studentEmail: studentData.email || '',
       courseId: courseId || '',
@@ -570,17 +621,60 @@ export const verifyRazorpayPayment = onCall(async (request) => {
       createdAt: FieldValue.serverTimestamp(),
     })
 
-    // SEND RECEIPT EMAIL
+    // 5. Create paid invoice record so student sees it in My Invoices
+    const invoiceNumber = buildInvoiceNumber(enrollRef.id)
+    const paidDateStr = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    await db.collection('invoices').add({
+      invoiceNumber,
+      studentUid: uid,
+      studentName: studentData.name || 'Student',
+      studentEmail: studentData.email || '',
+      courseName: courseTitle || 'Course',
+      description: `${variantMonths || 6}-month plan`,
+      amount: variantPrice || 0,
+      status: 'paid',
+      paidAt: paidDateStr,
+      issuedDate: paidDateStr,
+      method: 'razorpay',
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      enrollmentId: enrollRef.id,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+
+    // 6. Notify student in-app
+    await db.collection('notifications').add({
+      studentUid: uid,
+      studentName: studentData.name || 'Student',
+      subject: `Payment confirmed: ${courseTitle || 'Course'}`,
+      message: `Payment of ₹${variantPrice || 0} received. Invoice ${invoiceNumber}. Access unlocked.`,
+      read: false,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+
+    // 7. Send receipt email to student
     await sendReceiptEmail(
-      studentData.email || '', 
-      studentData.name || 'Student', 
-      variantPrice || 0, 
-      courseTitle || 'Course', 
-      new Date().toLocaleString('en-IN'), 
+      studentData.email || '',
+      studentData.name || 'Student',
+      variantPrice || 0,
+      courseTitle || 'Course',
+      new Date().toLocaleString('en-IN'),
       razorpay_order_id
     )
 
-    return { success: true, enrollmentId: enrollRef.id }
+    // 8. Admin alert (email + adminAlerts doc)
+    await sendAdminPaymentAlert({
+      studentName: studentData.name || 'Student',
+      studentEmail: studentData.email || '',
+      amount: variantPrice || 0,
+      itemName: courseTitle || 'Course',
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      method: 'Razorpay',
+      invoiceNumber,
+    })
+
+    return { success: true, enrollmentId: enrollRef.id, invoiceNumber }
   }
 )
 
@@ -701,13 +795,35 @@ export const verifyInvoiceRazorpayPayment = onCall(async (request) => {
 
     // SEND RECEIPT EMAIL
     await sendReceiptEmail(
-      studentData.email || invoice.studentEmail || '', 
-      studentData.name || invoice.studentName || 'Student', 
-      invoice.amount || 0, 
-      invoice.courseName || 'Invoice Payment', 
-      new Date().toLocaleString('en-IN'), 
+      studentData.email || invoice.studentEmail || '',
+      studentData.name || invoice.studentName || 'Student',
+      invoice.amount || 0,
+      invoice.courseName || 'Invoice Payment',
+      new Date().toLocaleString('en-IN'),
       razorpay_order_id
     )
+
+    // Notify student
+    await db.collection('notifications').add({
+      studentUid: uid,
+      studentName: studentData.name || invoice.studentName || 'Student',
+      subject: `Invoice paid: ${invoice.invoiceNumber || ''}`,
+      message: `Payment of ₹${invoice.amount || 0} confirmed for ${invoice.courseName || 'invoice'}.`,
+      read: false,
+      createdAt: FieldValue.serverTimestamp(),
+    })
+
+    // Admin alert
+    await sendAdminPaymentAlert({
+      studentName: studentData.name || invoice.studentName || 'Student',
+      studentEmail: studentData.email || invoice.studentEmail || '',
+      amount: invoice.amount || 0,
+      itemName: invoice.courseName || 'Invoice Payment',
+      paymentId: razorpay_payment_id,
+      orderId: razorpay_order_id,
+      method: 'Razorpay',
+      invoiceNumber: invoice.invoiceNumber || '',
+    })
   }
 
   return { success: true }
@@ -727,6 +843,52 @@ export const verifyInvoiceRazorpayPayment = onCall(async (request) => {
 //       // })
 //   }
 // });
+
+// Trigger: free enrollment (amount === 0) → receipt + admin alert
+export const onEnrollmentCreated = onDocumentCreated('enrollments/{id}', async (event) => {
+  const data = event.data?.data()
+  if (!data) return
+  // Only handle free enrollments here; paid Razorpay path already emails inline
+  if ((data.amount || 0) > 0) return
+  if (data.notifiedAt) return
+
+  try {
+    const itemName = data.courseName || data.courseTitle || 'Course'
+    const dateStr = new Date().toLocaleString('en-IN')
+    const orderId = `FREE-${event.params.id}`
+
+    await sendReceiptEmail(
+      data.studentEmail || '',
+      data.studentName || 'Student',
+      0,
+      `${itemName} (Free)`,
+      dateStr,
+      orderId
+    )
+
+    // Pull invoice number if invoice doc exists
+    let invoiceNumber = ''
+    try {
+      const invSnap = await db.collection('invoices').where('enrollmentId', '==', event.params.id).limit(1).get()
+      if (!invSnap.empty) invoiceNumber = invSnap.docs[0].data().invoiceNumber || ''
+    } catch {}
+
+    await sendAdminPaymentAlert({
+      studentName: data.studentName || 'Student',
+      studentEmail: data.studentEmail || '',
+      amount: 0,
+      itemName: `${itemName} (Free)`,
+      paymentId: '',
+      orderId,
+      method: 'Free Enrollment',
+      invoiceNumber,
+    })
+
+    await event.data.ref.update({ notifiedAt: FieldValue.serverTimestamp() })
+  } catch (err) {
+    console.error('onEnrollmentCreated error:', err)
+  }
+})
 
 // Razorpay Webhook to catch async payment events
 export const razorpayWebhook = onRequest(async (req, res) => {
@@ -816,13 +978,33 @@ export const razorpayWebhook = onRequest(async (req, res) => {
 
             // SEND RECEIPT EMAIL
             await sendReceiptEmail(
-              studentData.email || invoice.studentEmail || '', 
-              studentData.name || invoice.studentName || 'Student', 
-              invoice.amount || 0, 
-              invoice.courseName || 'Invoice Payment', 
-              new Date().toLocaleString('en-IN'), 
+              studentData.email || invoice.studentEmail || '',
+              studentData.name || invoice.studentName || 'Student',
+              invoice.amount || 0,
+              invoice.courseName || 'Invoice Payment',
+              new Date().toLocaleString('en-IN'),
               orderId
             )
+
+            await db.collection('notifications').add({
+              studentUid: uid,
+              studentName: studentData.name || invoice.studentName || 'Student',
+              subject: `Invoice paid: ${invoice.invoiceNumber || ''}`,
+              message: `Payment of ₹${invoice.amount || 0} confirmed for ${invoice.courseName || 'invoice'}.`,
+              read: false,
+              createdAt: FieldValue.serverTimestamp(),
+            })
+
+            await sendAdminPaymentAlert({
+              studentName: studentData.name || invoice.studentName || 'Student',
+              studentEmail: studentData.email || invoice.studentEmail || '',
+              amount: invoice.amount || 0,
+              itemName: invoice.courseName || 'Invoice Payment',
+              paymentId,
+              orderId,
+              method: 'Razorpay (webhook)',
+              invoiceNumber: invoice.invoiceNumber || '',
+            })
           }
         }
       } else if (uid && courseId) {
@@ -832,7 +1014,7 @@ export const razorpayWebhook = onRequest(async (req, res) => {
         const expiresAt = new Date()
         expiresAt.setMonth(expiresAt.getMonth() + 6) // default 6 months if not passed in notes
 
-        await db.collection('enrollments').add({
+        const enrollRefWh = await db.collection('enrollments').add({
           uid,
           courseId,
           courseTitle: notes.courseTitle || '',
@@ -849,6 +1031,7 @@ export const razorpayWebhook = onRequest(async (req, res) => {
         await db.collection('payments').add({
           type: 'razorpay_webhook',
           studentId: studentData.studentId || uid,
+          studentUid: uid,
           studentName: studentData.name || 'Student',
           studentEmail: studentData.email || '',
           courseId: courseId,
@@ -861,15 +1044,60 @@ export const razorpayWebhook = onRequest(async (req, res) => {
           createdAt: FieldValue.serverTimestamp(),
         })
 
+        // Create invoice doc (idempotent: skip if one exists for this orderId)
+        const existingInv = await db.collection('invoices').where('orderId', '==', orderId).limit(1).get()
+        let invoiceNumberWh = ''
+        if (existingInv.empty) {
+          invoiceNumberWh = buildInvoiceNumber(enrollRefWh.id)
+          const paidDateStrWh = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+          await db.collection('invoices').add({
+            invoiceNumber: invoiceNumberWh,
+            studentUid: uid,
+            studentName: studentData.name || 'Student',
+            studentEmail: studentData.email || '',
+            courseName: notes.courseTitle || 'Course',
+            description: '6-month plan',
+            amount,
+            status: 'paid',
+            paidAt: paidDateStrWh,
+            issuedDate: paidDateStrWh,
+            method: 'razorpay',
+            paymentId,
+            orderId,
+            enrollmentId: enrollRefWh.id,
+            createdAt: FieldValue.serverTimestamp(),
+          })
+        }
+
+        await db.collection('notifications').add({
+          studentUid: uid,
+          studentName: studentData.name || 'Student',
+          subject: `Payment confirmed: ${notes.courseTitle || 'Course'}`,
+          message: `Payment of ₹${amount} received. Access unlocked.`,
+          read: false,
+          createdAt: FieldValue.serverTimestamp(),
+        })
+
         // SEND RECEIPT EMAIL
         await sendReceiptEmail(
-          studentData.email || '', 
-          studentData.name || 'Student', 
-          amount, 
-          notes.courseTitle || 'Course', 
-          new Date().toLocaleString('en-IN'), 
+          studentData.email || '',
+          studentData.name || 'Student',
+          amount,
+          notes.courseTitle || 'Course',
+          new Date().toLocaleString('en-IN'),
           orderId
         )
+
+        await sendAdminPaymentAlert({
+          studentName: studentData.name || 'Student',
+          studentEmail: studentData.email || '',
+          amount,
+          itemName: notes.courseTitle || 'Course',
+          paymentId,
+          orderId,
+          method: 'Razorpay (webhook)',
+          invoiceNumber: invoiceNumberWh,
+        })
       }
     } else if (event === 'payment.failed') {
       const paymentEntity = req.body.payload.payment.entity

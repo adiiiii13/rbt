@@ -5,6 +5,7 @@ import { doc, getDoc, collection, query, where, getDocs, addDoc, serverTimestamp
 import { db } from '../lib/firebase'
 import { useAuth } from '../context/AuthContext'
 import { generateInvoiceNumber, formatCurrency } from '../lib/invoice'
+import { openCheckout } from '../lib/razorpay'
 import HlsPlayer from '../components/HlsPlayer'
 import { Skeleton } from '../components/ui/Skeleton'
 import toast from 'react-hot-toast'
@@ -103,61 +104,88 @@ export default function CourseDetail() {
     return { modules: sortedMods, flatItems: flat }
   }, [course])
 
-  // Auto-enroll + invoice for free courses
+  // Free → enroll + paid invoice. Paid → Razorpay (CF creates enrollment + invoice + notify).
   const handleEnroll = async () => {
     if (!user) { toast.error('Please login first'); navigate('/student-login'); return }
     const variant = selectedVariant || { months: 12, price: 0 }
     const isFree = variant.price === 0 || course.isFree
 
     setBuying(true)
-    try {
-      // Create enrollment
-      const enrolRef = await addDoc(collection(db, 'enrollments'), {
-        uid: user.uid,
-        courseId: course.id,
-        courseName: course.title,
-        months: variant.months,
-        amount: variant.price,
-        status: 'active',
-        enrolledAt: serverTimestamp(),
-        studentName: user.name || '',
-        studentEmail: user.email || '',
-      })
 
-      // Auto-create invoice
-      const invoiceNum = generateInvoiceNumber(enrolRef.id)
-      const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
+    if (isFree) {
+      try {
+        const enrolRef = await addDoc(collection(db, 'enrollments'), {
+          uid: user.uid,
+          courseId: course.id,
+          courseName: course.title,
+          months: variant.months,
+          amount: variant.price,
+          status: 'active',
+          enrolledAt: serverTimestamp(),
+          studentName: user.name || '',
+          studentEmail: user.email || '',
+        })
 
-      await addDoc(collection(db, 'invoices'), {
-        invoiceNumber: invoiceNum,
-        studentUid: user.uid,
-        studentName: user.name || '',
-        studentEmail: user.email || '',
-        courseName: course.title,
-        description: `${variant.months}-month plan${isFree ? ' (Free)' : ''}`,
-        amount: variant.price,
-        status: isFree ? 'paid' : 'pending',
-        paidAt: isFree ? paidAt : '',
-        issuedDate: paidAt,
-        createdAt: serverTimestamp(),
-      })
+        const invoiceNum = generateInvoiceNumber(enrolRef.id)
+        const paidAt = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
 
-      // Notify student
-      await addDoc(collection(db, 'notifications'), {
-        studentUid: user.uid,
-        studentName: user.name || '',
-        subject: `Enrolled: ${course.title}`,
-        message: isFree
-          ? `You're enrolled! Start watching your lessons now. Invoice: ${invoiceNum}`
-          : `Your ${variant.months}-month plan is pending payment (₹${variant.price}). Invoice: ${invoiceNum}. Pay via My Invoices.`,
-        read: false,
-        createdAt: serverTimestamp(),
-      })
+        await addDoc(collection(db, 'invoices'), {
+          invoiceNumber: invoiceNum,
+          studentUid: user.uid,
+          studentName: user.name || '',
+          studentEmail: user.email || '',
+          courseName: course.title,
+          description: `${variant.months}-month plan (Free)`,
+          amount: variant.price,
+          status: 'paid',
+          paidAt,
+          issuedDate: paidAt,
+          method: 'free',
+          enrollmentId: enrolRef.id,
+          createdAt: serverTimestamp(),
+        })
 
-      setEnrollment({ id: enrolRef.id, uid: user.uid, courseId: course.id, months: variant.months, amount: variant.price })
-      toast.success(isFree ? 'Enrolled! Start learning now.' : 'Enrolled! Complete payment in My Invoices.')
-    } catch (err) { toast.error(err.message) }
-    finally { setBuying(false) }
+        await addDoc(collection(db, 'notifications'), {
+          studentUid: user.uid,
+          studentName: user.name || '',
+          subject: `Enrolled: ${course.title}`,
+          message: `You're enrolled! Invoice: ${invoiceNum}. Start watching now.`,
+          read: false,
+          createdAt: serverTimestamp(),
+        })
+
+        setEnrollment({ id: enrolRef.id, uid: user.uid, courseId: course.id, months: variant.months, amount: variant.price })
+        toast.success('🎉 Enrolled! Start learning now.')
+      } catch (err) { toast.error(err.message) }
+      finally { setBuying(false) }
+      return
+    }
+
+    // Paid path → Razorpay (server creates enrollment + paid invoice + notify + admin alert)
+    openCheckout({
+      amount: variant.price,
+      courseId: course.id,
+      courseTitle: course.title,
+      name: 'RBT Mission Learning',
+      description: `${course.title} — ${variant.months}-Month Plan`,
+      variantMonths: variant.months,
+      variantPrice: variant.price,
+      user,
+      onSuccess: (result) => {
+        setEnrollment({
+          id: result.enrollmentId,
+          uid: user.uid,
+          courseId: course.id,
+          paymentId: result.paymentId,
+        })
+        toast.success('🎉 Payment received. Enrolled!')
+        setBuying(false)
+      },
+      onFailure: (err) => {
+        toast.error(err.message || 'Payment failed')
+        setBuying(false)
+      },
+    })
   }
 
   const submitDoubt = async () => {
