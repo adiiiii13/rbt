@@ -10,11 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@heyputer/puter.js": "^2.4.2",
     "@tailwindcss/vite": "^4.3.0",
     "animejs": "^3.2.2",
     "firebase": "^12.13.0",
     "framer-motion": "^12.38.0",
     "hls.js": "^1.6.16",
+    "puter-cli": "^2.0.0",
     "qrcode.react": "^4.2.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -33,5 +35,18 @@
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.6.0",
     "vite": "^8.0.12"
-  }
+  },
+  "description": "> **\"Mission Hai Toh Perfect Learning Chahiye\"**",
+  "main": "eslint.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/adiiiii13/rbt.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/adiiiii13/rbt/issues"
+  },
+  "homepage": "https://github.com/adiiiii13/rbt#readme"
 }

@@ -127,6 +127,7 @@ export default function CourseDetail() {
           amount: variant.price,
           status: 'active',
           enrolledAt: serverTimestamp(),
+          createdAt: serverTimestamp(),
           studentName: user.name || '',
           studentEmail: user.email || '',
         })

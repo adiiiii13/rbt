@@ -1,7 +1,7 @@
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState, useMemo } from 'react';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
-import { addDocument, deleteDocument, uploadFile } from '../../lib/firebaseHelpers';
+import { addDocument, updateDocument, deleteDocument, uploadFile } from '../../lib/firebaseHelpers';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import ExportButton from '../../components/ExportButton';
@@ -18,6 +18,7 @@ export default function ManageStudyMaterial() {
   const [currentFolder, setCurrentFolder] = useState(null);
   const [crumbs, setCrumbs] = useState([{ id: null, name: 'Root' }]);
   const [modal, setModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
   const [form, setForm] = useState({ name: '', type: 'folder', url: '', subject: '', thumbnail: '', isFree: false });
   const [uploading, setUploading] = useState(false);
 
@@ -36,6 +37,13 @@ export default function ManageStudyMaterial() {
 
   const openCreate = () => {
     setForm({ name: '', type: 'folder', url: '', subject: '', thumbnail: '', isFree: false });
+    setEditingItem(null);
+    setModal(true);
+  };
+
+  const startEdit = (item) => {
+    setForm({ name: item.name, type: item.type, url: item.url || '', subject: item.subject || '', thumbnail: item.thumbnail || '', isFree: item.isFree || false });
+    setEditingItem(item);
     setModal(true);
   };
 
@@ -56,11 +64,16 @@ export default function ManageStudyMaterial() {
     if (!form.name.trim()) { toast.error('Name required'); return; }
     if (form.type !== 'folder' && !form.url) { toast.error('Upload file or paste URL'); return; }
     try {
-      await addDocument('studyMaterial', {
-        ...form,
-        parentId: currentFolder,
-      });
-      toast.success('Added');
+      if (editingItem) {
+        await updateDocument('studyMaterial', editingItem.id, form);
+        toast.success('Updated');
+      } else {
+        await addDocument('studyMaterial', {
+          ...form,
+          parentId: currentFolder,
+        });
+        toast.success('Added');
+      }
       setModal(false);
     } catch (err) { toast.error(err.message); }
   };
@@ -140,13 +153,14 @@ export default function ManageStudyMaterial() {
               {item.type === 'folder' && (
                 <button onClick={() => openFolder(item)} className="bg-blue-500/20 text-blue-400 text-xs px-3 py-1.5 rounded">Open</button>
               )}
+              <button onClick={() => startEdit(item)} className="bg-amber-500/20 text-amber-400 text-xs px-3 py-1.5 rounded">✎</button>
               <button onClick={() => remove(item)} className="bg-red-500/20 text-red-400 text-xs px-3 py-1.5 rounded">×</button>
             </div>
           </div>
         ))}
       </div>
 
-      <Modal isOpen={modal} onClose={() => setModal(false)} title="Add Item" size="lg">
+      <Modal isOpen={modal} onClose={() => setModal(false)} title={editingItem ? 'Edit Item' : 'Add Item'} size="lg">
         <div className="space-y-3">
           <div>
             <label className="text-xs text-slate-400 block mb-1">Type</label>
@@ -218,7 +232,7 @@ export default function ManageStudyMaterial() {
           <div className="flex gap-2 pt-3 border-t border-white/10">
             <button onClick={() => setModal(false)} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-2 rounded-lg">Cancel</button>
             <button onClick={save} disabled={uploading} className="flex-1 bg-green-brand hover:bg-green-600 disabled:bg-slate-700 text-white font-bold py-2 rounded-lg">
-              Add to "{crumbs[crumbs.length - 1].name}"
+              {editingItem ? 'Save Changes' : `Add to "${crumbs[crumbs.length - 1].name}"`}
             </button>
           </div>
         </div>
