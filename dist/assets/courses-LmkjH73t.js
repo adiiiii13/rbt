@@ -1,1 +1,0 @@
-var e=[];function t(){return[]}function n(e){}function r(){}export{e as defaultCourses,t as getCourses,r as resetCourses,n as saveCourses};
