@@ -90,6 +90,7 @@ export default function DashboardLayout({ type }) {
     { to: '/student/doubts', label: 'My Doubts', icon: <IC.msg size={18} /> },
     { to: '/student/mock-results', label: 'My Results', icon: <IC.trophy size={18} /> },
     { to: '/student/invoices', label: 'My Invoices', icon: <IC.receipt size={18} /> },
+    { to: '/student/offline-enrollment', label: 'Offline Enrollment', icon: <IC.mail size={18} /> },
     { to: '/student/profile', label: 'Profile', icon: <IC.users size={18} /> },
   ]
 
@@ -106,6 +107,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/achievements', label: 'Achievements', icon: <IC.trophy size={18} /> },
     { to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
     { to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
+    { to: '/admin/offline-enrollments', label: 'Offline Enrollments', icon: <IC.mail size={18} /> },
     { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
     { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },

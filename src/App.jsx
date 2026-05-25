@@ -53,6 +53,7 @@ const StudentProfile = lazy(() => import('./pages/student/Profile'))
 
 // Basic Pages (lazy)
 const BasicCourseDetail = lazy(() => import('./pages/basic/CourseDetail'))
+const BatchUpgradeForm = lazy(() => import('./pages/student/BatchUpgradeForm'))
 
 // Admin Pages (lazy)
 const AdminDashboard = lazy(() => import('./pages/admin/Dashboard'))
@@ -74,6 +75,7 @@ const ManageStudyMaterial = lazy(() => import('./pages/admin/ManageStudyMaterial
 const ManageDoubts = lazy(() => import('./pages/admin/ManageDoubts'))
 const ManageNotifications = lazy(() => import('./pages/admin/ManageNotifications'))
 const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
+const ManageBatchRequests = lazy(() => import('./pages/admin/ManageBatchRequests'))
 const ManageProfileForm = lazy(() => import('./pages/admin/ManageProfileForm'))
 const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
@@ -216,7 +218,8 @@ function AppContent() {
                     <Route path="profile" element={<StudentProfile />} />
                     <Route path="basic-courses" element={<Navigate to="/student/all-courses" replace />} />
                     <Route path="basic-courses/:id" element={<BasicCourseDetail />} />
-                    <Route path="upgrade-batch" element={<Navigate to="/student" replace />} />
+                    <Route path="upgrade-batch" element={<BatchUpgradeForm />} />
+                    <Route path="offline-enrollment" element={<BatchUpgradeForm />} />
                   </Route>
 
                   {/* Legacy redirects */}
@@ -229,7 +232,7 @@ function AppContent() {
                   <Route path="/basic/test-papers/downloadable" element={<Navigate to="/student/test-papers/downloadable" replace />} />
                   <Route path="/basic/test-papers/mock" element={<Navigate to="/student/test-papers/mock" replace />} />
                   <Route path="/basic/payment" element={<Navigate to="/student/payment" replace />} />
-                  <Route path="/basic/upgrade-batch" element={<Navigate to="/student" replace />} />
+                  <Route path="/basic/upgrade-batch" element={<Navigate to="/student/upgrade-batch" replace />} />
 
                   {/* Admin Routes */}
                   <Route path="/admin" element={<ProtectedRoute role="admin"><DashboardLayout type="admin" /></ProtectedRoute>}>
@@ -246,7 +249,8 @@ function AppContent() {
                     <Route path="students" element={<ManageStudents />} />
                     <Route path="batches" element={<Navigate to="/admin" replace />} />
                     <Route path="batch-students" element={<Navigate to="/admin/students" replace />} />
-                    <Route path="batch-requests" element={<Navigate to="/admin" replace />} />
+                    <Route path="batch-requests" element={<ManageBatchRequests />} />
+                    <Route path="offline-enrollments" element={<ManageBatchRequests />} />
                     <Route path="notices" element={<ManageNotices />} />
                     <Route path="gallery" element={<ManageGallery />} />
                     <Route path="payments" element={<ManagePayments />} />
