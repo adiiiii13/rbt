@@ -10,8 +10,7 @@ export default function StudentCourses() {
   const { user } = useAuth();
   
   const { data: enrollments } = useRealtimeCollection('enrollments', {
-    where: user?.uid ? [['uid', '==', user.uid]] : [],
-    orderField: 'enrolledAt'
+    where: user?.uid ? [['uid', '==', user.uid]] : []
   });
 
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });

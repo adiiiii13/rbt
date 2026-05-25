@@ -25,8 +25,7 @@ export default function StudentDashboard() {
   const { data: allPdfsRaw } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
   const { data: allNoticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices })
   const { data: enrollments } = useRealtimeCollection('enrollments', {
-    where: user?.uid ? [['uid', '==', user.uid]] : [],
-    orderField: 'enrolledAt'
+    where: user?.uid ? [['uid', '==', user.uid]] : []
   })
   const enrolledIds = new Set((enrollments || []).map(e => e.courseId))
   const isBatchStudent = user?.batch === true
