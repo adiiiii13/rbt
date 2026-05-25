@@ -13,7 +13,7 @@ export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   
-  const { loginWithGoogle, signupStudent, upgradeToBatch } = useAuth();
+  const { loginWithGoogle, signupStudent, loginStudent, upgradeToBatch } = useAuth();
   const navigate = useNavigate();
 
   const handleEmailSignup = async (e, isBatch = false) => {
@@ -36,6 +36,25 @@ export default function StudentSignup({ isPopup, onClose, onSwitchToLogin }) {
         if (onClose) onClose();
         const dest = isBatch ? '/student-initialization' : '/basic';
         navigate(dest, { replace: true });
+      } else if (result.code === 'auth/email-already-in-use' && isBatch) {
+        // They are trying to sign up for batch, but already exist.
+        // Let's attempt to log them in to trigger the upgrade
+        const loginResult = await loginStudent(email, password, true);
+        if (loginResult.requireUpgrade) {
+          const upgradeRes = await upgradeToBatch();
+          if (upgradeRes.success) {
+            if (onClose) onClose();
+            navigate('/student-initialization', { replace: true });
+          } else {
+            setError('Account found, but upgrade failed. Please login and upgrade.');
+          }
+        } else if (loginResult.success) {
+           // They might already be a batch student! Just log them in.
+           if (onClose) onClose();
+           navigate('/student-initialization', { replace: true });
+        } else {
+           setError('Email already exists. If this is you, incorrect password. Please login instead.');
+        }
       } else {
         setError(result.message);
       }

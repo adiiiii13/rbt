@@ -25,6 +25,8 @@ function mapAuthError(code) {
       return 'Network error'
     case 'auth/user-disabled':
       return 'Account disabled'
+    case 'auth/email-already-in-use':
+      return 'Email already in use'
     default:
       return 'Login failed'
   }
@@ -285,7 +287,7 @@ export function AuthProvider({ children }) {
       return { success: true, user: userData }
     } catch (err) {
       console.error(err);
-      return { success: false, message: mapAuthError(err.code || 'Signup failed') }
+      return { success: false, message: mapAuthError(err.code || 'Signup failed'), code: err.code }
     } finally {
       isAuthActionInProgress.current = false;
       setLoading(false);
