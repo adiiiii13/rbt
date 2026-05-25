@@ -1,1 +1,0 @@
-var e=[];function t(){return[]}function n(e){}function r(){}export{e as defaultAchievements,t as getAchievements,r as resetAchievements,n as saveAchievements};

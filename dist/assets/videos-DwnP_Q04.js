@@ -1,1 +1,0 @@
-var e=[];function t(){return[]}function n(e){}function r(){}export{e as defaultVideos,t as getVideos,r as resetVideos,n as saveVideos};

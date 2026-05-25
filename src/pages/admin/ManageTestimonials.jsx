@@ -3,7 +3,6 @@ import { useState } from 'react';
 import { deleteItemSmart } from '../../lib/contentApi';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { addDocument, updateDocument } from '../../lib/firebaseHelpers';
-import { defaultTestimonials } from '../../data/testimonials';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import ExportButton from '../../components/ExportButton';

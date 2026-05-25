@@ -7,7 +7,6 @@ import toast from 'react-hot-toast'
 import { defaultCourses } from '../../data/courses'
 import { defaultVideos } from '../../data/videos'
 import { defaultPdfs } from '../../data/pdfs'
-import { defaultTestimonials } from '../../data/testimonials'
 import { defaultAchievements } from '../../data/achievements'
 import {
   BookOpenIcon, UsersIcon, FileTextIcon, PlayCircleIcon,
@@ -30,7 +29,7 @@ export default function AdminDashboard() {
   const { data: students } = useRealtimeCollection('students')
   const { data: pdfs } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
   const { data: videos } = useRealtimeCollection('videos', { fallback: defaultVideos })
-  const { data: testimonials } = useRealtimeCollection('testimonials', { fallback: defaultTestimonials })
+  const { data: testimonials } = useRealtimeCollection('testimonials', { fallback: [] })
   const { data: achievements } = useRealtimeCollection('achievements', { fallback: defaultAchievements })
   const { data: payments } = useRealtimeCollection('payments')
   const { data: bookings } = useRealtimeCollection('counsellingBookings')
