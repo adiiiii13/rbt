@@ -44,6 +44,20 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // Mock Test Access: student create own (payment); admin full; student read own
+    match /mockTestAccess/{doc} {
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
+    // PDF Access: admin full; student read own
+    match /pdfAccess/{doc} {
+      allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow update, delete: if isAdmin();
+    }
+
     // Notifications: admin write; student read own; student create auto-notifications
     match /notifications/{doc} {
       allow create: if isAdmin() || (isSignedIn() && request.resource.data.studentUid == request.auth.uid);
@@ -80,6 +94,28 @@ service cloud.firestore {
         && request.resource.data.keys().size() < 20;
       allow read: if isSignedIn();
       allow update, delete: if isAdmin();
+    }
+
+    // Teacher applications: anyone create with sane fields; admin read/update/delete
+    match /teacherApplications/{doc} {
+      allow create: if request.resource.data.name is string
+        && request.resource.data.name.size() < 100
+        && request.resource.data.email is string
+        && request.resource.data.email.size() < 150
+        && request.resource.data.keys().size() < 25;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Admin alerts (payment/admin events): admin-only
+    match /adminAlerts/{doc} {
+      allow read, update, delete: if isAdmin();
+      allow create: if isAdmin();
+    }
+
+    // Mail queue (Firestore Send Email extension): server-only writes via CFs.
+    // Clients must not write or read.
+    match /mail/{doc} {
+      allow read, write: if false;
     }
 
     // Inquiries: anyone create; admin read/delete

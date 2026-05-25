@@ -1,5 +1,6 @@
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import { addDocument, updateDocument, deleteDocument } from '../../lib/firebaseHelpers';
@@ -16,6 +17,7 @@ import { sendStudentStatusEmail } from '../../lib/emailUtils';
 const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', class: 'Class 10', password: '' };
 
 export default function ManageStudents() {
+  const navigate = useNavigate();
   const { data: students, loading } = useRealtimeCollection('students', 'createdAt');
   const { data: courses } = useRealtimeCollection('courses', 'createdAt');
   const { data: allEnrollments } = useRealtimeCollection('enrollments', 'enrolledAt');
@@ -301,7 +303,9 @@ export default function ManageStudents() {
                       />
                     </td>
                     <td className="font-mono text-[11px] text-slate-500 font-bold">{s.studentId}</td>
-                    <td className="font-semibold text-white">{s.name}</td>
+                    <td className="font-semibold text-white">
+                      <button onClick={() => navigate(`/admin/students/${s.id}`)} className="hover:text-green-brand hover:underline cursor-pointer">{s.name}</button>
+                    </td>
                     <td className="text-slate-700 text-sm">{s.email || '-'}</td>
                     <td className="text-slate-700 font-medium">{getStudentCourses(s)}</td>
                     <td>

@@ -1,9 +1,15 @@
 import { GridSkeleton } from '../components/ui/Skeleton';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useLocation } from 'react-router-dom';
 import { useRealtimeCollection } from '../lib/useRealtimeCollection';
+import { useAuth } from '../context/AuthContext';
+import { openCheckout } from '../lib/razorpay';
+import { addDocument } from '../lib/firebaseHelpers';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { FileTextIcon, ClockIcon } from '../components/Icons';
+import toast from 'react-hot-toast';
 
 const CATEGORIES = [
   { id: 'jee-main', label: 'JEE Main', color: '#3b82f6' },
@@ -18,12 +24,65 @@ const CATEGORIES = [
 
 export default function TestPapersMock() {
   const location = useLocation();
+  const { user } = useAuth();
   const isDashboard = location.pathname.includes('/student') || location.pathname.includes('/admin');
   const backTo = isDashboard ? location.pathname.replace(/\/mock\/?$/, '') : '/test-papers';
   const basePath = location.pathname.replace(/\/?$/, '');
 
   const { data: tests, loading } = useRealtimeCollection('mockTests', { fallback: [] });
   const [selectedCat, setSelectedCat] = useState('all');
+  const [accessSet, setAccessSet] = useState(new Set());
+  const [loadingAccess, setLoadingAccess] = useState(true);
+  const [payingTestId, setPayingTestId] = useState(null);
+
+  // Load mock test access for current user
+  useEffect(() => {
+    if (!user?.uid) { setLoadingAccess(false); return; }
+    (async () => {
+      try {
+        const snap = await getDocs(query(collection(db, 'mockTestAccess'), where('uid', '==', user.uid)));
+        setAccessSet(new Set(snap.docs.map(d => d.data().testId)));
+      } catch {}
+      setLoadingAccess(false);
+    })();
+  }, [user?.uid]);
+
+  const handlePay = (test) => {
+    if (!user) {
+      toast.error('Please sign in to purchase');
+      return;
+    }
+    setPayingTestId(test.id);
+    openCheckout({
+      amount: test.price,
+      courseId: `mockTest_${test.id}`,
+      courseTitle: test.title,
+      variantLabel: 'Mock Test Access',
+      variantMonths: 0,
+      variantPrice: test.price,
+      user,
+      onSuccess: async () => {
+        try {
+          await addDocument('mockTestAccess', {
+            uid: user.uid,
+            testId: test.id,
+            testTitle: test.title,
+            status: 'active',
+            enrolledAt: new Date().toISOString(),
+            paymentType: 'razorpay',
+            studentName: user.name || '',
+            studentEmail: user.email || '',
+          });
+          setAccessSet(prev => new Set([...prev, test.id]));
+          toast.success(`Unlocked: ${test.title}`);
+        } catch (err) {
+          toast.error(err.message);
+        }
+        setPayingTestId(null);
+      },
+      onDismiss: () => setPayingTestId(null),
+    });
+  };
 
   const filtered = selectedCat === 'all'
     ? tests
@@ -96,6 +155,10 @@ export default function TestPapersMock() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((test, idx) => {
             const cat = CATEGORIES.find(c => c.id === test.category) || { label: test.category, color: '#6366f1' };
+            const isPaid = test.price > 0;
+            const hasAccess = !isPaid || accessSet.has(test.id);
+            const isPaying = payingTestId === test.id;
+
             return (
               <motion.div
                 key={test.id}
@@ -115,9 +178,19 @@ export default function TestPapersMock() {
                     >
                       {cat.label}
                     </span>
-                    {test.difficulty && (
-                      <span className="text-xs text-slate-400">{test.difficulty}</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {isPaid && (
+                        <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${hasAccess ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400'}`}>
+                          {hasAccess ? 'Unlocked' : `₹${test.price}`}
+                        </span>
+                      )}
+                      {!isPaid && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-green-500/10 text-green-400">Free</span>
+                      )}
+                      {test.difficulty && (
+                        <span className="text-xs text-slate-400">{test.difficulty}</span>
+                      )}
+                    </div>
                   </div>
 
                   <h3 className="text-lg font-bold text-white mb-2 line-clamp-2">{test.title}</h3>
@@ -138,13 +211,26 @@ export default function TestPapersMock() {
                     </div>
                   </div>
 
-                  <Link
-                    to={`${basePath}/${test.id}`}
-                    className="mt-auto w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center no-underline inline-flex items-center justify-center gap-2"
-                  >
-                    Start Test
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-                  </Link>
+                  {hasAccess ? (
+                    <Link
+                      to={`${basePath}/${test.id}`}
+                      className="mt-auto w-full bg-green-brand hover:bg-green-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center no-underline inline-flex items-center justify-center gap-2"
+                    >
+                      Start Test
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => handlePay(test)}
+                      disabled={isPaying || !user}
+                      className="mt-auto w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-4 rounded-xl transition-all text-center inline-flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {isPaying ? 'Processing...' : `Pay ₹${test.price} to Unlock`}
+                      {!isPaying && (
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+                      )}
+                    </button>
+                  )}
                 </div>
               </motion.div>
             );

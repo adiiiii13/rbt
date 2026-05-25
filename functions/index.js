@@ -238,6 +238,8 @@ export const deleteStudent = onCall(async (request) => {
       { name: 'enrollments', field: 'uid', value: uid },
       { name: 'razorpayOrders', field: 'uid', value: uid },
       { name: 'mockResults', field: 'uid', value: uid },
+      { name: 'mockTestAccess', field: 'uid', value: uid },
+      { name: 'pdfAccess', field: 'uid', value: uid },
       { name: 'payments', field: 'studentId', value: uid }
     ]
 
@@ -307,6 +309,8 @@ export const bulkDeleteStudents = onCall(async (request) => {
           { name: 'enrollments', field: 'uid', value: uid },
           { name: 'razorpayOrders', field: 'uid', value: uid },
           { name: 'mockResults', field: 'uid', value: uid },
+          { name: 'mockTestAccess', field: 'uid', value: uid },
+          { name: 'pdfAccess', field: 'uid', value: uid },
           { name: 'payments', field: 'studentId', value: uid }
         ]
 
@@ -577,32 +581,51 @@ export const verifyRazorpayPayment = onCall(async (request) => {
       paidAt: FieldValue.serverTimestamp(),
     })
 
-    // 3. Create enrollment
+    // 3. Create enrollment or mock test access
     const uid = request.auth.uid
     const studentDoc = await db.collection('students').doc(uid).get()
     const studentData = studentDoc.exists ? studentDoc.data() : {}
 
-    const expiresAt = new Date()
-    expiresAt.setMonth(expiresAt.getMonth() + (variantMonths || 6))
+    const isMockTest = courseId && courseId.startsWith('mockTest_')
+    const actualTestId = isMockTest ? courseId.replace('mockTest_', '') : courseId
+    let enrollRef
 
-    const enrollmentData = {
-      uid,
-      courseId: courseId || '',
-      courseTitle: courseTitle || '',
-      variant: {
-        months: variantMonths || 6,
-        price: variantPrice || 0,
-      },
-      paymentId: razorpay_payment_id,
-      orderId: razorpay_order_id,
-      amount: variantPrice || 0,
-      enrolledAt: FieldValue.serverTimestamp(),
-      expiresAt: expiresAt.toISOString(),
-      studentName: studentData.name || 'Student',
-      studentEmail: studentData.email || '',
+    if (isMockTest) {
+      // Mock test: write to mockTestAccess
+      enrollRef = await db.collection('mockTestAccess').add({
+        uid,
+        testId: actualTestId,
+        testTitle: courseTitle || '',
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        amount: variantPrice || 0,
+        status: 'active',
+        enrolledAt: FieldValue.serverTimestamp(),
+        studentName: studentData.name || 'Student',
+        studentEmail: studentData.email || '',
+      })
+    } else {
+      // Course: write to enrollments
+      const expiresAt = new Date()
+      expiresAt.setMonth(expiresAt.getMonth() + (variantMonths || 6))
+
+      enrollRef = await db.collection('enrollments').add({
+        uid,
+        courseId: courseId || '',
+        courseTitle: courseTitle || '',
+        variant: {
+          months: variantMonths || 6,
+          price: variantPrice || 0,
+        },
+        paymentId: razorpay_payment_id,
+        orderId: razorpay_order_id,
+        amount: variantPrice || 0,
+        enrolledAt: FieldValue.serverTimestamp(),
+        expiresAt: expiresAt.toISOString(),
+        studentName: studentData.name || 'Student',
+        studentEmail: studentData.email || '',
+      })
     }
-
-    const enrollRef = await db.collection('enrollments').add(enrollmentData)
 
     // 4. Also record payment in the payments collection for admin tracking
     await db.collection('payments').add({
@@ -629,8 +652,8 @@ export const verifyRazorpayPayment = onCall(async (request) => {
       studentUid: uid,
       studentName: studentData.name || 'Student',
       studentEmail: studentData.email || '',
-      courseName: courseTitle || 'Course',
-      description: `${variantMonths || 6}-month plan`,
+      courseName: courseTitle || (isMockTest ? 'Mock Test' : 'Course'),
+      description: isMockTest ? 'Mock Test access' : `${variantMonths || 6}-month plan`,
       amount: variantPrice || 0,
       status: 'paid',
       paidAt: paidDateStr,
@@ -646,7 +669,7 @@ export const verifyRazorpayPayment = onCall(async (request) => {
     await db.collection('notifications').add({
       studentUid: uid,
       studentName: studentData.name || 'Student',
-      subject: `Payment confirmed: ${courseTitle || 'Course'}`,
+      subject: `Payment confirmed: ${courseTitle || (isMockTest ? 'Mock Test' : 'Course')}`,
       message: `Payment of ₹${variantPrice || 0} received. Invoice ${invoiceNumber}. Access unlocked.`,
       read: false,
       createdAt: FieldValue.serverTimestamp(),
@@ -657,7 +680,7 @@ export const verifyRazorpayPayment = onCall(async (request) => {
       studentData.email || '',
       studentData.name || 'Student',
       variantPrice || 0,
-      courseTitle || 'Course',
+      courseTitle || (isMockTest ? 'Mock Test' : 'Course'),
       new Date().toLocaleString('en-IN'),
       razorpay_order_id
     )
@@ -667,7 +690,7 @@ export const verifyRazorpayPayment = onCall(async (request) => {
       studentName: studentData.name || 'Student',
       studentEmail: studentData.email || '',
       amount: variantPrice || 0,
-      itemName: courseTitle || 'Course',
+      itemName: courseTitle || (isMockTest ? 'Mock Test' : 'Course'),
       paymentId: razorpay_payment_id,
       orderId: razorpay_order_id,
       method: 'Razorpay',

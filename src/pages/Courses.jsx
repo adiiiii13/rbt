@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useRealtimeCollection } from '../lib/useRealtimeCollection';
 import { defaultCourses } from '../data/courses';
@@ -18,22 +18,70 @@ const LEVELS = [
   { id: 'foundation', label: 'Foundation 8–12', color: '#f59e0b' },
   { id: 'iit-jee', label: 'IIT-JEE', color: '#3b82f6' },
   { id: 'neet', label: 'NEET', color: '#10b981' },
+  { id: 'competitive', label: 'Competitive', color: '#a855f7' },
+  { id: 'board', label: 'Board Prep', color: '#ef4444' },
+];
+
+const SORT_OPTIONS = [
+  { id: 'newest', label: 'Newest' },
+  { id: 'price-low', label: 'Price: Low → High' },
+  { id: 'price-high', label: 'Price: High → Low' },
+  { id: 'name-az', label: 'Name: A → Z' },
+  { id: 'popular', label: 'Most Popular' },
 ];
 
 export default function Courses() {
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
   const courses = (coursesRaw?.length ? coursesRaw : defaultCourses).filter(c => !c.courseType || c.courseType === 'basic');
   const [activeLevel, setActiveLevel] = useState('all');
+  const [search, setSearch] = useState('');
+  const [priceFilter, setPriceFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
 
-  const filtered = activeLevel === 'all'
-    ? courses
-    : courses.filter(c => {
+  const filtered = useMemo(() => {
+    let result = courses.filter(c => {
+      // Level filter
+      if (activeLevel !== 'all') {
         const lvl = (c.level || c.category || c.title || '').toLowerCase();
-        if (activeLevel === 'foundation') return lvl.includes('foundation') || lvl.includes('class') || /[89]|10|11|12/.test(lvl);
-        if (activeLevel === 'iit-jee') return lvl.includes('jee') || lvl.includes('iit') || lvl.includes('engineering');
-        if (activeLevel === 'neet') return lvl.includes('neet') || lvl.includes('medical') || lvl.includes('biology');
-        return true;
-      });
+        if (activeLevel === 'foundation' && !(lvl.includes('foundation') || lvl.includes('class') || /[89]|10|11|12/.test(lvl))) return false;
+        if (activeLevel === 'iit-jee' && !(lvl.includes('jee') || lvl.includes('iit') || lvl.includes('engineering'))) return false;
+        if (activeLevel === 'neet' && !(lvl.includes('neet') || lvl.includes('medical') || lvl.includes('biology'))) return false;
+        if (activeLevel === 'competitive' && !lvl.includes('competitive')) return false;
+        if (activeLevel === 'board' && !lvl.includes('board')) return false;
+      }
+
+      // Price filter
+      if (priceFilter === 'free' && !c.isFree) return false;
+      if (priceFilter === 'paid' && c.isFree) return false;
+
+      // Search
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchTitle = (c.title || '').toLowerCase().includes(q);
+        const matchDesc = (c.description || '').toLowerCase().includes(q);
+        const matchSubjects = (c.subjects || []).some(s => s.toLowerCase().includes(q));
+        const matchLevel = (c.level || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchSubjects && !matchLevel) return false;
+      }
+
+      return true;
+    });
+
+    // Sort
+    const getMinPrice = (c) => c.isFree ? 0 : (c.variants?.length ? Math.min(...c.variants.map(v => Number(v.price) || 0)) : 0);
+    result.sort((a, b) => {
+      switch (sortBy) {
+        case 'price-low': return getMinPrice(a) - getMinPrice(b);
+        case 'price-high': return getMinPrice(b) - getMinPrice(a);
+        case 'name-az': return (a.title || '').localeCompare(b.title || '');
+        case 'popular': return (b.students || 0) - (a.students || 0);
+        default: return 0;
+      }
+    });
+
+    return result;
+  }, [courses, activeLevel, search, priceFilter, sortBy]);
+
   return (
     <div className="bg-black">
       <section className="relative pt-28 pb-20 overflow-hidden min-h-[400px] flex items-center">
@@ -61,17 +109,17 @@ export default function Courses() {
             <BookOpenIcon size={16} />
             <span>Learning Programs</span>
           </motion.div>
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
             className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6 text-white font-[var(--font-heading)]"
           >
             Our Courses
           </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }} 
-            animate={{ opacity: 1 }} 
-            transition={{ delay: 0.2 }} 
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
             className="text-slate-300 max-w-2xl mx-auto text-lg leading-relaxed"
           >
             Comprehensive programs designed for academic excellence at every level, from foundational basics to competitive mastery.
@@ -82,7 +130,7 @@ export default function Courses() {
       <section className="py-12 bg-[#000000]">
         <div className="container-main">
           {/* Education Level Filter */}
-          <div className="mb-10">
+          <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-3">Browse by Level</p>
             <div className="flex flex-wrap gap-2.5">
               {LEVELS.map(lv => (
@@ -108,6 +156,39 @@ export default function Courses() {
               ))}
             </div>
           </div>
+
+          {/* Search + Price + Sort */}
+          <div className="mb-8 bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search courses by name, subject, or level..."
+              className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:border-green-brand/50 focus:outline-none"
+            />
+            <div className="flex flex-wrap gap-3 items-center">
+              <div className="flex items-center gap-1 bg-black/30 rounded-lg p-1">
+                {['all', 'free', 'paid'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setPriceFilter(tab)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors capitalize ${priceFilter === tab ? 'bg-green-brand text-white' : 'text-slate-400 hover:text-white'}`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+              <select
+                value={sortBy}
+                onChange={e => setSortBy(e.target.value)}
+                className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:border-green-brand/50 focus:outline-none"
+              >
+                {SORT_OPTIONS.map(s => <option key={s.id} value={s.id} className="bg-slate-900">{s.label}</option>)}
+              </select>
+              <span className="text-xs text-slate-500 ml-auto">{filtered.length} course{filtered.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {filtered.map((course, i) => {
               const IconComponent = iconMap[course.image] || BookOpenIcon;

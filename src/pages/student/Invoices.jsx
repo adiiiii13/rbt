@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../../context/AuthContext'
 import { ListSkeleton } from '../../components/ui/Skeleton'
-import { getCollectionWhere, updateDocument, addDocument } from '../../lib/firebaseHelpers'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import { formatCurrency, formatDateTime } from '../../lib/invoice'
 import { openInvoiceCheckout } from '../../lib/razorpay'
 import InvoiceView from '../../components/InvoiceView'
@@ -11,32 +11,30 @@ import toast from 'react-hot-toast'
 
 export default function Invoices() {
   const { user } = useAuth()
-  const [payments, setPayments] = useState([])
-  const [invoices, setInvoices] = useState([])
-  const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState(null)
   const [tab, setTab] = useState('all') // 'all' | 'pending' | 'paid'
 
-  const load = async () => {
-    setLoading(true)
-    try {
-      const sid = user.studentId || user.id || ''
-      const uid = user.id || user.uid || ''
-      const [pays, invsByUid, invsByEmail] = await Promise.all([
-        getCollectionWhere('payments', 'studentId', '==', sid),
-        getCollectionWhere('invoices', 'studentUid', '==', uid),
-        user.email ? getCollectionWhere('invoices', 'studentEmail', '==', user.email) : Promise.resolve([]),
-      ])
-      // Dedupe invoices by id
-      const invMap = new Map()
-      ;[...invsByUid, ...invsByEmail].forEach(i => invMap.set(i.id, i))
-      setPayments(pays)
-      setInvoices(Array.from(invMap.values()))
-    } catch (err) { console.error(err) }
-    finally { setLoading(false) }
-  }
+  const sid = user?.studentId || user?.id || ''
+  const uid = user?.id || user?.uid || ''
 
-  useEffect(() => { if (user) load() }, [user])
+  const { data: payments, loading: lp } = useRealtimeCollection('payments', {
+    where: [['studentId', '==', sid]],
+    enabled: !!sid,
+  })
+  const { data: invsByUid, loading: li1 } = useRealtimeCollection('invoices', {
+    where: [['studentUid', '==', uid]],
+    enabled: !!uid,
+  })
+  const { data: invsByEmail, loading: li2 } = useRealtimeCollection('invoices', {
+    where: [['studentEmail', '==', user?.email || '__none__']],
+    enabled: !!(user?.email),
+  })
+  const invMap = new Map()
+  ;[...invsByUid, ...invsByEmail].forEach(i => invMap.set(i.id, i))
+  const invoices = Array.from(invMap.values())
+  const loading = lp || li1 || li2
+
+  const load = () => {} // no-op; realtime keeps in sync
 
   // Unified rows: invoices (manual) + payments (video purchases)
   const rows = [

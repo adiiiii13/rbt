@@ -78,6 +78,8 @@ const ManageInvoices = lazy(() => import('./pages/admin/ManageInvoices'))
 const ManageBatchRequests = lazy(() => import('./pages/admin/ManageBatchRequests'))
 const ManageProfileForm = lazy(() => import('./pages/admin/ManageProfileForm'))
 const ManageTeachers = lazy(() => import('./pages/admin/ManageTeachers'))
+const StudentDetail = lazy(() => import('./pages/admin/StudentDetail'))
+const ManageOfflineBatches = lazy(() => import('./pages/admin/ManageOfflineBatches'))
 const AdminHelp = lazy(() => import('./pages/admin/Help'))
 
 function ProtectedRoute({ children, role }) {
@@ -247,10 +249,12 @@ function AppContent() {
                     <Route path="testimonials" element={<ManageTestimonials />} />
                     <Route path="achievements" element={<ManageAchievements />} />
                     <Route path="students" element={<ManageStudents />} />
+                    <Route path="students/:studentId" element={<StudentDetail />} />
                     <Route path="batches" element={<Navigate to="/admin" replace />} />
                     <Route path="batch-students" element={<Navigate to="/admin/students" replace />} />
                     <Route path="batch-requests" element={<ManageBatchRequests />} />
                     <Route path="offline-enrollments" element={<ManageBatchRequests />} />
+                    <Route path="offline-batches" element={<ManageOfflineBatches />} />
                     <Route path="notices" element={<ManageNotices />} />
                     <Route path="gallery" element={<ManageGallery />} />
                     <Route path="payments" element={<ManagePayments />} />

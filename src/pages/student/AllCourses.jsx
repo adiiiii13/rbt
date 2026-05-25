@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import { defaultCourses } from '../../data/courses';
 import { useAuth } from '../../context/AuthContext';
@@ -8,9 +8,30 @@ import { motion } from 'framer-motion';
 
 const iconMap = { BookOpen: BookOpenIcon, Flask: FlaskIcon, GraduationCap: GraduationCapIcon, Rocket: RocketIcon, HeartPulse: HeartPulseIcon };
 
+const LEVELS = [
+  { id: 'all', label: 'All Levels' },
+  { id: 'foundation', label: 'Foundation' },
+  { id: 'intermediate', label: 'Intermediate' },
+  { id: 'competitive', label: 'Competitive' },
+  { id: 'jee', label: 'JEE' },
+  { id: 'neet', label: 'NEET' },
+  { id: 'board', label: 'Board Prep' },
+];
+
+const SORT_OPTIONS = [
+  { id: 'newest', label: 'Newest First' },
+  { id: 'price-low', label: 'Price: Low → High' },
+  { id: 'price-high', label: 'Price: High → Low' },
+  { id: 'name-az', label: 'Name: A → Z' },
+  { id: 'popular', label: 'Most Popular' },
+];
+
 export default function AllCourses() {
   const { user } = useAuth();
-  const [priceTab, setPriceTab] = useState('all'); // all | free | paid
+  const [priceTab, setPriceTab] = useState('all');
+  const [search, setSearch] = useState('');
+  const [levelFilter, setLevelFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('newest');
   const { data: coursesRaw, loading } = useRealtimeCollection('courses', { fallback: defaultCourses });
   const { data: enrollments } = useRealtimeCollection('enrollments', {
     where: user?.uid ? [['uid', '==', user.uid]] : []
@@ -18,12 +39,52 @@ export default function AllCourses() {
 
   const enrolledIds = new Set((enrollments || []).map(e => e.courseId));
 
-  const allCourses = (coursesRaw?.length ? coursesRaw : defaultCourses);
-  const courses = allCourses.filter(c => {
-    if (priceTab === 'free' && !c.isFree) return false;
-    if (priceTab === 'paid' && c.isFree) return false;
-    return true;
-  });
+  const allCourses = coursesRaw?.length ? coursesRaw : defaultCourses;
+
+  const courses = useMemo(() => {
+    let result = allCourses.filter(c => {
+      // Price tab
+      if (priceTab === 'free' && !c.isFree) return false;
+      if (priceTab === 'paid' && c.isFree) return false;
+
+      // Level filter
+      if (levelFilter !== 'all') {
+        const lvl = (c.level || c.category || '').toLowerCase();
+        if (levelFilter === 'foundation' && !lvl.includes('foundation') && !lvl.includes('class')) return false;
+        if (levelFilter === 'intermediate' && !lvl.includes('intermediate')) return false;
+        if (levelFilter === 'competitive' && !lvl.includes('competitive')) return false;
+        if (levelFilter === 'jee' && !lvl.includes('jee') && !lvl.includes('iit')) return false;
+        if (levelFilter === 'neet' && !lvl.includes('neet') && !lvl.includes('medical')) return false;
+        if (levelFilter === 'board' && !lvl.includes('board')) return false;
+      }
+
+      // Search
+      if (search.trim()) {
+        const q = search.toLowerCase();
+        const matchTitle = (c.title || '').toLowerCase().includes(q);
+        const matchDesc = (c.description || '').toLowerCase().includes(q);
+        const matchSubjects = (c.subjects || []).some(s => s.toLowerCase().includes(q));
+        const matchLevel = (c.level || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchSubjects && !matchLevel) return false;
+      }
+
+      return true;
+    });
+
+    // Sort
+    result.sort((a, b) => {
+      const getMinPrice = (c) => c.isFree ? 0 : (c.variants?.length ? Math.min(...c.variants.map(v => Number(v.price) || 0)) : 0);
+      switch (sortBy) {
+        case 'price-low': return getMinPrice(a) - getMinPrice(b);
+        case 'price-high': return getMinPrice(b) - getMinPrice(a);
+        case 'name-az': return (a.title || '').localeCompare(b.title || '');
+        case 'popular': return (b.students || 0) - (a.students || 0);
+        default: return 0; // newest = keep Firestore order
+      }
+    });
+
+    return result;
+  }, [allCourses, priceTab, levelFilter, search, sortBy]);
 
   return (
     <div>
@@ -37,26 +98,52 @@ export default function AllCourses() {
         </div>
       </div>
 
-      {/* Paid / Free tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 mb-6">
-        <button
-          onClick={() => setPriceTab('all')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${priceTab === 'all' ? 'border-white text-white' : 'border-transparent text-slate-500 hover:text-white'}`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setPriceTab('free')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${priceTab === 'free' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
-        >
-          Free
-        </button>
-        <button
-          onClick={() => setPriceTab('paid')}
-          className={`px-4 py-2.5 text-sm font-bold border-b-2 transition-colors ${priceTab === 'paid' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-500 hover:text-white'}`}
-        >
-          Paid
-        </button>
+      {/* Filters bar */}
+      <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-6 space-y-3">
+        {/* Search */}
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search courses by name, subject, or level..."
+          className="w-full bg-black/30 border border-white/10 rounded-lg px-4 py-2.5 text-white text-sm placeholder:text-slate-500 focus:border-green-brand/50 focus:outline-none"
+        />
+
+        <div className="flex flex-wrap gap-3 items-center">
+          {/* Price tabs */}
+          <div className="flex items-center gap-1 bg-black/30 rounded-lg p-1">
+            {['all', 'free', 'paid'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setPriceTab(tab)}
+                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors capitalize ${priceTab === tab ? 'bg-green-brand text-white' : 'text-slate-400 hover:text-white'}`}
+              >
+                {tab}
+              </button>
+            ))}
+          </div>
+
+          {/* Level dropdown */}
+          <select
+            value={levelFilter}
+            onChange={e => setLevelFilter(e.target.value)}
+            className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:border-green-brand/50 focus:outline-none"
+          >
+            {LEVELS.map(l => <option key={l.id} value={l.id} className="bg-slate-900">{l.label}</option>)}
+          </select>
+
+          {/* Sort dropdown */}
+          <select
+            value={sortBy}
+            onChange={e => setSortBy(e.target.value)}
+            className="bg-black/30 border border-white/10 rounded-lg px-3 py-1.5 text-white text-xs focus:border-green-brand/50 focus:outline-none"
+          >
+            {SORT_OPTIONS.map(s => <option key={s.id} value={s.id} className="bg-slate-900">{s.label}</option>)}
+          </select>
+
+          {/* Result count */}
+          <span className="text-xs text-slate-500 ml-auto">{courses.length} course{courses.length !== 1 ? 's' : ''} found</span>
+        </div>
       </div>
 
       {loading ? (
@@ -77,7 +164,7 @@ export default function AllCourses() {
             <BookOpenIcon size={28} />
           </div>
           <h3 className="text-lg font-bold text-white mb-2">No Courses</h3>
-          <p className="text-slate-400 text-sm">Nothing matches this filter.</p>
+          <p className="text-slate-400 text-sm">Nothing matches your filters. Try adjusting your search.</p>
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">

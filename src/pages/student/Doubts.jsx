@@ -1,26 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import { useAuth } from '../../context/AuthContext'
-import { getCollectionWhere } from '../../lib/firebaseHelpers'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import DoubtForm from '../../components/DoubtForm'
 import { MessageSquareIcon, ClockIcon, CheckCircleIcon } from '../../components/Icons'
 
 export default function StudentDoubts() {
   const { user } = useAuth()
-  const [doubts, setDoubts] = useState([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const studentUid = user?.uid || user?.id || ''
 
-  const loadDoubts = async () => {
-    setLoading(true)
-    try {
-      const all = await getCollectionWhere('doubts', 'studentUid', '==', user.uid || user.id || '')
-      setDoubts(all)
-    } catch (err) { console.error(err) }
-    finally { setLoading(false) }
-  }
+  const { data: doubts, loading } = useRealtimeCollection('doubts', {
+    where: [['studentUid', '==', studentUid]],
+    enabled: !!studentUid,
+  })
 
-  useEffect(() => { if (user) loadDoubts() }, [user])
+  const loadDoubts = () => {} // legacy no-op kept for DoubtForm onSuccess callers; realtime auto-syncs
 
   const statusColors = { pending: 'badge-gold', answered: 'badge-green' }
 

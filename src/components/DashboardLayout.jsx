@@ -108,6 +108,7 @@ export default function DashboardLayout({ type }) {
     { to: '/admin/students', label: 'Students', icon: <IC.users size={18} /> },
     { to: '/admin/teachers', label: 'Teachers', icon: <IC.users size={18} /> },
     { to: '/admin/offline-enrollments', label: 'Offline Enrollments', icon: <IC.mail size={18} /> },
+    { to: '/admin/offline-batches', label: 'Offline Batches', icon: <IC.users size={18} /> },
     { to: '/admin/notices', label: 'Notices', icon: <IC.bell size={18} /> },
     { to: '/admin/payments', label: 'Payments', icon: <IC.card size={18} /> },
     { to: '/admin/counselling', label: 'Counselling', icon: <IC.calendar size={18} /> },

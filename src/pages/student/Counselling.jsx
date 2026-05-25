@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { ListSkeleton } from '../../components/ui/Skeleton'
 import { useAuth } from '../../context/AuthContext'
-import { getCollectionWhere } from '../../lib/firebaseHelpers'
+import { useRealtimeCollection } from '../../lib/useRealtimeCollection'
 import CounsellingForm from '../../components/CounsellingForm'
 import { CalendarIcon, ClockIcon, UsersIcon, VideoIcon } from '../../components/Icons'
 
@@ -13,20 +13,23 @@ const HeadsetIcon = ({ size = 18, className = '' }) => (
 
 export default function StudentCounselling() {
   const { user } = useAuth()
-  const [bookings, setBookings] = useState([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const uid = user?.uid || user?.id || ''
 
-  const loadBookings = async () => {
-    setLoading(true)
-    try {
-      const all = await getCollectionWhere('counsellingBookings', 'studentName', '==', user.name || '')
-      setBookings(all)
-    } catch (err) { console.error(err) }
-    finally { setLoading(false) }
-  }
+  // Prefer studentUid (set by CounsellingForm); fall back to studentName for legacy rows.
+  const { data: byUid, loading: l1 } = useRealtimeCollection('counsellingBookings', {
+    where: [['studentUid', '==', uid]],
+    enabled: !!uid,
+  })
+  const { data: byName, loading: l2 } = useRealtimeCollection('counsellingBookings', {
+    where: [['studentName', '==', user?.name || '__none__']],
+    enabled: !!(user?.name),
+  })
+  const seen = new Set()
+  const bookings = [...byUid, ...byName].filter(b => seen.has(b.id) ? false : (seen.add(b.id), true))
+  const loading = l1 || l2
 
-  useEffect(() => { if (user) loadBookings() }, [user])
+  const loadBookings = () => {} // no-op; realtime keeps in sync
 
   const statusColors = { pending: 'badge-gold', approved: 'badge-green', completed: 'badge-navy', rejected: 'badge-red' }
 

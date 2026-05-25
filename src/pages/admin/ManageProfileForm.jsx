@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { doc, getDoc, setDoc } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc } from 'firebase/firestore'
 import { db } from '../../lib/firebase'
 import toast from 'react-hot-toast'
 import { TableSkeleton } from '../../components/ui/Skeleton'
@@ -30,10 +30,10 @@ export default function ManageProfileForm() {
   const [newField, setNewField] = useState({ id: '', label: '', type: 'text', required: false })
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const docRef = doc(db, 'settings', 'profileForm')
-        const docSnap = await getDoc(docRef)
+    const docRef = doc(db, 'settings', 'profileForm')
+    const unsub = onSnapshot(
+      docRef,
+      (docSnap) => {
         if (docSnap.exists()) {
           const fetchedData = docSnap.data()
           setData({
@@ -43,14 +43,15 @@ export default function ManageProfileForm() {
             fields: fetchedData.fields || DEFAULT_FIELDS
           })
         }
-      } catch (error) {
+        setLoading(false)
+      },
+      (error) => {
         console.error("Error fetching profile form settings:", error)
         toast.error("Failed to load settings")
-      } finally {
         setLoading(false)
       }
-    }
-    fetchData()
+    )
+    return () => unsub()
   }, [])
 
   const saveSettings = async (newData) => {

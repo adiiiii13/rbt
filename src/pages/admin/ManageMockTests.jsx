@@ -25,6 +25,7 @@ const emptyForm = {
   duration: 30,
   marksPerQuestion: 4,
   negativeMarks: 1,
+  price: 0,
   questions: [],
 };
 
@@ -99,6 +100,7 @@ export default function ManageMockTests() {
       duration: t.duration || 30,
       marksPerQuestion: t.marksPerQuestion ?? 4,
       negativeMarks: t.negativeMarks ?? 1,
+      price: t.price ?? 0,
       questions: (t.questions || []).map(q => ({
         section: 'Physics',
         imageUrl: '',
@@ -181,6 +183,7 @@ export default function ManageMockTests() {
       duration: Number(form.duration) || 30,
       marksPerQuestion: Number(form.marksPerQuestion) || 4,
       negativeMarks: Number(form.negativeMarks) || 0,
+      price: Number(form.price) || 0,
       totalQuestions: form.questions.length,
       maxMarks: form.questions.reduce((s, q) => s + (Number(q.marks) || Number(form.marksPerQuestion) || 4), 0),
     };
@@ -268,7 +271,9 @@ export default function ManageMockTests() {
               <span className="text-xs font-bold px-2 py-1 rounded bg-green-brand/10 text-green-brand">
                 {CATEGORIES.find(c => c.id === t.category)?.label || t.category}
               </span>
-              {t.difficulty && <span className="text-xs text-slate-400">{t.difficulty}</span>}
+              <span className={`text-xs font-bold px-2 py-1 rounded ${t.price > 0 ? 'bg-amber-500/10 text-amber-400' : 'bg-green-500/10 text-green-400'}`}>
+                {t.price > 0 ? `₹${t.price}` : 'Free'}
+              </span>
             </div>
             <h3 className="text-white font-bold mb-1 line-clamp-2">{t.title}</h3>
             <p className="text-xs text-slate-400 mb-3 line-clamp-2">{t.description}</p>
@@ -313,6 +318,9 @@ export default function ManageMockTests() {
               className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
             <input type="number" value={form.negativeMarks} onChange={e => setForm({ ...form, negativeMarks: e.target.value })}
               placeholder="-ve" title="Negative marks"
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
+            <input type="number" value={form.price} onChange={e => setForm({ ...form, price: e.target.value })}
+              placeholder="₹ Price (0=free)" title="Price in INR (0 = free)"
               className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
           </div>
 
