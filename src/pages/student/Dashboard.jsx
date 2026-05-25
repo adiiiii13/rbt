@@ -25,7 +25,7 @@ export default function StudentDashboard() {
   const { data: allPdfsRaw } = useRealtimeCollection('pdfs', { fallback: defaultPdfs })
   const { data: allNoticesRaw } = useRealtimeCollection('notices', { fallback: defaultNotices })
   const { data: enrollments } = useRealtimeCollection('enrollments', {
-    orderField: 'enrolledAt',
+    orderField: false,
     where: user?.uid ? [['uid', '==', user.uid]] : []
   })
   const enrolledIds = new Set((enrollments || []).map(e => e.courseId))

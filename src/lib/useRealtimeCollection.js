@@ -40,7 +40,7 @@ export function useRealtimeCollection(name, opts = {}) {
     try {
       const constraints = []
       for (const [f, op, v] of whereClauses) constraints.push(where(f, op, v))
-      constraints.push(orderBy(orderField, orderDir))
+      if (orderField) constraints.push(orderBy(orderField, orderDir))
       q = query(collection(db, name), ...constraints)
     } catch (err) {
       setError(err)
@@ -67,8 +67,8 @@ export function useRealtimeCollection(name, opts = {}) {
       (err) => {
         clearTimeout(stuckTimer)
         console.warn(`[useRealtimeCollection] ${name}`, err.message)
-        // Retry without orderBy if index missing
-        if (err.code === 'failed-precondition') {
+        // Retry without orderBy if index missing (only if we had one)
+        if (err.code === 'failed-precondition' && orderField) {
           const fallbackConstraints = []
           for (const [f, op, v] of whereClauses) fallbackConstraints.push(where(f, op, v))
           const fallbackQ = query(collection(db, name), ...fallbackConstraints)
