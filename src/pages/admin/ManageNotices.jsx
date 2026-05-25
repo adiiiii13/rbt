@@ -62,12 +62,16 @@ export default function ManageNotices() {
         await updateDocument('notices', editing.id, form)
         toast.success('Notice Updated')
       } else {
+        // 1. Save Notice
         const noticeRef = await addDocument('notices', { 
           ...form, 
           date: new Date().toISOString().split('T')[0], 
           createdAt: new Date() 
         })
 
+        const noticeId = noticeRef?.id || '';
+
+        // 2. Push Notifications to Bell Icon
         const recipients = targetStudents.slice(0, 500)
         if (recipients.length > 0) {
           await Promise.all(recipients.map(s => addDocument('notifications', {
@@ -78,7 +82,7 @@ export default function ManageNotices() {
             audience: form.audience,
             read: false,
             createdAt: new Date(),
-            noticeId: noticeRef.id 
+            noticeId: noticeId // Fixed: ensuring this is not undefined
           })))
           toast.success(`Sent & Pushed to ${recipients.length} students`)
         } else {
