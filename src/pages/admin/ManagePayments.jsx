@@ -49,6 +49,15 @@ export default function ManagePayments() {
     }
   }
 
+  const deletePayment = async (id) => {
+    if (window.confirm("Are you sure you want to delete this payment? This action cannot be undone.")) {
+      try {
+        await deleteDocument('payments', id)
+        toast.success('Payment deleted')
+      } catch (err) { toast.error(err.message || 'Delete failed') }
+    }
+  }
+
   const remind = async (inv) => {
     try {
       await updateDocument('invoices', inv.id, { remindedAt: new Date().toISOString() })
@@ -210,7 +219,7 @@ export default function ManagePayments() {
                           Download
                         </button>
                         <button 
-                          onClick={() => deleteInvoice(p.id)} 
+                          onClick={() => deletePayment(p.id)} 
                           className="text-xs text-red-500 font-bold cursor-pointer hover:text-red-400 transition-colors"
                         >
                           Delete
