@@ -77,12 +77,23 @@ export default function Home({ onOpenLogin }) {
   }, []);
 
   const { data: coursesRaw } = useRealtimeCollection('courses', { fallback: defaultCourses });
+  const { data: galleryImages } = useRealtimeCollection('gallery', { fallback: [] });
   const { data: testimonialsRaw } = useRealtimeCollection('testimonials', { fallback: defaultTestimonials });
   const { data: achievementsRaw } = useRealtimeCollection('achievements', { fallback: defaultAchievements });
   const courses = coursesRaw?.length ? coursesRaw : defaultCourses;
   const testimonials = testimonialsRaw?.length ? testimonialsRaw : defaultTestimonials;
   const achievementsAll = achievementsRaw?.length ? achievementsRaw : defaultAchievements;
   const achievements = achievementsAll.slice(0, 4);
+
+  // Random gallery image for the home preview
+  const [randomGallery, setRandomGallery] = useState(null);
+  useEffect(() => {
+    if (!galleryImages?.length) return;
+    const pick = () => setRandomGallery(galleryImages[Math.floor(Math.random() * galleryImages.length)]);
+    pick();
+    const interval = setInterval(pick, 5000);
+    return () => clearInterval(interval);
+  }, [galleryImages]);
 
   const stats = [
     { value: 1200, suffix: '+', label: 'Students Enrolled', icon: <UsersIcon size={28} /> },
@@ -464,14 +475,15 @@ export default function Home({ onOpenLogin }) {
               className="group relative rounded-[32px] overflow-hidden aspect-square bg-white/5 cursor-pointer border border-white/10"
             >
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity z-10"></div>
-              <img 
-                src="https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=600&auto=format&fit=crop" 
-                alt="Library"
+              <img
+                key={randomGallery?.id || 'default'}
+                src={randomGallery?.imageUrl || randomGallery?.src || "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?q=80&w=600&auto=format&fit=crop"}
+                alt={randomGallery?.title || 'Gallery'}
                 className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
                 loading="lazy"
               />
               <div className="absolute bottom-6 left-6 z-20">
-                <h3 className="text-lg font-bold text-white">Digital Library</h3>
+                <h3 className="text-lg font-bold text-white">{randomGallery?.title || 'Digital Library'}</h3>
               </div>
             </motion.div>
           </div>
