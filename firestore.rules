@@ -129,11 +129,13 @@ service cloud.firestore {
     }
 
     // Payments: student create own; admin read/update all; student read own
+    // Payments: student create own; admin read/update all; student read own
     match /payments/{doc} {
       allow create: if isAdmin() || (isSignedIn() && request.resource.data.uid == request.auth.uid);
       allow read: if isAdmin() || (isSignedIn() && (
         resource.data.uid == request.auth.uid || 
         resource.data.studentId == request.auth.uid ||
+        (request.auth.token.email != null && resource.data.studentEmail == request.auth.token.email) ||
         (exists(/databases/$(database)/documents/students/$(request.auth.uid)) && 
          resource.data.studentId == get(/databases/$(database)/documents/students/$(request.auth.uid)).data.studentId)
       ));
