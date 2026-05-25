@@ -1,5 +1,13 @@
 {
   "projects": {
     "default": "rbt-website-918b6"
+  },
+  "targets": {},
+  "etags": {
+    "rbt-website-918b6": {
+      "extensionInstances": {
+        "firestore-send-email": "ea8f65d3d74ca4e8d98d54259598aa2c99df2906285805ed9c67e1791d980908"
+      }
+    }
   }
 }

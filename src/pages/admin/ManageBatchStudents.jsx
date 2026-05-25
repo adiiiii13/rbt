@@ -7,6 +7,7 @@ import { db } from '../../lib/firebase';
 import Modal from '../../components/Modal';
 import { TableSkeleton } from '../../components/ui/Skeleton';
 import ExportButton from '../../components/ExportButton';
+import { sendStudentStatusEmail } from '../../lib/emailUtils';
 
 export default function ManageBatchStudents() {
   const { data: students, loading: loadingStudents } = useRealtimeCollection('students', { orderField: 'createdAt', orderDir: 'desc' });
@@ -84,6 +85,9 @@ export default function ManageBatchStudents() {
         assignedBatchName: batch.name || batch.className || '',
         assignedBatchCode: batch.batchCode
       });
+      if (selectedStudent.email) {
+        await sendStudentStatusEmail(selectedStudent.name, selectedStudent.email, 'approved', batch.name || batch.className);
+      }
       toast.success('Student approved and assigned to batch');
       setApprovalModal(false);
     } catch (err) {
@@ -95,6 +99,10 @@ export default function ManageBatchStudents() {
     if (!confirm('Reject/Revoke this student access?')) return;
     try {
       await updateDocument('students', studentId, { batchStatus: 'revoked', batch: false });
+      const student = students.find(s => s.id === studentId);
+      if (student && student.email) {
+        await sendStudentStatusEmail(student.name, student.email, 'revoked', student.assignedBatchName || 'their batch');
+      }
       toast.success('Student access revoked');
     } catch (err) {
       toast.error('Failed to revoke access');

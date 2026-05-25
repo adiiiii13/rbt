@@ -4,7 +4,7 @@ import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useRealtimeCollection } from '../../lib/useRealtimeCollection';
 import toast from 'react-hot-toast';
-import Modal from '../../components/ui/Modal';
+import Modal from '../../components/Modal';
 import { sendTeacherStatusEmail } from '../../lib/emailUtils';
 
 export default function ManageTeachers() {

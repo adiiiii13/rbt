@@ -29,6 +29,68 @@ function assertAuthenticated(ctxAuth) {
   if (!ctxAuth) throw new HttpsError('unauthenticated', 'Sign in required')
 }
 
+// ─── Email Helpers ────────────────────────────────────────────────────────
+
+async function sendReceiptEmail(toEmail, toName, amount, itemName, dateStr, orderId) {
+  if (!toEmail) return;
+  try {
+    await db.collection('mail').add({
+      to: toEmail,
+      message: {
+        subject: `Payment Receipt: ${itemName}`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2 style="color: #22c55e;">Payment Successful!</h2>
+            <p>Hi ${toName},</p>
+            <p>Thank you for your purchase. We have received your payment.</p>
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; padding: 15px; border-radius: 8px; margin: 20px 0;">
+              <p style="margin: 0 0 10px 0;"><strong>Item:</strong> ${itemName}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Amount Paid:</strong> ₹${amount}</p>
+              <p style="margin: 0 0 10px 0;"><strong>Date:</strong> ${dateStr}</p>
+              <p style="margin: 0;"><strong>Order ID:</strong> ${orderId}</p>
+            </div>
+            <p>You can now access your content by logging into your account.</p>
+            <p>If you have any questions, please contact our support team.</p>
+            <br/>
+            <p>Best regards,<br/><strong>RBT Mission Team</strong></p>
+          </div>
+        `
+      }
+    });
+  } catch (err) {
+    console.error('Error sending receipt email:', err);
+  }
+}
+
+async function sendWelcomeEmail(toEmail, toName) {
+  if (!toEmail) return;
+  try {
+    await db.collection('mail').add({
+      to: toEmail,
+      message: {
+        subject: `Welcome to RBT Mission!`,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
+            <h2 style="color: #22c55e;">Welcome aboard, ${toName}!</h2>
+            <p>We're thrilled to have you join RBT Mission.</p>
+            <p>Your account has been successfully created. You can now log in to your portal to complete your profile, explore our courses, and track your progress.</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://students.rbtmission.com" style="background-color: #22c55e; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">Go to Student Portal</a>
+            </div>
+            <p>If you have any questions, our support team is always here to help.</p>
+            <br/>
+            <p>Best regards,<br/><strong>RBT Mission Team</strong></p>
+          </div>
+        `
+      }
+    });
+  } catch (err) {
+    console.error('Error sending welcome email:', err);
+  }
+}
+
+// ─── User Management ────────────────────────────────────────────────────────
+
 // Admin bootstrap: one-time elevate the first admin manually via Firebase Console,
 // then use this callable to grant admin claim to others.
 export const grantAdminRole = onCall(async (request) => {
@@ -355,6 +417,14 @@ export const onNoticeCreated = onDocumentCreated('notices/{id}', async (event) =
   }
 });
 
+// Trigger: new student created → Welcome Email
+export const onStudentCreated = onDocumentCreated('students/{id}', async (event) => {
+  const data = event.data?.data();
+  if (!data || !data.email) return;
+
+  await sendWelcomeEmail(data.email, data.name || 'Student');
+});
+
 // ─── Razorpay Payment Gateway ───────────────────────────────────────────────
 
 // Create a Razorpay order (server-side) — called before opening checkout
@@ -500,6 +570,16 @@ export const verifyRazorpayPayment = onCall(async (request) => {
       createdAt: FieldValue.serverTimestamp(),
     })
 
+    // SEND RECEIPT EMAIL
+    await sendReceiptEmail(
+      studentData.email || '', 
+      studentData.name || 'Student', 
+      variantPrice || 0, 
+      courseTitle || 'Course', 
+      new Date().toLocaleString('en-IN'), 
+      razorpay_order_id
+    )
+
     return { success: true, enrollmentId: enrollRef.id }
   }
 )
@@ -618,6 +698,16 @@ export const verifyInvoiceRazorpayPayment = onCall(async (request) => {
       paidAt: new Date().toISOString(),
       createdAt: FieldValue.serverTimestamp()
     })
+
+    // SEND RECEIPT EMAIL
+    await sendReceiptEmail(
+      studentData.email || invoice.studentEmail || '', 
+      studentData.name || invoice.studentName || 'Student', 
+      invoice.amount || 0, 
+      invoice.courseName || 'Invoice Payment', 
+      new Date().toLocaleString('en-IN'), 
+      razorpay_order_id
+    )
   }
 
   return { success: true }
@@ -723,6 +813,16 @@ export const razorpayWebhook = onRequest(async (req, res) => {
               paidAt: new Date().toISOString(),
               createdAt: FieldValue.serverTimestamp()
             })
+
+            // SEND RECEIPT EMAIL
+            await sendReceiptEmail(
+              studentData.email || invoice.studentEmail || '', 
+              studentData.name || invoice.studentName || 'Student', 
+              invoice.amount || 0, 
+              invoice.courseName || 'Invoice Payment', 
+              new Date().toLocaleString('en-IN'), 
+              orderId
+            )
           }
         }
       } else if (uid && courseId) {
@@ -760,6 +860,16 @@ export const razorpayWebhook = onRequest(async (req, res) => {
           paidAt: FieldValue.serverTimestamp(),
           createdAt: FieldValue.serverTimestamp(),
         })
+
+        // SEND RECEIPT EMAIL
+        await sendReceiptEmail(
+          studentData.email || '', 
+          studentData.name || 'Student', 
+          amount, 
+          notes.courseTitle || 'Course', 
+          new Date().toLocaleString('en-IN'), 
+          orderId
+        )
       }
     } else if (event === 'payment.failed') {
       const paymentEntity = req.body.payload.payment.entity

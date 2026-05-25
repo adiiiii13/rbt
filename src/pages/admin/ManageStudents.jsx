@@ -11,6 +11,7 @@ import { db } from '../../lib/firebase';
 import InvoiceView from '../../components/InvoiceView';
 import { formatCurrency } from '../../lib/invoice';
 import ExportButton from '../../components/ExportButton';
+import { sendStudentStatusEmail } from '../../lib/emailUtils';
 
 const emptyForm = { studentId: '', name: '', email: '', phone: '', course: '', class: 'Class 10', password: '' };
 
@@ -107,12 +108,16 @@ export default function ManageStudents() {
     }
   };
 
-  const toggleCourseStatus = async (enrollmentId, currentStatus) => {
+  const toggleCourseStatus = async (enrollmentId, currentStatus, courseName) => {
     const newStatus = currentStatus === 'revoked' ? 'active' : 'revoked';
     try {
       await updateDocument('enrollments', enrollmentId, { status: newStatus });
       setEnrollments(prev => prev.map(e => e.id === enrollmentId ? { ...e, status: newStatus } : e));
       toast.success(`Course ${newStatus === 'revoked' ? 'revoked' : 'reactivated'}`);
+      
+      if (selectedStudent && selectedStudent.email) {
+        await sendStudentStatusEmail(selectedStudent.name, selectedStudent.email, newStatus === 'revoked' ? 'revoked' : 'granted', courseName || 'a course');
+      }
     } catch (err) {
       toast.error('Failed to update status');
     }
@@ -182,6 +187,7 @@ export default function ManageStudents() {
     try {
       const fn = httpsCallable(functions, 'disableStudent');
       await fn({ uid: s.id });
+      if (s.email) await sendStudentStatusEmail(s.name, s.email, 'disabled', 'Account disabled by administrator');
       toast.success('Student disabled');
     } catch (err) { toast.error(err.message); }
   };
@@ -190,6 +196,7 @@ export default function ManageStudents() {
     try {
       const fn = httpsCallable(functions, 'disableStudent');
       await fn({ uid: s.id, disabled: false });
+      if (s.email) await sendStudentStatusEmail(s.name, s.email, 'active');
       toast.success('Student enabled');
     } catch (err) { toast.error(err.message); }
   };
@@ -388,7 +395,7 @@ export default function ManageStudents() {
                             {isRevoked && <span className="inline-block mt-1 text-[10px] uppercase font-bold tracking-wider text-red-400 bg-red-400/10 px-2 py-0.5 rounded">Revoked</span>}
                           </div>
                           <button 
-                            onClick={() => toggleCourseStatus(e.id, e.status)}
+                            onClick={() => toggleCourseStatus(e.id, e.status, course?.title)}
                             className={`text-sm font-bold cursor-pointer ${isRevoked ? 'text-green-brand hover:text-green-400' : 'text-amber-400 hover:text-amber-300'}`}
                           >
                             {isRevoked ? 'Reactivate' : 'Revoke Access'}
