@@ -17,8 +17,10 @@ export default function TestPapersDownloadable() {
   const allPdfs = pdfsRaw?.length ? pdfsRaw : defaultPdfs;
   const [filter, setFilter] = useState('All');
   const [search, setSearch] = useState('');
+  const [tab, setTab] = useState('free');
 
   const filtered = allPdfs.filter(p => {
+    const matchesTab = tab === 'free' ? p.isFree === true : p.isFree !== true;
     const matchesFilter = filter === 'All'
       || (p.category && p.category.toLowerCase().includes(filter.toLowerCase()))
       || (p.examType && p.examType.toLowerCase().includes(filter.toLowerCase()))
@@ -27,7 +29,7 @@ export default function TestPapersDownloadable() {
     const matchesSearch = !search
       || p.title?.toLowerCase().includes(search.toLowerCase())
       || p.subject?.toLowerCase().includes(search.toLowerCase());
-    return matchesFilter && matchesSearch;
+    return matchesTab && matchesFilter && matchesSearch;
   });
 
   return (
@@ -41,6 +43,22 @@ export default function TestPapersDownloadable() {
         <div className="mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Downloadable Test Papers</h1>
           <p className="text-slate-400">PDFs for offline practice — previous years, sample papers, solutions.</p>
+        </div>
+
+        {/* Paid / Free tabs */}
+        <div className="flex items-center gap-2 border-b border-slate-800 mb-6">
+          <button
+            onClick={() => setTab('free')}
+            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === 'free' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
+          >
+            Free
+          </button>
+          <button
+            onClick={() => setTab('paid')}
+            className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === 'paid' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-500 hover:text-white'}`}
+          >
+            Paid
+          </button>
         </div>
 
         {/* Search + filters */}
@@ -109,15 +127,21 @@ export default function TestPapersDownloadable() {
 
               <div className="mt-auto flex items-center justify-between pt-4 border-t border-white/10">
                 <span className="text-xs text-slate-500">{paper.pages ? `${paper.pages} pages` : paper.size || 'PDF'}</span>
-                <a
-                  href={paper.url || paper.fileUrl || '#'}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm font-bold text-green-brand hover:text-emerald-400 no-underline"
-                  onClick={e => { if (!paper.url && !paper.fileUrl) e.preventDefault(); }}
-                >
-                  <DownloadIcon size={16} /> Download
-                </a>
+                {paper.isFree === true ? (
+                  <a
+                    href={paper.url || paper.fileUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 text-sm font-bold text-green-brand hover:text-emerald-400 no-underline"
+                    onClick={e => { if (!paper.url && !paper.fileUrl) e.preventDefault(); }}
+                  >
+                    <DownloadIcon size={16} /> Download
+                  </a>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-amber-400">
+                    🔒 Paid
+                  </span>
+                )}
               </div>
             </motion.div>
           ))}

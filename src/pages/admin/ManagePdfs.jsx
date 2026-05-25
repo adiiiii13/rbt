@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import Modal from '../../components/Modal';
 import ExportButton from '../../components/ExportButton';
 
-const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '', fileSize: 0, description: '' };
+const emptyForm = { title: '', class: 'Class 10', subject: '', examType: 'Unit Test', date: '', url: '', fileName: '', fileSize: 0, description: '', isFree: false };
 
 // Convert Google Drive share URL to direct download URL
 const normalizeUrl = (url) => {
@@ -64,7 +64,7 @@ export default function ManagePdfs() {
     catch (err) { toast.error(err.message); }
   };
 
-  const openEdit = (p) => { setEditing(p); setForm({ title: p.title, class: p.class, subject: p.subject, examType: p.examType, date: p.date || '', url: p.url || '', fileName: p.fileName || '', fileSize: p.fileSize || 0, description: p.description || '' }); setModal(true); };
+  const openEdit = (p) => { setEditing(p); setForm({ title: p.title, class: p.class, subject: p.subject, examType: p.examType, date: p.date || '', url: p.url || '', fileName: p.fileName || '', fileSize: p.fileSize || 0, description: p.description || '', isFree: !!p.isFree }); setModal(true); };
   const closeModal = () => { setModal(false); setEditing(null); setForm(emptyForm); };
 
   return (
@@ -83,6 +83,7 @@ export default function ManagePdfs() {
             { key: 'fileSize', label: 'Size' },
             { key: 'downloads', label: 'Downloads' },
             { key: 'description', label: 'Description' },
+            { key: 'isFree', label: 'Free' },
           ]} />
           <button onClick={() => setModal(true)} className="btn-primary">+ Add PDF</button>
         </div>
@@ -91,13 +92,14 @@ export default function ManagePdfs() {
       <div className="bg-[#111111] rounded-2xl border border-slate-800 overflow-hidden">
         <div className="table-container">
           <table>
-            <thead><tr><th className="text-white">Title</th><th className="text-white">Class</th><th className="text-white">Subject</th><th className="text-white">Type</th><th className="text-white">Downloads</th><th className="text-white">Actions</th></tr></thead>
+            <thead><tr><th className="text-white">Title</th><th className="text-white">Class</th><th className="text-white">Subject</th><th className="text-white">Type</th><th className="text-white">Access</th><th className="text-white">Downloads</th><th className="text-white">Actions</th></tr></thead>
             <tbody>{pdfs.map(p => (
               <tr key={p.id}>
                 <td className="font-medium text-white">{p.title}</td>
                 <td><span className="badge badge-green">{p.class}</span></td>
                 <td>{p.subject}</td>
                 <td>{p.examType}</td>
+                <td><span className={`badge ${p.isFree ? 'badge-green' : 'badge-gold'}`}>{p.isFree ? 'Free' : 'Paid'}</span></td>
                 <td>{p.downloads || 0}</td>
                 <td>
                   <div className="flex gap-2">
@@ -126,6 +128,17 @@ export default function ManagePdfs() {
           <div>
             <label className="text-sm font-medium text-slate-300 mb-1 block">Description (optional)</label>
             <textarea rows="2" className="input-field resize-none" value={form.description} onChange={e => setForm({...form, description: e.target.value})} placeholder="Short description shown to students" />
+          </div>
+
+          {/* Free / Paid toggle */}
+          <div className="flex items-center justify-between bg-slate-800/40 rounded-xl px-4 py-3 border border-slate-700">
+            <div>
+              <p className="text-sm font-medium text-white">Free or Paid?</p>
+              <p className="text-xs text-slate-400">{form.isFree ? 'Anyone can download' : 'Requires enrollment / payment'}</p>
+            </div>
+            <button type="button" onClick={() => setForm({...form, isFree: !form.isFree})} className={`relative w-14 h-7 rounded-full transition-colors cursor-pointer ${form.isFree ? 'bg-green-brand' : 'bg-amber-500'}`}>
+              <span className={`absolute top-0.5 w-6 h-6 rounded-full bg-white transition-transform shadow ${form.isFree ? 'left-7' : 'left-0.5'}`} />
+            </button>
           </div>
 
           {/* Upload PDF file */}

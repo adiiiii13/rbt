@@ -60,7 +60,7 @@ export default function StudentDashboard() {
   }, [user])
 
   const stats = [
-    { label: 'Courses', value: courses.length, icon: <BookOpenIcon size={22} />, link: '/student/courses' },
+    { label: 'Courses', value: courses.length, icon: <BookOpenIcon size={22} />, link: '/student/basic-courses' },
     { label: 'Test Papers', value: pdfs.length, icon: <FileTextIcon size={22} />, link: '/student/pdfs' },
     { label: 'Payments', value: payments.length, icon: <CreditCardIcon size={22} />, link: '/student/invoices' },
     { label: 'Sessions', value: bookings.length, icon: <CalendarIcon size={22} />, link: '/student/counselling' },
@@ -222,7 +222,7 @@ export default function StudentDashboard() {
               <h3 className="font-bold text-white flex items-center gap-2">
                 <BookOpenIcon size={18} className="text-blue-400" /> Available Courses
               </h3>
-              <Link to="/student/courses" className="text-xs text-green-brand hover:text-green-light no-underline">View all →</Link>
+              <Link to="/student/basic-courses" className="text-xs text-green-brand hover:text-green-light no-underline">View all →</Link>
             </div>
             <div className="grid sm:grid-cols-2 gap-3">
               {courses.length === 0 ? (

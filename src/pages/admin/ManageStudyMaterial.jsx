@@ -18,7 +18,7 @@ export default function ManageStudyMaterial() {
   const [currentFolder, setCurrentFolder] = useState(null);
   const [crumbs, setCrumbs] = useState([{ id: null, name: 'Root' }]);
   const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({ name: '', type: 'folder', url: '', subject: '', thumbnail: '' });
+  const [form, setForm] = useState({ name: '', type: 'folder', url: '', subject: '', thumbnail: '', isFree: false });
   const [uploading, setUploading] = useState(false);
 
   const children = useMemo(() => items.filter(it => (it.parentId || null) === currentFolder), [items, currentFolder]);
@@ -35,7 +35,7 @@ export default function ManageStudyMaterial() {
   };
 
   const openCreate = () => {
-    setForm({ name: '', type: 'folder', url: '', subject: '', thumbnail: '' });
+    setForm({ name: '', type: 'folder', url: '', subject: '', thumbnail: '', isFree: false });
     setModal(true);
   };
 
@@ -90,6 +90,7 @@ export default function ManageStudyMaterial() {
             { key: 'url', label: 'URL' },
             { key: 'thumbnail', label: 'Thumbnail' },
             { key: 'parentId', label: 'Parent Folder' },
+            { key: 'isFree', label: 'Free' },
           ]} />
           <button onClick={openCreate} className="bg-green-brand hover:bg-green-600 text-white font-bold px-5 py-2.5 rounded-lg">
             + Add Item
@@ -200,6 +201,17 @@ export default function ManageStudyMaterial() {
                     className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" />
                 </div>
               )}
+
+              <div className="flex items-center justify-between bg-slate-800/40 rounded-lg px-3 py-2 border border-slate-700">
+                <div>
+                  <p className="text-sm font-medium text-white">Free or Paid?</p>
+                  <p className="text-xs text-slate-400">{form.isFree ? 'Anyone can access' : 'Requires enrollment'}</p>
+                </div>
+                <button type="button" onClick={() => setForm({ ...form, isFree: !form.isFree })}
+                  className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${form.isFree ? 'bg-green-brand' : 'bg-amber-500'}`}>
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow ${form.isFree ? 'left-6' : 'left-0.5'}`} />
+                </button>
+              </div>
             </>
           )}
 

@@ -38,10 +38,19 @@ export default function StudyMaterial() {
   const [currentFolder, setCurrentFolder] = useState(null); // null = root
   const [crumbs, setCrumbs] = useState([{ id: null, name: 'Study Material' }]);
   const [previewItem, setPreviewItem] = useState(null);
+  const [tab, setTab] = useState('free');
+
+  // Determine isFree for an item: folder inherits when any child marked, but explicit flag wins.
+  const isItemFree = (it) => it?.isFree === true;
 
   const children = useMemo(() => {
-    return items.filter(it => (it.parentId || null) === currentFolder);
-  }, [items, currentFolder]);
+    const all = items.filter(it => (it.parentId || null) === currentFolder);
+    return all.filter(it => {
+      // Folders always shown — they may contain mixed
+      if (it.type === 'folder') return true;
+      return tab === 'free' ? isItemFree(it) : !isItemFree(it);
+    });
+  }, [items, currentFolder, tab]);
 
   const folders = children.filter(c => c.type === 'folder');
   const files = children.filter(c => c.type !== 'folder');
@@ -75,6 +84,22 @@ export default function StudyMaterial() {
     <div className="p-4 md:p-6">
       <h1 className="text-2xl font-bold text-white mb-1">Study Material</h1>
       <p className="text-slate-400 text-sm mb-4">Videos, notes, photos — organized in folders</p>
+
+      {/* Paid / Free tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-800 mb-4">
+        <button
+          onClick={() => setTab('free')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === 'free' ? 'border-green-brand text-green-brand' : 'border-transparent text-slate-500 hover:text-white'}`}
+        >
+          Free
+        </button>
+        <button
+          onClick={() => setTab('paid')}
+          className={`px-4 py-3 text-sm font-bold border-b-2 transition-colors ${tab === 'paid' ? 'border-amber-400 text-amber-400' : 'border-transparent text-slate-500 hover:text-white'}`}
+        >
+          Paid
+        </button>
+      </div>
 
       {/* Breadcrumb */}
       <div className="flex flex-wrap items-center gap-1 mb-6 text-sm">
@@ -140,8 +165,14 @@ export default function StudyMaterial() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.03 }}
-                onClick={() => setPreviewItem(file)}
-                className={`text-left rounded-xl border overflow-hidden hover:scale-105 transition-all ${COLORS[file.type] || COLORS.video}`}
+                onClick={() => {
+                  if (!isItemFree(file)) {
+                    alert('Paid content — requires enrollment.');
+                    return;
+                  }
+                  setPreviewItem(file);
+                }}
+                className={`text-left rounded-xl border overflow-hidden hover:scale-105 transition-all ${COLORS[file.type] || COLORS.video} ${!isItemFree(file) ? 'opacity-70' : ''}`}
               >
                 {(() => {
                   const thumb = getThumbnail(file);
@@ -155,7 +186,10 @@ export default function StudyMaterial() {
                   );
                 })()}
                 <div className="p-3">
-                  <div className="font-bold text-sm line-clamp-2">{file.name}</div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="font-bold text-sm line-clamp-2 flex-1">{file.name}</div>
+                    {!isItemFree(file) && <span className="text-[10px] font-bold text-amber-400 shrink-0">🔒 PAID</span>}
+                  </div>
                   {file.subject && <div className="text-xs opacity-70 mt-1">{file.subject}</div>}
                 </div>
               </motion.button>
