@@ -83,11 +83,32 @@ export default function BatchUpgradeForm() {
     preferredBatchId: '',
     message: '',
   })
+
+  // Pre-fill from user profile
+  useEffect(() => {
+    if (user) {
+      setForm(prev => ({
+        ...prev,
+        phone: user.phone || prev.phone,
+        class: user.className || user.class || prev.class,
+        board: user.board || prev.board,
+        school: user.school || prev.school,
+        address: user.address || prev.address,
+        parentName: user.parentName || prev.parentName,
+        parentPhone: user.parentPhone || prev.parentPhone,
+      }))
+    }
+  }, [user])
   const [files, setFiles] = useState({ photo: null, idProof: null, lastMarksheet: null })
 
   // Load existing request if any
   useEffect(() => {
-    if (!user?.uid) return
+    if (!user?.uid) {
+      // If we're here and no user, ProtectedRoute should have caught it, 
+      // but let's be safe and stop the spinner.
+      setLoadingExisting(false);
+      return;
+    }
     let alive = true
     ;(async () => {
       try {
@@ -100,7 +121,7 @@ export default function BatchUpgradeForm() {
       }
     })()
     return () => { alive = false }
-  }, [user])
+  }, [user?.uid])
 
   const setField = (k, v) => setForm((s) => ({ ...s, [k]: v }))
   const toggleExam = (e) => {
@@ -134,16 +155,22 @@ export default function BatchUpgradeForm() {
 
   const onSubmit = async (e) => {
     e.preventDefault()
+    console.log('Submitting batch application...', form)
     const err = validate()
-    if (err) return toast.error(err)
+    if (err) {
+      console.warn('Validation failed:', err)
+      return toast.error(err)
+    }
     setSubmitting(true)
     try {
+      console.log('Uploading files...')
       const [photoURL, idProofURL, marksheetURL] = await Promise.all([
         uploadFile(files.photo, 'photo'),
         uploadFile(files.idProof, 'idproof'),
         files.lastMarksheet ? uploadFile(files.lastMarksheet, 'marksheet') : Promise.resolve(null),
       ])
 
+      console.log('Saving to Firestore...')
       await setDoc(doc(db, 'batchRequests', user.uid), {
         uid: user.uid,
         studentName: user.name || '',
@@ -165,21 +192,26 @@ export default function BatchUpgradeForm() {
       toast.success('Submitted. RBT team will call you within 24h.')
       navigate('/student')
     } catch (err) {
-      console.error(err)
-      toast.error('Submit failed. Try again.')
+      console.error('Submit error:', err)
+      toast.error(`Submit failed: ${err.message || 'Unknown error'}. Please check your connection.`)
     } finally {
       setSubmitting(false)
     }
   }
 
   if (loadingExisting) {
-    return <div className="p-8 text-slate-400">Loading...</div>
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+        <div className="w-8 h-8 border-2 border-green-brand border-t-transparent rounded-full animate-spin mb-4" />
+        <p>Checking enrollment status...</p>
+      </div>
+    )
   }
 
   // Status banners (pending/called/approved/rejected)
   if (existingRequest && ['pending', 'called', 'approved'].includes(existingRequest.status)) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-2xl mx-auto p-6 relative z-10">
         <div className={`rounded-2xl p-6 border ${existingRequest.status === 'approved' ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'}`}>
           <div className="flex items-center gap-3 mb-3">
             <div className={`w-12 h-12 rounded-full flex items-center justify-center ${existingRequest.status === 'approved' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
@@ -210,7 +242,7 @@ export default function BatchUpgradeForm() {
 
   if (existingRequest && existingRequest.status === 'rejected') {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-2xl mx-auto p-6 relative z-10">
         <div className="rounded-2xl p-6 border bg-red-500/10 border-red-500/30 mb-4">
           <h2 className="text-white text-xl font-bold mb-2">Request Rejected</h2>
           {existingRequest.adminNotes && (
@@ -227,13 +259,13 @@ export default function BatchUpgradeForm() {
 
   // Main form
   return (
-    <div className="max-w-3xl mx-auto p-2 sm:p-6">
+    <div className="max-w-3xl mx-auto p-2 sm:p-6 relative z-10">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-1">Apply for Offline Batch</h1>
         <p className="text-sm text-slate-400">Fill this form. Our team will call you within 24h. Pay fees at institution after approval.</p>
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-6 bg-[#111111] border border-slate-800 rounded-2xl p-6">
+      <form onSubmit={onSubmit} className="space-y-6 bg-[#111111] border border-slate-800 rounded-2xl p-6 shadow-2xl">
         {/* Student Contact */}
         <section>
           <h3 className="text-white font-bold mb-3">Your Contact</h3>
